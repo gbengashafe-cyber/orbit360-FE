@@ -1,4 +1,3 @@
-
 import React from "react"; // useState is no longer needed
 import { User } from "@/api/entities";
 import { Card, CardContent } from "@/components/ui/card"; // CardHeader, CardTitle are no longer needed
@@ -31,90 +30,88 @@ import Logo from "./Logo";
 // );
 
 export default function EmployeeLogin() {
-  // State variables and handlers for email/password login removed
-  // const [loginData, setLoginData] = useState({
-  //   email: "",
-  //   password: ""
-  // });
-  // const [loading, setLoading] = useState(false);
-  // const [googleLoading, setGoogleLoading] = useState(false);
-  // const [error, setError] = useState("");
+   // State variables and handlers for email/password login removed
+   // const [loginData, setLoginData] = useState({
+   //   email: "",
+   //   password: ""
+   // });
+   // const [loading, setLoading] = useState(false);
+   // const [googleLoading, setGoogleLoading] = useState(false);
+   // const [error, setError] = useState("");
 
-  // const handleInputChange = (field, value) => {
-  //   setLoginData(prev => ({
-  //     ...prev,
-  //     [field]: value
-  //   }));
-  // };
+   // const handleInputChange = (field, value) => {
+   //   setLoginData(prev => ({
+   //     ...prev,
+   //     [field]: value
+   //   }));
+   // };
 
-  // const handleEmailLogin = async (e) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-  //   setError("");
+   // const handleEmailLogin = async (e) => {
+   //   e.preventDefault();
+   //   setLoading(true);
+   //   setError("");
 
-  //   try {
-  //     if (loginData.email === "gbengashafe@gmail.com") {
-  //       await User.loginWithRedirect(window.location.origin);
-  //     } else {
-  //       await User.loginWithRedirect(window.location.origin);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error authenticating employee:', error);
-  //     setError("Login failed. Please check your credentials and try again.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+   //   try {
+   //     if (loginData.email === "gbengashafe@gmail.com") {
+   //       await User.loginWithRedirect(window.location.origin);
+   //     } else {
+   //       await User.loginWithRedirect(window.location.origin);
+   //     }
+   //   } catch (error) {
+   //     console.error('Error authenticating employee:', error);
+   //     setError("Login failed. Please check your credentials and try again.");
+   //   } finally {
+   //     setLoading(false);
+   //   }
+   // };
 
-  // const handleGoogleLogin = async () => {
-  //   setGoogleLoading(true);
-  //   setError("");
-  //   try {
-  //     await User.login();
-  //   } catch (err) {
-  //     setError("Google Sign-In failed. Please try again.");
-  //     setGoogleLoading(false);
-  //     console.error(err);
-  //   }
-  // };
+   // const handleGoogleLogin = async () => {
+   //   setGoogleLoading(true);
+   //   setError("");
+   //   try {
+   //     await User.login();
+   //   } catch (err) {
+   //     setError("Google Sign-In failed. Please try again.");
+   //     setGoogleLoading(false);
+   //     console.error(err);
+   //   }
+   // };
 
-  const handleLogin = () => {
-    // This now handles the primary sign-in action, likely Google or a similar SSO
-    User.login();
-  };
+   const handleLogin = () => {
+      // This now handles the primary sign-in action, likely Google or a similar SSO
+      // User.login();
+   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <Logo size="large" className="mx-auto mb-6" />
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Orbit360</h1>
-          <p className="text-lg text-gray-600 mb-8">360° Business Management Platform</p>
-          <p className="text-gray-500 mb-8">
-            Access your comprehensive business management dashboard
-          </p>
-        </div>
-        
-        <Card className="bg-white/80 backdrop-blur-sm shadow-xl border border-gray-200">
-          <CardContent className="p-8">
-            <Button 
-              onClick={handleLogin}
-              className="w-full bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white py-3 text-lg"
-            >
-              <Mail className="w-5 h-5 mr-2" /> {/* Changed from GoogleIcon to Mail as per outline, assumed intent is general SSO via email */}
-              Sign in with Google
-            </Button>
-            
-            <p className="text-xs text-gray-500 text-center mt-6">
-              By signing in, you agree to Orbit360's terms of service and privacy policy.
-            </p>
-          </CardContent>
-        </Card>
-        
-        <div className="text-center text-sm text-gray-500">
-          <p>Need help? Contact your system administrator.</p>
-        </div>
+   return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+         <div className="max-w-md w-full space-y-8">
+            <div className="text-center">
+               <Logo size="large" className="mx-auto mb-6" />
+               <h1 className="text-4xl font-bold text-gray-900 mb-2">Orbit360</h1>
+               <p className="text-lg text-gray-600 mb-8">360° Business Management Platform</p>
+               <p className="text-gray-500 mb-8">Access your comprehensive business management dashboard</p>
+            </div>
+
+            <Card className="bg-white/80 backdrop-blur-sm shadow-xl border border-gray-200">
+               <CardContent className="p-8">
+                  <Button
+                     onClick={handleLogin}
+                     className="w-full bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white py-3 text-lg">
+                     <Mail className="w-5 h-5 mr-2" />{" "}
+                     {/* Changed from GoogleIcon to Mail as per outline, assumed intent is general SSO via email */}
+                     Sign in with Google
+                  </Button>
+
+                  <p className="text-xs text-gray-500 text-center mt-6">
+                     By signing in, you agree to Orbit360's terms of service and privacy policy.
+                  </p>
+               </CardContent>
+            </Card>
+
+            <div className="text-center text-sm text-gray-500">
+               <p>Need help? Contact your system administrator.</p>
+            </div>
+         </div>
       </div>
-    </div>
-  );
+   );
 }
