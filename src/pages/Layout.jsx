@@ -1,0 +1,324 @@
+
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { User } from "@/api/entities";
+import { createPageUrl } from "@/utils";
+import {
+  LayoutDashboard,
+  Users,
+  LogOut,
+  ChevronDown,
+  Layers3,
+  Briefcase,
+  Users2,
+  CreditCard,
+  Calculator,
+  BookUser,
+  FolderArchive,
+  Star,
+  AreaChart,
+  UserCheck,
+  Receipt,
+  Wallet,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Calendar,
+  FileText,
+  Banknote,
+  BookCopy,
+  LayoutGrid,
+  ClipboardList,
+  PlaneTakeoff,
+  UserRoundX,
+  Shuffle,
+  Building2,
+  NotebookPen,
+  MessageSquareHeart,
+  FileBox,
+  BotMessageSquare,
+  BadgePercent,
+  GanttChartSquare,
+  HandCoins,
+  Settings,
+  Sparkles,
+  Download,
+  Paintbrush,
+  BarChart2 // Added BarChart2 for reports
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
+import EmployeeGate from "../components/EmployeeGate";
+import Logo from "../components/Logo";
+import PWAInstallPrompt from "../components/PWAInstallPrompt";
+import { PWAInstallContext } from "./components/PWAInstallContext";
+
+const hrNav = [
+  { title: "HR Dashboard", url: createPageUrl("HRDashboard"), icon: BookUser },
+  { title: "Employees", url: createPageUrl("Employees"), icon: Users2 },
+  { title: "Cooperative & Loans", url: createPageUrl("Cooperative"), icon: HandCoins },
+  { title: "Compensation Tool", url: createPageUrl("CompensationTool"), icon: Calculator },
+  { title: "Recruitment", url: createPageUrl("Recruitment"), icon: UserCheck },
+  { title: "Onboarding", url: createPageUrl("Onboarding"), icon: ClipboardList },
+  { title: "Performance", url: createPageUrl("Performance"), icon: Star },
+  { title: "KPI Management", url: createPageUrl("KPIManagement"), icon: BadgePercent },
+  { title: "Documents", url: createPageUrl("DocumentManagement"), icon: FolderArchive },
+  { title: "Payroll", url: createPageUrl("Payroll"), icon: Banknote },
+  { title: "My Payslips", url: createPageUrl("MyPayslips"), icon: FileText },
+  { title: "Tax Calculator", url: createPageUrl("TaxCalculator"), icon: Calculator },
+];
+
+const employeePortalNav = [
+    { title: "Appraisals", url: createPageUrl("Appraisals"), icon: BookCopy },
+    { title: "Leave Management", url: createPageUrl("LeaveManagement"), icon: PlaneTakeoff },
+    { title: "Exit Management", url: createPageUrl("ExitManagement"), icon: UserRoundX },
+    { title: "Document Hub", url: createPageUrl("CompanyDocuments"), icon: FileBox },
+    { title: "Staff Complaints", url: createPageUrl("StaffComplaints"), icon: MessageSquareHeart },
+    { title: "Request Training", url: createPageUrl("RequestTraining"), icon: NotebookPen },
+    { title: "Staff Movement", url: createPageUrl("StaffMovement"), icon: Shuffle },
+];
+
+const expenseManagementNav = [
+  { title: "Expense Settings", url: createPageUrl("ExpenseSettings"), icon: Settings },
+  { title: "Budget Manager", url: createPageUrl("BudgetManager"), icon: Wallet },
+  { title: "Approval Tracker", url: createPageUrl("ExpenseApprovals"), icon: GanttChartSquare },
+  { title: "Vendor Management", url: createPageUrl("VendorManagement"), icon: Briefcase },
+  { title: "Vendor Payment", url: createPageUrl("VendorPaymentProcessing"), icon: CreditCard },
+  { title: "Meeting Manager", url: createPageUrl("MeetingManager"), icon: Users },
+];
+
+const reportsNav = [
+  { title: "Financial Reports", url: createPageUrl("FinancialReports"), icon: BarChart2 },
+];
+
+const adminNav = [
+    { title: "User Management", url: createPageUrl("UserManagement"), icon: Users },
+    { title: "Install App", url: createPageUrl("InstallApp"), icon: Download },
+];
+
+
+const LayoutContent = ({ children }) => {
+  const location = useLocation();
+  const [employeeInfo, setEmployeeInfo] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const [isHrNavOpen, setHrNavOpen] = useState(false);
+  const [isEmployeePortalNavOpen, setEmployeePortalNavOpen] = useState(false);
+  const [isExpenseManagementNavOpen, setExpenseManagementNavOpen] = useState(false);
+  const [isReportsNavOpen, setReportsNavOpen] = useState(false); // New state for Reports
+  const [isAdminNavOpen, setIsAdminNavOpen] = useState(false);
+  
+  useEffect(() => {
+    const path = location.pathname;
+    const isDashboard = path === createPageUrl("Dashboard");
+    setHrNavOpen(hrNav.some(item => path === item.url) || isDashboard);
+    setEmployeePortalNavOpen(employeePortalNav.some(item => path === item.url));
+    setExpenseManagementNavOpen(expenseManagementNav.some(item => path === item.url));
+    setReportsNavOpen(reportsNav.some(item => path === item.url)); // Set state for Reports
+    setIsAdminNavOpen(adminNav.some(item => path === item.url));
+  }, [location.pathname]);
+
+  const MATERIAL_COLORS = {
+    primary: '#1976D2',
+    surface: '#FFFFFF',
+    background: '#FAFAFA',
+  };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await User.me();
+        setEmployeeInfo(user);
+        setIsAdmin(user.role === 'admin');
+      } catch (e) {
+        console.error("Failed to fetch user:", e);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleLogout = async () => {
+    await User.logout();
+  };
+
+  const NavItem = ({ item }) => (
+    <SidebarMenuItem key={item.title}>
+      <SidebarMenuButton
+        asChild
+        className={`transition-all duration-200 rounded-lg py-3 px-3 ${
+          location.pathname === item.url
+            ? 'bg-blue-50 text-blue-700 shadow-sm border-l-4 border-blue-700'
+            : 'hover:bg-gray-50 hover:shadow-sm text-gray-700 hover:text-gray-900'
+        }`}
+      >
+        <Link to={item.url} className="flex items-center gap-3 font-medium">
+          <item.icon className="w-5 h-5" />
+          <span>{item.title}</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+
+  const NavGroup = ({ title, isOpen, onOpenChange, navItems }) => (
+    <Collapsible open={isOpen} onOpenChange={onOpenChange}>
+      <CollapsibleTrigger className="w-full">
+        <SidebarGroupLabel className="text-xs font-semibold text-gray-600 uppercase tracking-wider px-3 py-2 flex justify-between items-center cursor-pointer hover:bg-gray-100 rounded-lg">
+          {title}
+          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </SidebarGroupLabel>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <SidebarGroupContent>
+          <SidebarMenu className="space-y-1 mt-1">
+            {navItems.map((item) => <NavItem key={item.title} item={item} />)}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="flex flex-col items-center space-y-3 text-gray-700">
+          <svg className="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span className="text-lg font-medium">Loading application...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex w-full" style={{ backgroundColor: MATERIAL_COLORS.background }}>
+      <Sidebar 
+        className="border-r border-gray-200 bg-white transition-all duration-300 shadow-lg" 
+        style={{ 
+          boxShadow: '0 8px 10px -5px rgba(0,0,0,0.2), 0 16px 24px 2px rgba(0,0,0,0.14), 0 6px 30px 5px rgba(0,0,0,0.12)'
+        }}
+        collapsible 
+        open={sidebarOpen}
+        onOpenChange={setSidebarOpen}
+      >
+        <SidebarHeader className="border-b border-gray-100 p-6 flex justify-between items-center" style={{ backgroundColor: MATERIAL_COLORS.primary }}>
+          <div className="flex items-center gap-3">
+            <Logo size="default" />
+            <div className={`${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
+              <h2 className="font-bold text-white text-lg">Orbit360</h2>
+              <p className="text-xs text-blue-100">Business Platform</p>
+            </div>
+          </div>
+          <div className="hidden lg:inline-flex">
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white hover:bg-blue-800">
+              {sidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+            </Button>
+          </div>
+        </SidebarHeader>
+
+        <SidebarContent className="p-4 space-y-2">
+            <SidebarMenuItem>
+                 <SidebarMenuButton asChild className={`transition-all duration-200 rounded-lg py-3 px-3 ${location.pathname === createPageUrl("Dashboard") ? 'bg-blue-50 text-blue-700 shadow-sm border-l-4 border-blue-700' : 'hover:bg-gray-50 hover:shadow-sm text-gray-700 hover:text-gray-900'}`}>
+                    <Link to={createPageUrl("Dashboard")} className="flex items-center gap-3 font-medium">
+                        <LayoutDashboard className="w-5 h-5" />
+                        <span>Dashboard</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            <NavGroup title="Human Resources" isOpen={isHrNavOpen} onOpenChange={setHrNavOpen} navItems={hrNav} />
+            <NavGroup title="Employee Portal" isOpen={isEmployeePortalNavOpen} onOpenChange={setEmployeePortalNavOpen} navItems={employeePortalNav} />
+            <NavGroup title="Finance Manager" isOpen={isExpenseManagementNavOpen} onOpenChange={setExpenseManagementNavOpen} navItems={expenseManagementNav} />
+            <NavGroup title="Reports & Analytics" isOpen={isReportsNavOpen} onOpenChange={setReportsNavOpen} navItems={reportsNav} />
+            {isAdmin && <NavGroup title="Administration" isOpen={isAdminNavOpen} onOpenChange={setIsAdminNavOpen} navItems={adminNav} />}
+        </SidebarContent>
+
+        <SidebarFooter className="border-t border-gray-100 p-4" style={{ backgroundColor: 'rgba(25, 118, 210, 0.04)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm" style={{ backgroundColor: MATERIAL_COLORS.primary }}>
+              <UserCheck className="w-5 h-5 text-white" />
+            </div>
+            <div className={`flex-1 min-w-0 ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
+              <p className="font-medium text-gray-900 text-sm truncate">
+                {employeeInfo?.full_name || "Sales Agent"}
+                {isAdmin && <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Admin</span>}
+              </p>
+              <p className="text-xs text-gray-600 truncate">
+                {employeeInfo?.email || "agent@orbit360.com"}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full"
+              onClick={handleLogout}
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+
+      <main className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
+        <div className="flex-1 overflow-auto">
+          <div className="h-full">
+            {children}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default function Layout({ children, currentPageName }) {
+  const [installPrompt, setInstallPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+  
+  if (["PublicJobView", "ScrollBoard"].includes(currentPageName)) {
+    return <>{children}</>;
+  }
+
+  return (
+    <EmployeeGate>
+      <PWAInstallContext.Provider value={installPrompt}>
+        <SidebarProvider>
+          <LayoutContent>{children}</LayoutContent>
+          {currentPageName !== "InstallApp" && <PWAInstallPrompt />}
+        </SidebarProvider>
+      </PWAInstallContext.Provider>
+    </EmployeeGate>
+  );
+}
