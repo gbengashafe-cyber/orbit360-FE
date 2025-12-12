@@ -68,7 +68,7 @@ import {
 import EmployeeGate from "../components/EmployeeGate";
 import Logo from "../components/Logo";
 import PWAInstallPrompt from "../components/PWAInstallPrompt";
-import { PWAInstallContext } from "./components/PWAInstallContext";
+import { PWAInstallContext } from "../components/PWAInstallContext";
 
 const hrNav = [
   { title: "HR Dashboard", url: createPageUrl("HRDashboard"), icon: BookUser },
