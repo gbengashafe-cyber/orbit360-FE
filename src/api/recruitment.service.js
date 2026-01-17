@@ -51,6 +51,10 @@ export const recruitmentService = {
     return apiClient.get(`${ApiRoutes.GetApplicationsByJobPosting(jobPostingId)}?page=${page}&rows=${rows}`);
   },
 
+  async getApplicationPipeline(jobPostingId) {
+    return apiClient.get(ApiRoutes.GetApplicationPipeline(jobPostingId));
+  },
+
   async createJobApplication(data) {
     return apiClient.post(ApiRoutes.CreateJobApplication, data);
   },
@@ -80,6 +84,31 @@ export const recruitmentService = {
 
   async deleteJobApplication(id) {
     return apiClient.delete(ApiRoutes.DeleteJobApplication(id));
+  },
+
+  // Applicants (Profile Management)
+  async getApplicants(page = 1, rows = 10) {
+    return apiClient.get(`${ApiRoutes.GetApplicants}?page=${page}&rows=${rows}`);
+  },
+
+  async getApplicantById(id) {
+    return apiClient.get(ApiRoutes.GetApplicantById(id));
+  },
+
+  async getApplicantByEmail(email) {
+    return apiClient.get(`${ApiRoutes.GetApplicants}?email=${encodeURIComponent(email)}`);
+  },
+
+  async createApplicant(data) {
+    return apiClient.post(ApiRoutes.CreateApplicant, data);
+  },
+
+  async updateApplicant(id, data) {
+    return apiClient.put(ApiRoutes.UpdateApplicant(id), data);
+  },
+
+  async deleteApplicant(id) {
+    return apiClient.delete(ApiRoutes.DeleteApplicant(id));
   },
 
   // Dashboard

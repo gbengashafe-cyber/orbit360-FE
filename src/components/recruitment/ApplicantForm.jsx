@@ -32,25 +32,43 @@ export default function ApplicantForm({ jobId, onApplicantAdded }) {
     setLoading(true);
 
     try {
-      // Prepare submission data with only required fields
+      // Validate required fields
+      if (!formData.applicant_name.trim()) {
+        showToast.error('Full name is required', 'Validation Error');
+        setLoading(false);
+        return;
+      }
+      if (!formData.applicant_email.trim()) {
+        showToast.error('Email is required', 'Validation Error');
+        setLoading(false);
+        return;
+      }
+      if (!formData.applicant_phone.trim()) {
+        showToast.error('Phone number is required', 'Validation Error');
+        setLoading(false);
+        return;
+      }
+
+      // Prepare submission data
       const submitData = {
         job_posting_id: parseInt(jobId),
-        applicant_name: formData.applicant_name,
-        applicant_email: formData.applicant_email,
+        applicant_name: formData.applicant_name.trim(),
+        applicant_email: formData.applicant_email.trim(),
+        applicant_phone: formData.applicant_phone.trim(),
       };
 
       // Add optional fields if provided
-      if (formData.applicant_phone) {
-        submitData.applicant_phone = formData.applicant_phone;
-      }
       if (formData.salary_expectation) {
-        submitData.salary_expectation = parseInt(formData.salary_expectation);
+        submitData.salary_expectation = parseFloat(formData.salary_expectation);
       }
       if (formData.cover_letter) {
-        submitData.cover_letter = formData.cover_letter;
+        submitData.cover_letter = formData.cover_letter.trim();
       }
       // Note: resume_url is optional, only include if you have a file URL
 
+      // Backend will auto-deduplicate applicants by email
+      // If email exists: reuse applicant record
+      // If new email: create applicant record
       await recruitmentService.createJobApplication(submitData);
       
       setFormData({
@@ -67,7 +85,8 @@ export default function ApplicantForm({ jobId, onApplicantAdded }) {
       onApplicantAdded();
     } catch (error) {
       console.error('Failed to add applicant:', error);
-      showToast.error(error.response?.data?.message || error.message || 'Could not add applicant. Please try again.', 'Error');
+      const errorMessage = error?.response?.data?.message || error.message || 'Could not add applicant. Please try again.';
+      showToast.error(errorMessage, 'Error');
     } finally {
       setLoading(false);
     }

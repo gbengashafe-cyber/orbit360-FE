@@ -52,11 +52,19 @@ export class ApiRoutes {
   static CreateJobApplication = '/v1/recruitments/applications';
   static DeleteJobApplication = (id) => `/v1/recruitments/applications/${id}`;
   static GetApplicationsByJobPosting = (jobPostingId) => `/v1/recruitments/applications/by-posting/${jobPostingId}`;
+  static GetApplicationPipeline = (jobPostingId) => `/v1/recruitments/applications/pipeline/${jobPostingId}`;
   static UpdateApplicationStatus = (id) => `/v1/recruitments/applications/${id}/status`;
   static ScheduleInterview = (id) => `/v1/recruitments/applications/${id}/schedule-interview`;
   static SendOffer = (id) => `/v1/recruitments/applications/${id}/send-offer`;
   static HireApplicant = (id) => `/v1/recruitments/applications/${id}/hire`;
   static RejectApplicant = (id) => `/v1/recruitments/applications/${id}/reject`;
+
+  // Recruitment - Applicants (Profile Management)
+  static GetApplicants = '/v1/recruitments/applicants';
+  static GetApplicantById = (id) => `/v1/recruitments/applicants/${id}`;
+  static CreateApplicant = '/v1/recruitments/applicants';
+  static UpdateApplicant = (id) => `/v1/recruitments/applicants/${id}`;
+  static DeleteApplicant = (id) => `/v1/recruitments/applicants/${id}`;
 
   // Recruitment - Dashboard
   static GetRecruitmentDashboardStats = '/v1/recruitments/dashboard/stats';

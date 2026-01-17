@@ -11,15 +11,25 @@ import { recruitmentService } from "@/api";
 
 
 const APPLICATION_STAGES = [
-  { key: "submitted", label: "Submitted", color: "bg-blue-100 text-blue-700" },
-  { key: "under_review", label: "Under Review", color: "bg-yellow-100 text-yellow-700" },
-  { key: "shortlisted", label: "Shortlisted", color: "bg-purple-100 text-purple-700" },
-  { key: "interview_scheduled", label: "Interview Scheduled", color: "bg-orange-100 text-orange-700" },
-  { key: "interviewed", label: "Interviewed", color: "bg-indigo-100 text-indigo-700" },
-  { key: "offer_made", label: "Offer Made", color: "bg-green-100 text-green-700" },
-  { key: "hired", label: "Hired", color: "bg-emerald-100 text-emerald-700" },
-  { key: "rejected", label: "Rejected", color: "bg-red-100 text-red-700" }
+  { key: "applied", label: "Submitted", color: "bg-blue-100 text-blue-700", backendStatus: "applied" },
+  { key: "under_review", label: "Under Review", color: "bg-yellow-100 text-yellow-700", backendStatus: "under_review" },
+  { key: "interviewed", label: "Shortlisted", color: "bg-purple-100 text-purple-700", backendStatus: "interviewed" },
+  { key: "interview_scheduled", label: "Interview Scheduled", color: "bg-orange-100 text-orange-700", backendStatus: "interview_scheduled" },
+  { key: "offered", label: "Offer Made", color: "bg-green-100 text-green-700", backendStatus: "offered" },
+  { key: "hired", label: "Hired", color: "bg-emerald-100 text-emerald-700", backendStatus: "hired" },
+  { key: "rejected", label: "Rejected", color: "bg-red-100 text-red-700", backendStatus: "rejected" }
 ];
+
+// Mapping for drag/drop: frontend key -> backend status
+const STAGE_TO_STATUS = {
+  "applied": "applied",
+  "under_review": "under_review",
+  "interviewed": "interviewed",
+  "interview_scheduled": "interview_scheduled",
+  "offered": "offered",
+  "hired": "hired",
+  "rejected": "rejected"
+};
 
 export default function ApplicationPipeline({ job, applications, onClose, onRefreshApplications }) {
   const [localApplications, setLocalApplications] = useState(applications);
@@ -74,7 +84,7 @@ export default function ApplicationPipeline({ job, applications, onClose, onRefr
   };
 
   const getStageApplications = (stageKey) => {
-    return localApplications.filter(app => app.status === stageKey)
+    return localApplications.filter(app => app.status === STAGE_TO_STATUS[stageKey])
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at)); // Maintain a consistent order
   };
 
