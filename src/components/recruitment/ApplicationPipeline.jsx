@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X, User, Mail, Phone, FileText } from "lucide-react";
+import { X, User, Mail, Phone, FileText, Loader2 } from "lucide-react";
 import ApplicantForm from './ApplicantForm';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -34,6 +34,8 @@ const STAGE_TO_STATUS = {
 export default function ApplicationPipeline({ job, applications, onClose, onRefreshApplications }) {
   const [localApplications, setLocalApplications] = useState(applications);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedItemName, setDraggedItemName] = useState('');
 
   // Synchronize localApplications with prop applications if applications changes from parent
   React.useEffect(() => {
@@ -62,7 +64,9 @@ export default function ApplicationPipeline({ job, applications, onClose, onRefr
       return;
     }
 
-    const applicant = localApplications.find(app => app.id === draggableId);
+    // Convert draggableId back to number since we converted it to string
+    const applicationId = parseInt(draggableId);
+    const applicant = localApplications.find(app => app.id === applicationId);
     if (!applicant) return;
 
     const originalStatus = applicant.status;
@@ -70,14 +74,18 @@ export default function ApplicationPipeline({ job, applications, onClose, onRefr
     
     if (originalStatus === newStatus) return;
 
+    // Set loading state
+    setIsDragging(true);
+    setDraggedItemName(applicant.applicant_name);
+
     // Optimistic UI update
     const updatedApplications = localApplications.map(app =>
-      app.id === draggableId ? { ...app, status: newStatus } : app
+      app.id === applicationId ? { ...app, status: newStatus } : app
     );
     setLocalApplications(updatedApplications);
 
     try {
-      await recruitmentService.updateApplicationStatus(draggableId, newStatus);
+      await recruitmentService.updateApplicationStatus(applicationId, newStatus);
       // TODO: Re-enable email notifications after thorough testing
       // if (applicant) {
       //   const newStatusLabel = APPLICATION_STAGES.find(s => s.key === newStatus)?.label || newStatus.replace('_', ' ');
@@ -93,6 +101,10 @@ export default function ApplicationPipeline({ job, applications, onClose, onRefr
       console.error("Failed to update application status:", error);
       setLocalApplications(applications);
       alert("Failed to move applicant. Please try again.");
+    } finally {
+      // Clear loading state
+      setIsDragging(false);
+      setDraggedItemName('');
     }
   };
 
@@ -102,7 +114,20 @@ export default function ApplicationPipeline({ job, applications, onClose, onRefr
   };
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm border-gray-200 h-full flex flex-col">
+    <div className="bg-white/90 backdrop-blur-sm border-gray-200 h-full flex flex-col relative">
+      {/* Loading Overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
+          <div className="bg-white rounded-lg shadow-lg p-6 flex flex-col items-center gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <p className="text-sm font-medium text-gray-900">
+              Moving <span className="font-semibold text-blue-600">{draggedItemName}</span>...
+            </p>
+            <p className="text-xs text-gray-500">Please wait</p>
+          </div>
+        </div>
+      )}
+      
       <div className="flex items-center justify-between p-4 border-b">
         <div>
            <ApplicantForm jobId={job.id} onApplicantAdded={onRefreshApplications} />
@@ -134,7 +159,7 @@ export default function ApplicationPipeline({ job, applications, onClose, onRefr
                     <ScrollArea className="h-[calc(90vh-180px)]">
                       <div className="p-2 space-y-2">
                         {getStageApplications(stage.key).map((application, index) => (
-                          <Draggable key={application.id} draggableId={application.id} index={index}>
+                          <Draggable key={application.id} draggableId={String(application.id)} index={index}>
                             {(provided, snapshot) => (
                               <div
                                 ref={provided.innerRef}
