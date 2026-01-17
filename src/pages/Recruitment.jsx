@@ -386,7 +386,7 @@ export default function Recruitment() {
                         <TableCell className="flex gap-1 flex-wrap">
                           <TooltipProvider>
                             <Button
-                              size="sm"
+                              size="sm" 
                               variant="outline"
                               onClick={() => setSelectedJob(job)}
                             >
