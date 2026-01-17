@@ -104,7 +104,7 @@ export default function ApplicationPipeline({ job, applications, onClose, onRefr
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-gray-900 text-sm">{stage.label}</h3>
                         <Badge className={stage.color}>
-                          {getStageApplications(stage.key).length}
+                          {getStageApplications(stage.key).length} application{getStageApplications(stage.key).length !== 1 ? 's' : ''}
                         </Badge>
                       </div>
                     </div>

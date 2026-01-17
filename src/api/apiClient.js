@@ -44,13 +44,24 @@ export const apiClient = {
         ...options,
       };
 
-      // Remove undefined values from request body
-      if (data && typeof data === 'object') {
+      // Check if data is FormData (for file uploads)
+      const isFormData = data instanceof FormData;
+      
+      // Remove undefined values from request body (skip for FormData)
+      if (data && typeof data === 'object' && !isFormData) {
         Object.keys(data).forEach(key => {
           if (data[key] === undefined) {
             delete data[key];
           }
         });
+      }
+
+      // Set proper content-type for FormData
+      if (isFormData) {
+        config.headers = {
+          ...config.headers,
+          'Content-Type': 'multipart/form-data',
+        };
       }
 
       let response;

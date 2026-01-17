@@ -367,7 +367,7 @@ export default function Recruitment() {
                         <TableCell className="capitalize">{job.employment_type.replace('_', ' ')}</TableCell>
                         <TableCell>
                           <Badge variant="secondary">
-                            {jobApplications.length} applications
+                            {jobApplications.length} application{jobApplications.length > 1 ? 's' : ''}
                           </Badge>
                         </TableCell>
                         <TableCell>
