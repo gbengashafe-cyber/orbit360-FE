@@ -33,11 +33,24 @@ const STAGE_TO_STATUS = {
 
 export default function ApplicationPipeline({ job, applications, onClose, onRefreshApplications }) {
   const [localApplications, setLocalApplications] = useState(applications);
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
 
   // Synchronize localApplications with prop applications if applications changes from parent
   React.useEffect(() => {
     setLocalApplications(applications);
   }, [applications]);
+
+  // Auto-refresh applications every 30 seconds to keep pipeline current
+  React.useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      if (onRefreshApplications) {
+        onRefreshApplications();
+        setLastRefresh(Date.now());
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [onRefreshApplications]);
 
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
