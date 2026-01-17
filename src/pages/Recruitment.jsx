@@ -192,7 +192,6 @@ export default function Recruitment() {
         <div>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading recruitment data...</p>
-          <p className="text-sm text-gray-500 mt-2">Make sure your backend server is running on localhost:3000</p>
         </div>
       </div>
     );
