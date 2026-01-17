@@ -22,6 +22,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Users, Plus, Briefcase, Calendar, TrendingUp, Linkedin, Check, X, Copy } from "lucide-react";
 
 import JobPostingForm from "../components/recruitment/JobPostingForm";
@@ -56,7 +57,11 @@ export default function Recruitment() {
       // Check if user is a Managing Director
       const employees = await employeeService.getEmployees(1, 100);
       const currentEmployee = employees?.data?.find(e => e.email === (user?.data?.email || user?.email));
-      setIsMD(currentEmployee?.position === "Managing Director");
+      const isMDUser = currentEmployee?.position === "Managing Director";
+      console.log('Current user:', user?.data?.email || user?.email);
+      console.log('Current employee:', currentEmployee?.position);
+      console.log('Is Managing Director:', isMDUser);
+      setIsMD(isMDUser);
     } catch (error) {
       console.error('Error loading current user:', error);
     }
@@ -379,41 +384,83 @@ export default function Recruitment() {
                           {job.posted_date && new Date(job.posted_date).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="flex gap-1 flex-wrap">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setSelectedJob(job)}
-                          >
-                            View Applications
-                          </Button>
-                           <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                            onClick={() => handleShareOnLinkedIn(job)}
-                            disabled={job.status !== 'active'}
-                          >
-                            <Linkedin className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-gray-600 border-gray-300 hover:bg-gray-50"
-                            onClick={() => handleCopyLink(job)}
-                            disabled={job.status !== 'active'}
-                          >
-                            {copiedJobId === job.id ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                          </Button>
-                           {job.status === 'active' && 
-                            <Button 
-                                size="sm" 
-                                variant="destructive" 
-                                className="bg-red-500 hover:bg-red-600 text-white"
-                                onClick={() => handleCloseRole(job)}
+                          <TooltipProvider>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedJob(job)}
                             >
-                                Close Role
-                            </Button>}
-                        </TableCell>
+                              View Applications
+                            </Button>
+                            {/* {job.status === 'pending_approval' && isMD && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-green-600 border-green-600 hover:bg-green-50"
+                                  onClick={() => handleApproval(job, true)}
+                                >
+                                  <Check className="w-4 h-4 mr-1" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-600 border-red-600 hover:bg-red-50"
+                                  onClick={() => handleApproval(job, false)}
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </>
+                            )} */}
+                            <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="pointer-events-auto">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  onClick={() => handleShareOnLinkedIn(job)}
+                                  disabled={job.status !== 'active'}
+                                >
+                                  <Linkedin className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {job.status === 'active' ? 'Share on LinkedIn' : 'Only available for active jobs'}
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="pointer-events-auto">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-gray-600 border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  onClick={() => handleCopyLink(job)}
+                                  disabled={job.status !== 'active'}
+                                >
+                                  {copiedJobId === job.id ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                                </Button>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {job.status === 'active' ? 'Copy link' : 'Only available for active jobs'}
+                            </TooltipContent>
+                          </Tooltip>
+                           {job.status === 'active' && 
+                             <Button 
+                                 size="sm" 
+                                 variant="destructive" 
+                                 className="bg-red-500 hover:bg-red-600 text-white"
+                                 onClick={() => handleCloseRole(job)}
+                             >
+                                 Close Role
+                             </Button>}
+                           </TooltipProvider>
+                           </TableCell>
                       </TableRow>
                     );
                   })}
