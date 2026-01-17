@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { JobApplication } from '@/api/entities';
-import { UploadFile } from '@/api/integrations';
 import { Loader2, UserPlus, Upload } from 'lucide-react';
+import { recruitmentService } from '@/api';
+import { showToast } from '@/utils/toast';
 import {
   Dialog,
   DialogContent,
@@ -30,24 +30,24 @@ export default function ApplicantForm({ jobId, onApplicantAdded }) {
     setLoading(true);
 
     try {
-      let resume_url = '';
-      if (resumeFile) {
-        const uploadResult = await UploadFile({ file: resumeFile });
-        resume_url = uploadResult.file_url;
-      }
-
-      await JobApplication.create({
+      await recruitmentService.createJobApplication({
         ...formData,
-        job_posting_id: jobId,
-        resume_url,
-        salary_expectation: parseFloat(formData.salary_expectation) || 0,
-        status: 'submitted',
+        job_posting_id: parseInt(jobId),
       });
       
-      onApplicantAdded(); // Refresh the list
+      setFormData({
+        applicant_name: '',
+        applicant_email: '',
+        applicant_phone: '',
+        salary_expectation: '',
+      });
+      setResumeFile(null);
+      
+      showToast.success('Applicant added successfully!', 'Success');
+      onApplicantAdded();
     } catch (error) {
       console.error('Failed to add applicant:', error);
-      alert('Could not add applicant. Please try again.');
+      showToast.error(error.message || 'Could not add applicant. Please try again.', 'Error');
     } finally {
       setLoading(false);
     }

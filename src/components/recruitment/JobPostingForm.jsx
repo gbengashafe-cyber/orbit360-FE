@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Save } from "lucide-react";
+import { Calendar as CalendarIcon, Save, Loader2, X } from "lucide-react";
+import { recruitmentService } from "@/api/recruitment.service";
 
 const DEPARTMENTS = ["hr", "sales", "marketing", "finance", "operations", "it", "admin"];
-const EMPLOYMENT_TYPES = ["full_time", "part_time", "contract", "internship"];
+const EMPLOYMENT_TYPES = ["full_time", "part_time", "contract", "temporary"];
 
 export default function JobPostingForm({ onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
@@ -22,20 +23,88 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
     salary_range_max: "",
     description: "",
     requirements: "",
-    responsibilities: "",
-    application_deadline: "",
     hiring_manager: ""
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const submissionData = {
-      ...formData,
-      salary_range_min: parseFloat(formData.salary_range_min) || 0,
-      salary_range_max: parseFloat(formData.salary_range_max) || 0,
-      application_deadline: formData.application_deadline ? format(new Date(formData.application_deadline), 'yyyy-MM-dd') : null
-    };
-    onSubmit(submissionData);
+    e.stopPropagation();
+    
+    // Prevent double submission
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Validate required fields
+      if (!formData.title.trim()) {
+        setError("Job title is required");
+        setIsLoading(false);
+        return;
+      }
+      if (formData.title.trim().length < 3) {
+        setError("Job title must be at least 3 characters");
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.description.trim()) {
+        setError("Job description is required");
+        setIsLoading(false);
+        return;
+      }
+      if (formData.description.trim().length < 10) {
+        setError("Job description must be at least 10 characters");
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.requirements.trim()) {
+        setError("Requirements are required");
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.location.trim()) {
+        setError("Location is required");
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.department) {
+        setError("Department is required");
+        setIsLoading(false);
+        return;
+      }
+
+      const salaryMin = formData.salary_range_min ? parseFloat(formData.salary_range_min) : 0;
+      const salaryMax = formData.salary_range_max ? parseFloat(formData.salary_range_max) : 0;
+
+      if (salaryMin > 0 && salaryMax > 0 && salaryMin > salaryMax) {
+        setError("Minimum salary cannot be greater than maximum salary");
+        setIsLoading(false);
+        return;
+      }
+
+      const submissionData = {
+        title: formData.title.trim(),
+        department: formData.department,
+        employment_type: formData.employment_type,
+        location: formData.location.trim(),
+        salary_range_min: salaryMin > 0 ? salaryMin : undefined,
+        salary_range_max: salaryMax > 0 ? salaryMax : undefined,
+        description: formData.description.trim(),
+        requirements: formData.requirements.trim(),
+        created_by: formData.hiring_manager || 'system@orbit360.com'
+      };
+
+      const response = await recruitmentService.createJobPosting(submissionData);
+      onSubmit(response);
+    } catch (err) {
+      console.error('Error details:', err);
+      setError(err.response?.data?.message || err.message || "Failed to create job posting");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field, value) => {
@@ -44,6 +113,11 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+          {error}
+        </div>
+      )}
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="title">Job Title *</Label>
@@ -152,15 +226,15 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Job Description *</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => handleInputChange("description", e.target.value)}
-          required
-          rows={4}
-          placeholder="Describe the role and what the successful candidate will be doing..."
-        />
+       <Label htmlFor="description">Job Description * <span className="text-xs text-gray-500">(min 10 characters)</span></Label>
+       <Textarea
+         id="description"
+         value={formData.description}
+         onChange={(e) => handleInputChange("description", e.target.value)}
+         required
+         rows={4}
+         placeholder="Describe the role and what the successful candidate will be doing... (minimum 10 characters)"
+       />
       </div>
 
       <div className="space-y-2">
@@ -175,24 +249,27 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="responsibilities">Key Responsibilities</Label>
-        <Textarea
-          id="responsibilities"
-          value={formData.responsibilities}
-          onChange={(e) => handleInputChange("responsibilities", e.target.value)}
-          rows={4}
-          placeholder="List the main responsibilities for this role..."
-        />
-      </div>
-
       <div className="flex justify-end gap-3 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+          <X className="w-4 h-4 mr-2" />
           Cancel
         </Button>
-        <Button type="submit" className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white">
-          <Save className="w-4 h-4 mr-2" />
-          Post Job
+        <Button 
+          type="submit" 
+          className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              Post Job
+            </>
+          )}
         </Button>
       </div>
     </form>

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
-import { JobPosting, JobApplication, Employee, User } from "@/api/entities";
-import { SendEmail } from "@/api/integrations";
+import { userService, employeeService, recruitmentService } from "@/api";
+import { showToast } from "@/utils/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,12 @@ import ApplicationPipeline from "../components/recruitment/ApplicationPipeline";
 export default function Recruitment() {
   const [jobPostings, setJobPostings] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    activeJobs: 0,
+    totalApplications: 0,
+    pendingInterviews: 0,
+    hireRate: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [showJobForm, setShowJobForm] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -38,38 +44,64 @@ export default function Recruitment() {
   const [copiedJobId, setCopiedJobId] = useState(null);
 
   useEffect(() => {
+    loadCurrentUser();
     loadData();
   }, []);
 
+  const loadCurrentUser = async () => {
+    try {
+      const user = await userService.getCurrentUser();
+      setCurrentUser(user?.data || user);
+      
+      // Check if user is a Managing Director
+      const employees = await employeeService.getEmployees(1, 100);
+      const currentEmployee = employees?.data?.find(e => e.email === (user?.data?.email || user?.email));
+      setIsMD(currentEmployee?.position === "Managing Director");
+    } catch (error) {
+      console.error('Error loading current user:', error);
+    }
+  };
+
   const loadData = async () => {
+    console.log('loadData called');
     setLoading(true);
     try {
-      const [user, jobsData, applicationsData, employeesData] = await Promise.all([
-        User.me(),
-        JobPosting.list('-created_date'),
-        JobApplication.list('-created_date'),
-        Employee.list()
+      // Fetch recruitment data without authentication
+      const [jobsResponse, applicationsResponse, statsResponse] = await Promise.all([
+        recruitmentService.getJobPostings(1, 100),
+        recruitmentService.getJobApplications(1, 100),
+        recruitmentService.getDashboardStats()
       ]);
       
-      setCurrentUser(user);
-      const userEmployeeProfile = employeesData.find(e => e.email === user.email);
-      if (userEmployeeProfile && userEmployeeProfile.position === 'Managing Director') {
-        setIsMD(true);
-      } else {
-        setIsMD(false); // Ensure it's reset if user logs out or role changes
-      }
+      // Set job postings
+      const jobs = Array.isArray(jobsResponse) ? jobsResponse : (jobsResponse?.data || []);
+      setJobPostings(jobs);
+      
+      // Set applications
+      const applications = Array.isArray(applicationsResponse) ? applicationsResponse : (applicationsResponse?.data || []);
+      setApplications(applications);
+      
+      // Set dashboard stats from API
+      const stats = statsResponse?.data || statsResponse || {};
+      setDashboardStats({
+        activeJobs: stats.activeJobs || 0,
+        totalApplications: stats.totalApplications || 0,
+        pendingInterviews: stats.pendingInterviews || 0,
+        hireRate: stats.hireRate || 0,
+      });
 
-      setJobPostings(jobsData);
-      setApplications(applicationsData);
+      console.log('Recruitment data loaded successfully');
     } catch (error) {
       console.error('Error loading recruitment data:', error);
+      showToast.error('Failed to load recruitment data', 'Error');
     } finally {
       setLoading(false);
     }
   };
   
   const getManagingDirectorEmails = async () => {
-      const employees = await Employee.list();
+      const response = await employeeService.getEmployees(1, 100);
+      const employees = response.data || [];
       return employees
         .filter(e => e.position === "Managing Director")
         .map(e => e.email);
@@ -97,99 +129,48 @@ export default function Recruitment() {
     });
   };
 
-  const handleJobSubmit = async (jobData) => {
+  const handleJobSubmit = async (response) => {
     try {
-      const newJob = await JobPosting.create({
-        ...jobData,
-        posted_date: new Date().toISOString().split('T')[0],
-        status: 'pending_approval',
-        created_by: currentUser.email // Store the creator's email
-      });
+      console.log('Job posting created successfully:', response);
       setShowJobForm(false);
       
-      const mdEmails = await getManagingDirectorEmails();
-      if (mdEmails.length > 0) {
-          for (const email of mdEmails) {
-              await SendEmail({
-                  to: email,
-                  subject: `New Job Posting for Approval: ${jobData.title}`,
-                  body: `
-                      <p>Dear Managing Director,</p>
-                      <p>A new job posting, "<strong>${jobData.title}</strong>", has been created by <strong>${currentUser.full_name}</strong> and requires your approval.</p>
-                      <p>Please log in to the HR & PM platform to review and approve the posting.</p>
-                      <p>Thank you.</p>
-                  `,
-                  from_name: "Isaac-Bern HR & PM Platform"
-              });
-          }
-      }
+      // Extract title from the response
+      const jobTitle = response?.title || response?.data?.title || 'Job posting';
+      showToast.success(`"${jobTitle}" created successfully and is pending approval`, 'Job Posted');
       
-      loadData();
+      // Reload data to show the new job posting
+      await loadData();
     } catch (error) {
-      console.error('Error creating job posting:', error);
+      console.error('Error after job creation:', error);
+      showToast.error(error.response?.data?.message || error.message || 'Failed to reload data', 'Error');
     }
   };
 
   const handleApproval = async (job, approved) => {
     try {
-        const newStatus = approved ? 'active' : 'rejected';
-        await JobPosting.update(job.id, { 
-            status: newStatus,
-            approved_by: currentUser.email,
-            approved_date: new Date().toISOString().split('T')[0]
-        });
-        
-        // Notify the job creator (HR Officer)
-        if (job.created_by) {
-            const hrOfficer = await User.filter({ email: job.created_by });
-            if (hrOfficer.length > 0) {
-                await SendEmail({
-                    to: hrOfficer[0].email,
-                    subject: `Job Posting Update: ${job.title}`,
-                    body: `
-                        <p>Dear ${hrOfficer[0].full_name || 'HR Officer'},</p>
-                        <p>The job posting for "<strong>${job.title}</strong>" has been <strong>${approved ? 'approved' : 'rejected'}</strong> by <strong>${currentUser.full_name}</strong>.</p>
-                        <p>${approved ? 'It is now active and publicly visible.' : 'Please review and make necessary adjustments.'}</p>
-                        <p>Thank you.</p>
-                    `,
-                    from_name: "Isaac-Bern HR & PM Platform"
-                });
-            }
+        if (approved) {
+            await recruitmentService.approveJobPosting(job.id, currentUser.email);
+        } else {
+            await recruitmentService.rejectJobPosting(job.id);
         }
         
+        showToast.success(`Job posting ${approved ? 'approved' : 'rejected'} successfully!`, 'Success');
         loadData();
     } catch (error) {
         console.error('Error updating job status:', error);
+        showToast.error(error.message || 'Failed to update job status', 'Error');
     }
   };
 
   const handleCloseRole = async (job) => {
       if (!window.confirm("Are you sure you want to close this role? This will prevent new applications.")) return;
       try {
-          await JobPosting.update(job.id, { status: 'closed' });
-          
-          const mdEmails = await getManagingDirectorEmails();
-          const notificationEmails = [job.created_by, ...mdEmails];
-          
-          for (const email of [...new Set(notificationEmails)]) { // Use Set to avoid duplicate emails
-              if (email) {
-                  await SendEmail({
-                      to: email,
-                      subject: `Role Closed: ${job.title}`,
-                      body: `
-                          <p>Dear Recipient,</p>
-                          <p>The job posting for "<strong>${job.title}</strong>" has been marked as <strong>closed</strong> by <strong>${currentUser.full_name}</strong>.</p>
-                          <p>No new applications will be accepted for this role.</p>
-                          <p>Thank you.</p>
-                      `,
-                      from_name: "Isaac-Bern HR & PM Platform"
-                  });
-              }
-          }
-          
+          await recruitmentService.closeJobPosting(job.id);
+          showToast.success('Job posting closed successfully!', 'Success');
           loadData();
       } catch(error) {
           console.error("Error closing role:", error);
+          showToast.error(error.message || 'Failed to close job posting', 'Error');
       }
   }
 
@@ -206,11 +187,36 @@ export default function Recruitment() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Loading recruitment data...</div>;
+    return (
+      <div className="p-8 text-center min-h-screen flex items-center justify-center">
+        <div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading recruitment data...</p>
+          <p className="text-sm text-gray-500 mt-2">Make sure your backend server is running on localhost:3000</p>
+        </div>
+      </div>
+    );
   }
+
+  // if (!currentUser) {
+  //   return (
+  //     <div className="p-8 text-center min-h-screen flex items-center justify-center">
+  //       <div>
+  //         <p className="text-red-600 font-semibold mb-4">Failed to load user information</p>
+  //         <p className="text-gray-600 mb-4">Backend server may not be running at http://localhost:3000</p>
+  //         <button 
+  //           onClick={() => window.location.reload()} 
+  //           className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
+  //         >
+  //           Retry
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
   
   const pendingApprovalJobs = jobPostings.filter(j => j.status === 'pending_approval');
-  const otherJobs = jobPostings.filter(j => j.status !== 'pending_approval');
+  const displayedJobs = jobPostings; // Show all jobs in the main table
 
   return (
     <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
@@ -242,16 +248,14 @@ export default function Recruitment() {
           </Dialog>
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Cards - KPI Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Active Jobs</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {jobPostings.filter(j => j.status === 'active').length}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeJobs}</p>
                 </div>
                 <Briefcase className="w-8 h-8 text-blue-600" />
               </div>
@@ -263,7 +267,7 @@ export default function Recruitment() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Applications</p>
-                  <p className="text-2xl font-bold text-gray-900">{applications.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalApplications}</p>
                 </div>
                 <Users className="w-8 h-8 text-green-600" />
               </div>
@@ -275,9 +279,7 @@ export default function Recruitment() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Pending Interviews</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {applications.filter(a => a.status === 'interview_scheduled').length}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.pendingInterviews}</p>
                 </div>
                 <Calendar className="w-8 h-8 text-purple-600" />
               </div>
@@ -289,11 +291,7 @@ export default function Recruitment() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Hire Rate</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {applications.length > 0
-                      ? Math.round((applications.filter(a => a.status === 'hired').length / applications.length) * 100)
-                      : 0}%
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.hireRate}%</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-orange-600" />
               </div>
@@ -356,7 +354,7 @@ export default function Recruitment() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {otherJobs.map((job) => {
+                  {displayedJobs.map((job) => {
                     const jobApplications = applications.filter(a => a.job_posting_id === job.id);
                     return (
                       <TableRow key={job.id} className="hover:bg-gray-50/50 transition-colors">

@@ -7,8 +7,7 @@ import { X, User, Mail, Phone, FileText } from "lucide-react";
 import ApplicantForm from './ApplicantForm';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { JobApplication } from "@/api/entities";
-import { SendEmail } from "@/api/integrations";
+import { recruitmentService } from "@/api";
 
 
 const APPLICATION_STAGES = [
@@ -55,7 +54,7 @@ export default function ApplicationPipeline({ job, applications, onClose, onRefr
     setLocalApplications(updatedApplications);
 
     try {
-      await JobApplication.update(draggableId, { status: newStatus });
+      await recruitmentService.updateApplicationStatus(draggableId, newStatus);
       // TODO: Re-enable email notifications after thorough testing
       // if (applicant) {
       //   const newStatusLabel = APPLICATION_STAGES.find(s => s.key === newStatus)?.label || newStatus.replace('_', ' ');
@@ -66,11 +65,10 @@ export default function ApplicationPipeline({ job, applications, onClose, onRefr
       //     from_name: "Isaac-Bern HR"
       //   });
       // }
-      onRefreshApplications(); // Refresh the main list
+      onRefreshApplications();
     } catch (error) {
       console.error("Failed to update application status:", error);
-      // Revert UI on failure
-      setLocalApplications(applications); // Revert to the original applications prop
+      setLocalApplications(applications);
       alert("Failed to move applicant. Please try again.");
     }
   };
