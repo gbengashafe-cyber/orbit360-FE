@@ -1,316 +1,272 @@
-import Layout from "./Layout.jsx";
-
-import Dashboard from "./Dashboard";
-
-import ClientAuth from "./ClientAuth";
-
-import UserManagement from "./UserManagement";
-
-import Payroll from "./Payroll";
-
-import Recruitment from "./Recruitment";
-
-import Employees from "./Employees";
-
-import TaxCalculator from "./TaxCalculator";
-
-import EmailCenter from "./EmailCenter";
-
-import SocialHub from "./SocialHub";
-
-import Projects from "./Projects";
-
-import ProjectBoard from "./ProjectBoard";
-
-import AgileDesk from "./AgileDesk";
-
-import AgileDeskBoard from "./AgileDeskBoard";
-
-import AgileDeskReports from "./AgileDeskReports";
-
-import HRDashboard from "./HRDashboard";
-
-import DocumentManagement from "./DocumentManagement";
-
-import Performance from "./Performance";
-
-import Onboarding from "./Onboarding";
-
-import MyPayslips from "./MyPayslips";
-
-import Expenses from "./Expenses";
-
-import ExpenseDetail from "./ExpenseDetail";
-
-import ExpenseSettings from "./ExpenseSettings";
-
-import CompensationTool from "./CompensationTool";
-
-import ExpenseApprovals from "./ExpenseApprovals";
-
-import MeetingManager from "./MeetingManager";
-
-import LeaveManagement from "./LeaveManagement";
-
-import Appraisals from "./Appraisals";
-
-import ExitManagement from "./ExitManagement";
-
-import InstallApp from "./InstallApp";
-
-import ScrollBoard from "./ScrollBoard";
-
-import StaffComplaints from "./StaffComplaints";
-
-import RequestTraining from "./RequestTraining";
-
-import VendorManagement from "./VendorManagement";
-
-import StaffMovement from "./StaffMovement";
-
-import BudgetManager from "./BudgetManager";
-
-import SmartContentEngine from "./SmartContentEngine";
-
-import VendorPaymentProcessing from "./VendorPaymentProcessing";
-
-import PublicJobView from "./PublicJobView";
-
-import Cooperative from "./Cooperative";
-
-import KPIManagement from "./KPIManagement";
-
-import CompanyDocuments from "./CompanyDocuments";
-
-import KanbanBoards from "./KanbanBoards";
-
-import Analytics from "./Analytics";
-
-import Contacts from "./Contacts";
-
-import Deals from "./Deals";
-
-import FinancialReports from "./FinancialReports";
-
-import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
+import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom';
+import AgileDesk from './AgileDesk';
+import AgileDeskBoard from './AgileDeskBoard';
+import AgileDeskReports from './AgileDeskReports';
+import Analytics from './Analytics';
+import Appraisals from './Appraisals';
+import BudgetManager from './BudgetManager';
+import ClientAuth from './ClientAuth';
+import CompanyDocuments from './CompanyDocuments';
+import CompensationTool from './CompensationTool';
+import Contacts from './Contacts';
+import Cooperative from './Cooperative';
+import Dashboard from './Dashboard';
+import Deals from './Deals';
+import DocumentManagement from './DocumentManagement';
+import EmailCenter from './EmailCenter';
+import Employees from './Employees';
+import ExitManagement from './ExitManagement';
+import ExpenseApprovals from './ExpenseApprovals';
+import ExpenseDetail from './ExpenseDetail';
+import Expenses from './Expenses';
+import ExpenseSettings from './ExpenseSettings';
+import FinancialReports from './FinancialReports';
+import HRDashboard from './HRDashboard';
+import InstallApp from './InstallApp';
+import KanbanBoards from './KanbanBoards';
+import KPIManagement from './KPIManagement';
+import Layout from './Layout.jsx';
+import LeaveManagement from './LeaveManagement';
+import LoginPage from './login/Login';
+import MeetingManager from './MeetingManager';
+import MyPayslips from './MyPayslips';
+import Onboarding from './Onboarding';
+import Payroll from './Payroll';
+import Performance from './Performance';
+import ProjectBoard from './ProjectBoard';
+import Projects from './Projects';
+import PublicJobView from './PublicJobView';
+import Recruitment from './Recruitment';
+import RequestTraining from './RequestTraining';
+import ScrollBoard from './ScrollBoard';
+import SmartContentEngine from './SmartContentEngine';
+import SocialHub from './SocialHub';
+import StaffComplaints from './StaffComplaints';
+import StaffMovement from './StaffMovement';
+import TaxCalculator from './TaxCalculator';
+import UserManagement from './UserManagement';
+import VendorManagement from './VendorManagement';
+import VendorPaymentProcessing from './VendorPaymentProcessing';
 
 const PAGES = {
-   Dashboard: Dashboard,
+  Dashboard: Dashboard,
 
-   ClientAuth: ClientAuth,
+  ClientAuth: ClientAuth,
 
-   UserManagement: UserManagement,
+  UserManagement: UserManagement,
 
-   Payroll: Payroll,
+  Payroll: Payroll,
 
-   Recruitment: Recruitment,
+  Recruitment: Recruitment,
 
-   Employees: Employees,
+  Employees: Employees,
 
-   TaxCalculator: TaxCalculator,
+  TaxCalculator: TaxCalculator,
 
-   EmailCenter: EmailCenter,
+  EmailCenter: EmailCenter,
 
-   SocialHub: SocialHub,
+  SocialHub: SocialHub,
 
-   Projects: Projects,
+  Projects: Projects,
 
-   ProjectBoard: ProjectBoard,
+  ProjectBoard: ProjectBoard,
 
-   AgileDesk: AgileDesk,
+  AgileDesk: AgileDesk,
 
-   AgileDeskBoard: AgileDeskBoard,
+  AgileDeskBoard: AgileDeskBoard,
 
-   AgileDeskReports: AgileDeskReports,
+  AgileDeskReports: AgileDeskReports,
 
-   HRDashboard: HRDashboard,
+  HRDashboard: HRDashboard,
 
-   DocumentManagement: DocumentManagement,
+  DocumentManagement: DocumentManagement,
 
-   Performance: Performance,
+  Performance: Performance,
 
-   Onboarding: Onboarding,
+  Onboarding: Onboarding,
 
-   MyPayslips: MyPayslips,
+  MyPayslips: MyPayslips,
 
-   Expenses: Expenses,
+  Expenses: Expenses,
 
-   ExpenseDetail: ExpenseDetail,
+  ExpenseDetail: ExpenseDetail,
 
-   ExpenseSettings: ExpenseSettings,
+  ExpenseSettings: ExpenseSettings,
 
-   CompensationTool: CompensationTool,
+  CompensationTool: CompensationTool,
 
-   ExpenseApprovals: ExpenseApprovals,
+  ExpenseApprovals: ExpenseApprovals,
 
-   MeetingManager: MeetingManager,
+  MeetingManager: MeetingManager,
 
-   LeaveManagement: LeaveManagement,
+  LeaveManagement: LeaveManagement,
 
-   Appraisals: Appraisals,
+  Appraisals: Appraisals,
 
-   ExitManagement: ExitManagement,
+  ExitManagement: ExitManagement,
 
-   InstallApp: InstallApp,
+  InstallApp: InstallApp,
 
-   ScrollBoard: ScrollBoard,
+  ScrollBoard: ScrollBoard,
 
-   StaffComplaints: StaffComplaints,
+  StaffComplaints: StaffComplaints,
 
-   RequestTraining: RequestTraining,
+  RequestTraining: RequestTraining,
 
-   VendorManagement: VendorManagement,
+  VendorManagement: VendorManagement,
 
-   StaffMovement: StaffMovement,
+  StaffMovement: StaffMovement,
 
-   BudgetManager: BudgetManager,
+  BudgetManager: BudgetManager,
 
-   SmartContentEngine: SmartContentEngine,
+  SmartContentEngine: SmartContentEngine,
 
-   VendorPaymentProcessing: VendorPaymentProcessing,
+  VendorPaymentProcessing: VendorPaymentProcessing,
 
-   PublicJobView: PublicJobView,
+  PublicJobView: PublicJobView,
 
-   Cooperative: Cooperative,
+  Cooperative: Cooperative,
 
-   KPIManagement: KPIManagement,
+  KPIManagement: KPIManagement,
 
-   CompanyDocuments: CompanyDocuments,
+  CompanyDocuments: CompanyDocuments,
 
-   KanbanBoards: KanbanBoards,
+  KanbanBoards: KanbanBoards,
 
-   Analytics: Analytics,
+  Analytics: Analytics,
 
-   Contacts: Contacts,
+  Contacts: Contacts,
 
-   Deals: Deals,
+  Deals: Deals,
 
-   FinancialReports: FinancialReports,
+  FinancialReports: FinancialReports,
+
+  Login: LoginPage,
 };
 
 function _getCurrentPage(url) {
-   if (url.endsWith("/")) {
-      url = url.slice(0, -1);
-   }
-   let urlLastPart = url.split("/").pop();
-   if (urlLastPart.includes("?")) {
-      urlLastPart = urlLastPart.split("?")[0];
-   }
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  let urlLastPart = url.split('/').pop();
+  if (urlLastPart.includes('?')) {
+    urlLastPart = urlLastPart.split('?')[0];
+  }
 
-   const pageName = Object.keys(PAGES).find((page) => page.toLowerCase() === urlLastPart.toLowerCase());
-   return pageName || Object.keys(PAGES)[0];
+  const pageName = Object.keys(PAGES).find((page) => page.toLowerCase() === urlLastPart.toLowerCase());
+  return pageName || Object.keys(PAGES)[0];
 }
 
 // Create a wrapper component that uses useLocation inside the Router context
 function PagesContent() {
-   const location = useLocation();
-   const currentPage = _getCurrentPage(location.pathname);
+  const location = useLocation();
+  const currentPage = _getCurrentPage(location.pathname);
 
-   return (
-      <Layout currentPageName={currentPage}>
-         <Routes>
-            <Route path="/" element={<Dashboard />} />
+  return (
+    <Layout currentPageName={currentPage}>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
 
-            <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/Dashboard" element={<Dashboard />} />
 
-            <Route path="/ClientAuth" element={<ClientAuth />} />
+        <Route path="/ClientAuth" element={<ClientAuth />} />
 
-            <Route path="/UserManagement" element={<UserManagement />} />
+        <Route path="/UserManagement" element={<UserManagement />} />
 
-            <Route path="/Payroll" element={<Payroll />} />
+        <Route path="/Payroll" element={<Payroll />} />
 
-            <Route path="/Recruitment" element={<Recruitment />} />
+        <Route path="/Recruitment" element={<Recruitment />} />
 
-            <Route path="/Employees" element={<Employees />} />
+        <Route path="/Employees" element={<Employees />} />
 
-            <Route path="/TaxCalculator" element={<TaxCalculator />} />
+        <Route path="/TaxCalculator" element={<TaxCalculator />} />
 
-            <Route path="/EmailCenter" element={<EmailCenter />} />
+        <Route path="/EmailCenter" element={<EmailCenter />} />
 
-            <Route path="/SocialHub" element={<SocialHub />} />
+        <Route path="/SocialHub" element={<SocialHub />} />
 
-            <Route path="/Projects" element={<Projects />} />
+        <Route path="/Projects" element={<Projects />} />
 
-            <Route path="/ProjectBoard" element={<ProjectBoard />} />
+        <Route path="/ProjectBoard" element={<ProjectBoard />} />
 
-            <Route path="/AgileDesk" element={<AgileDesk />} />
+        <Route path="/AgileDesk" element={<AgileDesk />} />
 
-            <Route path="/AgileDeskBoard" element={<AgileDeskBoard />} />
+        <Route path="/AgileDeskBoard" element={<AgileDeskBoard />} />
 
-            <Route path="/AgileDeskReports" element={<AgileDeskReports />} />
+        <Route path="/AgileDeskReports" element={<AgileDeskReports />} />
 
-            <Route path="/HRDashboard" element={<HRDashboard />} />
+        <Route path="/HRDashboard" element={<HRDashboard />} />
 
-            <Route path="/DocumentManagement" element={<DocumentManagement />} />
+        <Route path="/DocumentManagement" element={<DocumentManagement />} />
 
-            <Route path="/Performance" element={<Performance />} />
+        <Route path="/Performance" element={<Performance />} />
 
-            <Route path="/Onboarding" element={<Onboarding />} />
+        <Route path="/Onboarding" element={<Onboarding />} />
 
-            <Route path="/MyPayslips" element={<MyPayslips />} />
+        <Route path="/MyPayslips" element={<MyPayslips />} />
 
-            <Route path="/Expenses" element={<Expenses />} />
+        <Route path="/Expenses" element={<Expenses />} />
 
-            <Route path="/ExpenseDetail" element={<ExpenseDetail />} />
+        <Route path="/ExpenseDetail" element={<ExpenseDetail />} />
 
-            <Route path="/ExpenseSettings" element={<ExpenseSettings />} />
+        <Route path="/ExpenseSettings" element={<ExpenseSettings />} />
 
-            <Route path="/CompensationTool" element={<CompensationTool />} />
+        <Route path="/CompensationTool" element={<CompensationTool />} />
 
-            <Route path="/ExpenseApprovals" element={<ExpenseApprovals />} />
+        <Route path="/ExpenseApprovals" element={<ExpenseApprovals />} />
 
-            <Route path="/MeetingManager" element={<MeetingManager />} />
+        <Route path="/MeetingManager" element={<MeetingManager />} />
 
-            <Route path="/LeaveManagement" element={<LeaveManagement />} />
+        <Route path="/LeaveManagement" element={<LeaveManagement />} />
 
-            <Route path="/Appraisals" element={<Appraisals />} />
+        <Route path="/Appraisals" element={<Appraisals />} />
 
-            <Route path="/ExitManagement" element={<ExitManagement />} />
+        <Route path="/ExitManagement" element={<ExitManagement />} />
 
-            <Route path="/InstallApp" element={<InstallApp />} />
+        <Route path="/InstallApp" element={<InstallApp />} />
 
-            <Route path="/ScrollBoard" element={<ScrollBoard />} />
+        <Route path="/ScrollBoard" element={<ScrollBoard />} />
 
-            <Route path="/StaffComplaints" element={<StaffComplaints />} />
+        <Route path="/StaffComplaints" element={<StaffComplaints />} />
 
-            <Route path="/RequestTraining" element={<RequestTraining />} />
+        <Route path="/RequestTraining" element={<RequestTraining />} />
 
-            <Route path="/VendorManagement" element={<VendorManagement />} />
+        <Route path="/VendorManagement" element={<VendorManagement />} />
 
-            <Route path="/StaffMovement" element={<StaffMovement />} />
+        <Route path="/StaffMovement" element={<StaffMovement />} />
 
-            <Route path="/BudgetManager" element={<BudgetManager />} />
+        <Route path="/BudgetManager" element={<BudgetManager />} />
 
-            <Route path="/SmartContentEngine" element={<SmartContentEngine />} />
+        <Route path="/SmartContentEngine" element={<SmartContentEngine />} />
 
-            <Route path="/VendorPaymentProcessing" element={<VendorPaymentProcessing />} />
+        <Route path="/VendorPaymentProcessing" element={<VendorPaymentProcessing />} />
 
-            <Route path="/PublicJobView" element={<PublicJobView />} />
+        <Route path="/PublicJobView" element={<PublicJobView />} />
 
-            <Route path="/Cooperative" element={<Cooperative />} />
+        <Route path="/Cooperative" element={<Cooperative />} />
 
-            <Route path="/KPIManagement" element={<KPIManagement />} />
+        <Route path="/KPIManagement" element={<KPIManagement />} />
 
-            <Route path="/CompanyDocuments" element={<CompanyDocuments />} />
+        <Route path="/CompanyDocuments" element={<CompanyDocuments />} />
 
-            <Route path="/KanbanBoards" element={<KanbanBoards />} />
+        <Route path="/KanbanBoards" element={<KanbanBoards />} />
 
-            <Route path="/Analytics" element={<Analytics />} />
+        <Route path="/Analytics" element={<Analytics />} />
 
-            <Route path="/Contacts" element={<Contacts />} />
+        <Route path="/Contacts" element={<Contacts />} />
 
-            <Route path="/Deals" element={<Deals />} />
+        <Route path="/Deals" element={<Deals />} />
 
-            <Route path="/FinancialReports" element={<FinancialReports />} />
-         </Routes>
-      </Layout>
-   );
+        <Route path="/FinancialReports" element={<FinancialReports />} />
+      </Routes>
+    </Layout>
+  );
 }
 
 export default function Pages() {
-   return (
-      <Router>
-         <PagesContent />
-      </Router>
-   );
+  return (
+    <Router>
+      <PagesContent />
+    </Router>
+  );
 }

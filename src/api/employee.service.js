@@ -2,7 +2,10 @@ import { apiClient } from './apiClient';
 import { ApiRoutes } from './apiRoutes';
 
 export const employeeService = {
-  async getEmployees(page = 1, rows = 10) {
+  async getEmployees(page = 1, rows = 10, options) {
+    if (options && options.search) {
+      return apiClient.get(`${ApiRoutes.GetEmployees}?page=${page}&rows=${rows}&search=${search}`);
+    }
     return apiClient.get(`${ApiRoutes.GetEmployees}?page=${page}&rows=${rows}`);
   },
 
