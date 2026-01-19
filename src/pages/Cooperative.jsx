@@ -2,6 +2,7 @@ import { employeeService } from '@/api';
 import { Loan } from '@/api/entities';
 import { SendEmail } from '@/api/integrations';
 import { loanService } from '@/api/loan.service';
+import { LoanUtil } from '@/components/cooperative/loan.utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,7 +46,7 @@ const LoanApprovalCard = ({ loans, onApprove, onReject, loading }) => {
           <TableBody>
             {loans.map((loan) => (
               <TableRow key={loan.id}>
-                <TableCell>{loan.employeeName || 'N/A'}</TableCell>
+                <TableCell>{loan.employee.firstName || 'N/A'}</TableCell>
                 <TableCell>₦{loan.principalAmount?.toLocaleString()}</TableCell>
                 <TableCell className="capitalize">{loan.loanType?.replace('_', ' ')}</TableCell>
                 <TableCell>{loan.tenureMonths} months</TableCell>
@@ -85,10 +86,11 @@ export default function Cooperative() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showLoanForm, setShowLoanForm] = useState(false);
-  const [editingLoan, setEditingLoan] = useState(null);
-
+  const [editingLoan, setEditingLoan] = useState({ principalAmount: 0 });
   const [loanToReject, setLoanToReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [totalLoaned, setTotalLoaned] = useState(0);
+  const [activeLoans, setActiveLoaned] = useState(0);
 
   const { currentUser } = useCurrentUser();
 
@@ -99,14 +101,23 @@ export default function Cooperative() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [loansData, employeesData] = await Promise.all([loanService.getLoans(), employeeService.getEmployees()]);
+      const [loanDashboard, loansData, employeesData] = await Promise.all([
+        loanService.getLoanDashboard(),
+        loanService.getLoans(),
+        employeeService.getEmployees(),
+      ]);
+
+      setTotalLoaned(loanDashboard.data.totalActiveLoanAmount || 0);
+      setActiveLoaned(loanDashboard.data.activeLoans || 0);
 
       const enrichedLoans = loansData.data.map((loan) => {
-        const employee = employeesData.data.find((e) => e.id === loan.employeeId);
+        const { monthlyDeduction, totalRepayment } = LoanUtil.calculations(loan);
         return {
           ...loan,
-          employeeName: employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown',
-          employeeEmail: employee ? employee.email : null,
+          employeeName: loan.employee ? `${loan.employee.firstName} ${loan.employee.lastName}` : 'Unknown',
+          employeeEmail: loan.employee ? loan.employee.email : null,
+          monthlyDeduction,
+          totalRepayment,
         };
       });
 
@@ -127,18 +138,16 @@ export default function Cooperative() {
   const handleDeleteLoan = async (loanId) => {
     if (window.confirm('Are you sure you want to delete this loan? This action cannot be undone.')) {
       try {
-        await Loan.delete(loanId);
+        await loanService.deleteLoan(loanId);
         loadData();
       } catch (error) {
-        console.error('Failed to delete loan:', error);
-        alert('Failed to delete loan. Please try again.');
+        alert(`Failed to delete loan: ${error.message ? error.message + '.' : ''} Please try again.`);
       }
     }
   };
 
   const downloadRepaymentSchedule = (loan) => {
-    const employee = employees.find((e) => e.id === loan.employeeId);
-    const employeeName = employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown';
+    const employeeName = loan.employee ? `${loan.employee.firstName} ${loan.employee.lastName}` : 'Unknown';
 
     // Calculate monthly interest rate
     const monthlyInterestRate = loan.interestRate / 12 / 100;
@@ -246,11 +255,13 @@ export default function Cooperative() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-700';
-      case 'paidOff':
+        return 'bg-green-200 text-green-700';
+      case 'paid_off':
         return 'bg-blue-100 text-blue-700';
-      case 'pendingApproval':
+      case 'pending_approval':
         return 'bg-yellow-100 text-yellow-700';
+      case 'pending_disbursement':
+        return 'bg-green-100 text-yellow-700';
       case 'rejected':
         return 'bg-red-100 text-red-700';
       default:
@@ -270,7 +281,7 @@ export default function Cooperative() {
         await SendEmail({
           to: loan.employeeEmail,
           subject: 'Your Loan Request Has Been Approved',
-          body: `<p>Dear ${loan.employeeName},</p><p>Your loan request for <strong>₦${loan.principalAmount.toLocaleString()}</strong> has been approved. Deductions will commence from your next payroll.</p><p>Thank you.</p>`,
+          body: `<p>Dear ${loan.employeeName},</p><p>Your loan request for <strong>₦${loan.principal.toLocaleString()}</strong> has been approved. Deductions will commence from your next payroll.</p><p>Thank you.</p>`,
           fromName: 'Orbit360 Finance',
         });
       }
@@ -296,7 +307,7 @@ export default function Cooperative() {
         await SendEmail({
           to: loanToReject.employeeEmail,
           subject: 'Update on Your Loan Request',
-          body: `<p>Dear ${loanToReject.employeeName},</p><p>We regret to inform you that your loan request for <strong>₦${loanToReject.principalAmount.toLocaleString()}</strong> has been rejected.</p><p><strong>Reason:</strong> ${rejectionReason}</p><p>Thank you.</p>`,
+          body: `<p>Dear ${loanToReject.employeeName},</p><p>We regret to inform you that your loan request for <strong>₦${loanToReject.principal.toLocaleString()}</strong> has been rejected.</p><p><strong>Reason:</strong> ${rejectionReason}</p><p>Thank you.</p>`,
           fromName: 'Orbit360 Finance',
         });
       }
@@ -309,9 +320,6 @@ export default function Cooperative() {
       setActionLoading(false);
     }
   };
-
-  const totalLoaned = loans.filter((l) => l.status === 'active').reduce((sum, l) => sum + l.principalAmount, 0);
-  const activeLoans = loans.filter((l) => l.status === 'active').length;
 
   if (loading) {
     return <div className="p-8 text-center">Loading Cooperative data...</div>;
@@ -373,7 +381,7 @@ export default function Cooperative() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{totalLoaned.toLocaleString()}</div>
+              <div className="text-2xl font-bold">₦{Number(totalLoaned).toLocaleString()}</div>
             </CardContent>
           </Card>
           <Card>
@@ -391,7 +399,7 @@ export default function Cooperative() {
               <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{loans.filter((l) => l.status === 'paidOff').length}</div>
+              <div className="text-2xl font-bold">{loans.filter((l) => l.status === 'paid_off').length}</div>
             </CardContent>
           </Card>
         </div>
@@ -420,7 +428,7 @@ export default function Cooperative() {
                   <TableRow key={loan.id}>
                     <TableCell>{getEmployeeName(loan.employeeId)}</TableCell>
                     <TableCell className="capitalize">{loan.loanType?.replace('_', ' ')}</TableCell>
-                    <TableCell>₦{loan.principalAmount?.toLocaleString()}</TableCell>
+                    <TableCell>₦{loan.principal?.toLocaleString()}</TableCell>
                     <TableCell>₦{loan.monthlyDeduction?.toLocaleString()}</TableCell>
                     <TableCell>{new Date(loan.startDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(loan.endDate).toLocaleDateString()}</TableCell>

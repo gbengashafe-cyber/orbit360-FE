@@ -1,5 +1,8 @@
+import { addMonths } from 'date-fns';
+
 export class LoanUtil {
-  static calculateMonthlyContribution = ({ principalAmount, interestRate, tenureMonths }) => {
+  static calculations = (loan) => {
+    const { principalAmount, interestRate, tenureMonths, startDate } = loan;
     const principal = parseFloat(principalAmount);
     const annualInterest = parseFloat(interestRate) / 100;
     const tenure = parseInt(tenureMonths);
@@ -8,6 +11,8 @@ export class LoanUtil {
     const totalRepayment = principal + totalInterest;
     const monthlyDeduction = totalRepayment / tenure;
 
-    return monthlyDeduction;
+    const endDate = addMonths(new Date(startDate), tenureMonths);
+
+    return { monthlyDeduction, totalRepayment, totalInterest, endDate };
   };
 }

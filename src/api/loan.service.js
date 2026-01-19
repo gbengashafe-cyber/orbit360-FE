@@ -6,6 +6,10 @@ export const loanService = {
     return apiClient.get(`${ApiRoutes.GetLoans}?page=${page}&rows=${rows}`);
   },
 
+  async getLoanDashboard() {
+    return apiClient.get(`${ApiRoutes.GetLoanDashboard}`);
+  },
+
   async getLoanById(id) {
     return apiClient.get(ApiRoutes.GetLoans(id));
   },

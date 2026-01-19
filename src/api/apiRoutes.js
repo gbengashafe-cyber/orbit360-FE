@@ -117,6 +117,7 @@ export class ApiRoutes {
 
   // Loans
   static GetLoans = '/v1/loans';
+  static GetLoanDashboard = '/v1/loans/dashboard';
   static GetLoanById = (id) => `/v1/loans/${id}`;
   static CreateLoan = '/v1/loans';
   static UpdateLoan = (id) => `/v1/loans/${id}`;

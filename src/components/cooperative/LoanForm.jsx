@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { addMonths, format } from 'date-fns';
+import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { LoanUtil } from './loan.utils';
@@ -18,7 +18,7 @@ export default function LoanForm({ loan, employees, onSubmit, onCancel }) {
     interestRate: loan?.interestRate || '',
     tenureMonths: loan?.tenureMonths || '',
     startDate: loan?.startDate ? new Date(loan.startDate) : new Date(),
-    status: loan?.status || 'pendingApproval',
+    status: loan?.status || 'pending_approval',
     approverRole: loan?.approverRole || '',
     notes: loan?.notes || '',
   });
@@ -30,23 +30,11 @@ export default function LoanForm({ loan, employees, onSubmit, onCancel }) {
   });
 
   useEffect(() => {
-    const { principalAmount, interestRate, tenureMonths, startDate } = formData;
+    const { principalAmount, interestRate, tenureMonths } = formData;
     if (principalAmount > 0 && interestRate >= 0 && tenureMonths > 0) {
-      const principal = parseFloat(principalAmount);
-      const annualInterest = parseFloat(interestRate) / 100;
-      const tenure = parseInt(tenureMonths);
+      const calculations = LoanUtil.calculations(formData);
 
-      const totalInterest = principal * annualInterest * (tenure / 12);
-      const totalRepayment = principal + totalInterest;
-      // const monthlyDeduction = totalRepayment / tenure;
-
-      const endDate = addMonths(new Date(startDate), tenure);
-
-      setCalculations({
-        monthlyDeduction: LoanUtil.calculateMonthlyContribution(loan),
-        totalRepayment: totalRepayment,
-        endDate: endDate,
-      });
+      setCalculations(calculations);
     } else {
       setCalculations({ monthlyDeduction: 0, totalRepayment: 0, endDate: null });
     }
@@ -76,7 +64,7 @@ export default function LoanForm({ loan, employees, onSubmit, onCancel }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="employeeId">Employee *</Label>
-        <Select value={formData.employeeId} onValueChange={(value) => handleInputChange('employeeId', value)} required>
+        <Select value={String(formData.employeeId)} onValueChange={(value) => handleInputChange('employeeId', value)} required>
           <SelectTrigger>
             <SelectValue placeholder="Select Employee" />
           </SelectTrigger>
@@ -90,7 +78,7 @@ export default function LoanForm({ loan, employees, onSubmit, onCancel }) {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="loanType">Loan Type *</Label>
           <Select value={formData.loanType} onValueChange={(value) => handleInputChange('loanType', value)} required>
@@ -98,12 +86,30 @@ export default function LoanForm({ loan, employees, onSubmit, onCancel }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="personal">Personal Loan</SelectItem>
-              <SelectItem value="salaryAdvance">Salary Advance</SelectItem>
-              <SelectItem value="thrift">Thrift</SelectItem>
+              <SelectItem value="PERSONAL">Personal Loan</SelectItem>
+              <SelectItem value="SALARY_ADVANCE">Salary Advance</SelectItem>
+              <SelectItem value="THRIFT">Thrift</SelectItem>
             </SelectContent>
           </Select>
         </div>
+
+        {loan?.id ? (
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                <SelectItem value="pending_disbursement">Pending Disbursement</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paid_off">Paid Off</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -156,18 +162,20 @@ export default function LoanForm({ loan, employees, onSubmit, onCancel }) {
           </Popover>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="approverRole">Approving Manager *</Label>
-          <Select value={formData.approverRole} onValueChange={(value) => handleInputChange('approverRole', value)} required>
-            <SelectTrigger>
-              <SelectValue placeholder="Select approver" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="headOfOperations">Head of Operations</SelectItem>
-              <SelectItem value="managingDirector">Managing Director</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {loan?.id ? (
+          <div className="space-y-2">
+            <Label htmlFor="approverRole">Approving Manager *</Label>
+            <Select value={formData.approverRole} onValueChange={(value) => handleInputChange('approverRole', value)} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select approver" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="headOfOperations">Head of Operations</SelectItem>
+                <SelectItem value="managingDirector">Managing Director</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
       </div>
 
       <div className="bg-gray-50 p-4 rounded-lg space-y-2">
