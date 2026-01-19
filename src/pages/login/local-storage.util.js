@@ -1,8 +1,9 @@
 export class LoginUtil {
-  accessToken = '';
-  key = 'orbit360-access-token';
+  static key = 'orbit360-access-token';
 
   static storeAccessToken = (token) => {
+    console.log(this.key);
+
     localStorage.setItem(this.key, token);
   };
 
