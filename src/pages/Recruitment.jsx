@@ -386,13 +386,13 @@ export default function Recruitment() {
                         <TableCell className="flex gap-1 flex-wrap">
                           <TooltipProvider>
                             <Button
-                              size="sm" 
+                              size="sm"
                               variant="outline"
                               onClick={() => setSelectedJob(job)}
                             >
                               View Applications
                             </Button>
-                            {/* {job.status === 'pending_approval' && isMD && (
+                            {job.status === 'pending_approval' && isMD && (
                               <>
                                 <Button
                                   size="sm"
@@ -413,7 +413,7 @@ export default function Recruitment() {
                                   Reject
                                 </Button>
                               </>
-                            )} */}
+                            )}
                             <Tooltip>
                             <TooltipTrigger asChild>
                               <div className="pointer-events-auto">

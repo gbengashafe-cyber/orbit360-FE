@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { LeaveRequest, Employee, LeaveAttachment } from '@/api/entities';
-import { UploadFile, SendEmail } from '@/api/integrations';
+import { leaveService, employeeService } from '@/api';
+import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,8 +41,13 @@ export default function LeaveManagement({ employee, onUpdate }) {
 
   const calculateLeaveBalance = React.useCallback((requests) => {
     const approvedAnnualLeave = requests
-      .filter(r => r.status === 'approved' && r.leave_type === 'annual')
-      .reduce((acc, curr) => acc + curr.days_requested, 0);
+      .filter(r => r.status === 'approved' && r.type === 'vacation')
+      .reduce((acc, curr) => {
+        const startDate = new Date(curr.startDate);
+        const endDate = new Date(curr.endDate);
+        const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        return acc + days;
+      }, 0);
     const entitlement = employee.annual_leave_entitlement || 21;
     setLeaveBalance(entitlement - approvedAnnualLeave);
   }, [employee.annual_leave_entitlement]);
@@ -51,15 +56,23 @@ export default function LeaveManagement({ employee, onUpdate }) {
     if (!employee?.id) return;
     setLoading(true);
     try {
-      const [requests, allEmployees] = await Promise.all([
-        LeaveRequest.filter({ employee_id: employee.id }, '-created_date'),
-        Employee.list()
+      const [leavesData, allEmployeesData] = await Promise.all([
+        leaveService.getLeaves(1, 100),
+        employeeService.getEmployees(1, 100)
       ]);
+      
+      const allLeaves = leavesData?.data || leavesData || [];
+      const allEmps = allEmployeesData?.data || allEmployeesData || [];
+      
+      // Filter leaves for current employee
+      const requests = allLeaves.filter(leave => leave.employeeId === employee.id);
+      
       setLeaveRequests(requests);
-      setEmployees(allEmployees.filter(e => e.id !== employee.id));
+      setEmployees(allEmps);
       calculateLeaveBalance(requests);
     } catch (error) {
       console.error('Error loading leave data:', error);
+      showToast.error('Failed to load leave requests', 'Error');
     } finally {
       setLoading(false);
     }
@@ -87,90 +100,32 @@ export default function LeaveManagement({ employee, onUpdate }) {
     
     const daysRequested = calculateDays(formData.start_date, formData.end_date, formData.leave_period);
 
-    if (formData.leave_type === 'annual' && daysRequested > leaveBalance) {
-      alert(`Request Denied: You have insufficient annual leave balance. Available: ${leaveBalance} days, Requested: ${daysRequested} days.`);
+    if (formData.leave_type === 'vacation' && daysRequested > leaveBalance) {
+      showToast.error(`Insufficient leave balance. Available: ${leaveBalance} days, Requested: ${daysRequested} days.`, 'Error');
       return;
     }
 
     setIsSubmitting(true);
-    setIsUploading(true);
 
     try {
-      const allFiles = [
-        ...handoverFiles.map(f => ({ file: f, type: 'handover_note' })),
-        ...supportingFiles.map(f => ({ file: f, type: 'supporting_document' }))
-      ];
-
-      const uploadPromises = allFiles.map(fileInfo => UploadFile({ file: fileInfo.file }));
-      const uploadedFileResults = await Promise.all(uploadPromises);
-      
-      setIsUploading(false);
-
-      const coveringEmployee = employees.find(e => e.id === formData.covering_employee_id);
-      const selectedSupervisor = employees.find(e => e.id === formData.selected_supervisor_id);
-      
       const leaveData = {
-        employee_id: employee.id,
-        employee_name: `${employee.first_name} ${employee.last_name}`,
-        employee_email: employee.email,
-        employee_department: employee.department,
-        ...formData,
-        days_requested: daysRequested,
-        covering_employee_name: coveringEmployee ? `${coveringEmployee.first_name} ${coveringEmployee.last_name}` : '',
-        status: 'pending_supervisor_approval',
-        current_approver_id: selectedSupervisor ? selectedSupervisor.id : null,
+        employeeId: employee.id,
+        type: formData.leave_type,
+        startDate: formData.start_date,
+        endDate: formData.end_date,
+        reason: formData.reason
       };
 
-      const newLeaveRequest = await LeaveRequest.create(leaveData);
+      await leaveService.createLeave(leaveData);
 
-      // Save attachments
-      const attachmentPromises = uploadedFileResults.map((result, index) => 
-        LeaveAttachment.create({
-          leave_request_id: newLeaveRequest.id,
-          file_name: allFiles[index].file.name,
-          file_url: result.file_url,
-          attachment_type: allFiles[index].type,
-        })
-      );
-      await Promise.all(attachmentPromises);
-
-      // Notify supervisor
-      if (selectedSupervisor) {
-        await SendEmail({
-          to: selectedSupervisor.email,
-          subject: `Leave Request for Approval - ${employee.first_name} ${employee.last_name}`,
-          body: `<p>A new leave request has been submitted by ${employee.first_name} ${employee.last_name} and requires your approval. Please log in to the Orbit360 portal to review it.</p>`,
-          from_name: "Orbit360 HR System"
-        });
-      }
-
-      // Notify reliever/backup
-      if (coveringEmployee && coveringEmployee.email) {
-        await SendEmail({
-          to: coveringEmployee.email,
-          subject: `Handover Notification - ${employee.first_name} ${employee.last_name}'s Leave`,
-          body: `
-            <p>Dear ${coveringEmployee.first_name},</p>
-            <p>${employee.first_name} ${employee.last_name} will be on leave from ${formData.start_date} to ${formData.end_date} and has nominated you as their backup.</p>
-            <p>Please find their handover notes below:</p>
-            <blockquote style="border-left: 4px solid #ccc; padding-left: 1rem; margin-left: 0;">
-              ${formData.handover_notes || "No text notes provided."}
-            </blockquote>
-            <p>You can view any attached handover documents by logging into the Orbit360 portal.</p>
-            <p>Thank you for your support.</p>
-          `,
-          from_name: "Orbit360 HR System"
-        });
-      }
-
-      alert('Leave request submitted successfully!');
+      showToast.success('Leave request submitted successfully!', 'Success');
       setShowForm(false);
       resetForm();
       loadData();
       if(onUpdate) onUpdate();
     } catch (error) {
       console.error('Error submitting leave request:', error);
-      alert(`Failed to submit leave request. ${error.message}`);
+      showToast.error(error.response?.data?.message || error.message || 'Failed to submit leave request', 'Error');
     } finally {
       setIsSubmitting(false);
     }
@@ -196,13 +151,13 @@ export default function LeaveManagement({ employee, onUpdate }) {
   const handleDelete = async (requestId) => {
     if (window.confirm('Are you sure you want to delete this leave request? This action cannot be undone.')) {
       try {
-        await LeaveRequest.delete(requestId);
-        alert('Leave request deleted successfully');
+        await leaveService.deleteLeave(requestId);
+        showToast.success('Leave request deleted successfully', 'Success');
         loadData();
         if(onUpdate) onUpdate();
       } catch (error) {
         console.error('Error deleting leave request:', error);
-        alert('Failed to delete leave request. Please try again.');
+        showToast.error('Failed to delete leave request', 'Error');
       }
     }
   };
@@ -276,12 +231,20 @@ export default function LeaveManagement({ employee, onUpdate }) {
     );
   };
 
+  const handleEmployeeChange = (employeeId) => {
+    const selected = employees.find(e => String(e.id) === String(employeeId));
+    if (selected) {
+      const filteredLeaves = leaveRequests.filter(leave => leave.employeeId === selected.id);
+      calculateLeaveBalance(filteredLeaves);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Leave Management</h2>
-          <p className="text-gray-600">Submit and track your leave requests</p>
+          <p className="text-gray-600">Manage your leave and view approvals</p>
         </div>
         <Dialog open={showForm} onOpenChange={setShowForm}>
           <DialogTrigger asChild>
@@ -293,8 +256,51 @@ export default function LeaveManagement({ employee, onUpdate }) {
         </Dialog>
       </div>
 
+      {/* Employee Selector */}
       <Card className="bg-white/90 backdrop-blur-sm">
-        <CardHeader><CardTitle>My Leave History</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><User className="w-5 h-5" />Select Employee</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Select value={String(employee?.id)} onValueChange={handleEmployeeChange}>
+            <SelectTrigger className="w-full md:w-1/3">
+              <SelectValue placeholder="Select employee..." />
+            </SelectTrigger>
+            <SelectContent>
+              {employees.map(emp => (
+                <SelectItem key={emp.id} value={String(emp.id)}>
+                  {((emp.firstName || emp.first_name) + ' ' + (emp.lastName || emp.last_name)).toUpperCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {employee && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600">Name</p>
+                  <p className="font-semibold text-gray-900">{employee.firstName} {employee.lastName}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Email</p>
+                  <p className="font-semibold text-gray-900 truncate">{employee.email}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Department</p>
+                  <p className="font-semibold text-gray-900">{employee.departmentName || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Leave Balance</p>
+                  <p className="font-semibold text-blue-600 text-lg">{leaveBalance} days</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-white/90 backdrop-blur-sm">
+        <CardHeader><CardTitle>My Leave</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center p-8">Loading leave requests...</div>
@@ -312,11 +318,15 @@ export default function LeaveManagement({ employee, onUpdate }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leaveRequests.map((request) => (
+                  {leaveRequests.map((request) => {
+                    const startDate = new Date(request.startDate);
+                    const endDate = new Date(request.endDate);
+                    const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                    return (
                     <TableRow key={request.id}>
-                      <TableCell className="capitalize">{request.leave_type.replace('_', ' ')}</TableCell>
-                      <TableCell>{new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}</TableCell>
-                      <TableCell>{request.days_requested}</TableCell>
+                      <TableCell className="capitalize">{(request.type || request.leave_type).replace('_', ' ')}</TableCell>
+                      <TableCell>{startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}</TableCell>
+                      <TableCell>{days}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(request.status)}>
                           <span className="flex items-center gap-1">
@@ -325,7 +335,7 @@ export default function LeaveManagement({ employee, onUpdate }) {
                           </span>
                         </Badge>
                       </TableCell>
-                      <TableCell>{new Date(request.created_date).toLocaleDateString()}</TableCell>
+                      <TableCell>{new Date(request.createdAt || request.created_date).toLocaleDateString()}</TableCell>
                       <TableCell>
                         {!['approved', 'cancelled'].includes(request.status) && (
                           <Button
@@ -340,7 +350,8 @@ export default function LeaveManagement({ employee, onUpdate }) {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -375,9 +386,9 @@ export default function LeaveManagement({ employee, onUpdate }) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div><span className="font-medium">Full Name:</span><p>{employee.first_name} {employee.last_name}</p></div>
-                  <div><span className="font-medium">Employee ID:</span><p>{employee.employee_id}</p></div>
-                  <div><span className="font-medium">Department:</span><p className="capitalize">{employee.department}</p></div>
+                  <div><span className="font-medium">Full Name:</span><p>{employee.firstName || employee.first_name} {employee.lastName || employee.last_name}</p></div>
+                  <div><span className="font-medium">Employee ID:</span><p>{employee.id || employee.employee_id}</p></div>
+                  <div><span className="font-medium">Department:</span><p className="capitalize">{employee.department || 'N/A'}</p></div>
                   <div><span className="font-medium">Supervisor:</span><p>{employee.supervisor_name || 'N/A'}</p></div>
                 </CardContent>
               </Card>
