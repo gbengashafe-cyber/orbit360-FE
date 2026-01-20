@@ -1,3 +1,4 @@
+import { LoginUtil } from '@/pages/login/local-storage.util';
 import axios from 'axios';
 import { apiRoutes } from './apiRoutes';
 
@@ -13,7 +14,7 @@ export const API = axios.create({
 // Add request interceptor to include auth token
 API.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    const token = LoginUtil.getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -21,7 +22,7 @@ API.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Add response interceptor for error handling
@@ -30,11 +31,13 @@ API.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Handle unauthorized
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      LoginUtil.removeAccessToken();
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export const apiClient = {
@@ -46,10 +49,10 @@ export const apiClient = {
 
       // Check if data is FormData (for file uploads)
       const isFormData = data instanceof FormData;
-      
+
       // Remove undefined values from request body (skip for FormData)
       if (data && typeof data === 'object' && !isFormData) {
-        Object.keys(data).forEach(key => {
+        Object.keys(data).forEach((key) => {
           if (data[key] === undefined) {
             delete data[key];
           }

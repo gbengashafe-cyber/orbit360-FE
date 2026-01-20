@@ -1,88 +1,96 @@
-
-import React, { useState, useEffect } from "react";
-import { Loan, LoanPayment, Employee, User } from "@/api/entities";
-import { SendEmail } from "@/api/integrations";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { employeeService } from '@/api';
+import { Loan } from '@/api/entities';
+import { SendEmail } from '@/api/integrations';
+import { loanService } from '@/api/loan.service';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Banknote, Plus, TrendingUp, Users, RefreshCw, ThumbsUp, ThumbsDown } from "lucide-react";
-import LoanForm from "../components/cooperative/LoanForm";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useCurrentUser } from '@/hooks/use-current-user';
+import { Banknote, Download, Plus, RefreshCw, ThumbsDown, ThumbsUp, Trash2, TrendingUp, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import LoanForm from '../components/cooperative/LoanForm';
 
 const LoanApprovalCard = ({ loans, onApprove, onReject, loading }) => {
-    if (loans.length === 0) return null;
+  if (loans.length === 0) return null;
 
-    return (
-        <Card className="bg-yellow-50 border-yellow-200">
-            <CardHeader>
-                <CardTitle>Loans Pending Your Approval</CardTitle>
-                <CardDescription>Review the following loan requests and take action.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Employee</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Tenure</TableHead>
-                            <TableHead>Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loans.map(loan => (
-                            <TableRow key={loan.id}>
-                                <TableCell>{loan.employee_name || 'N/A'}</TableCell>
-                                <TableCell>₦{loan.principal_amount?.toLocaleString()}</TableCell>
-                                <TableCell className="capitalize">{loan.loan_type?.replace('_', ' ')}</TableCell>
-                                <TableCell>{loan.tenure_months} months</TableCell>
-                                <TableCell className="flex gap-2">
-                                    <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50" onClick={() => onApprove(loan)} disabled={loading}>
-                                        <ThumbsUp className="w-4 h-4 mr-1" /> Approve
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50" onClick={() => onReject(loan)} disabled={loading}>
-                                        <ThumbsDown className="w-4 h-4 mr-1" /> Reject
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-    );
+  return (
+    <Card className="bg-yellow-50 border-yellow-200">
+      <CardHeader>
+        <CardTitle>Loans Pending Your Approval</CardTitle>
+        <CardDescription>Review the following loan requests and take action.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Employee</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Tenure</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loans.map((loan) => (
+              <TableRow key={loan.id}>
+                <TableCell>{loan.employeeName || 'N/A'}</TableCell>
+                <TableCell>₦{loan.principalAmount?.toLocaleString()}</TableCell>
+                <TableCell className="capitalize">{loan.loanType?.replace('_', ' ')}</TableCell>
+                <TableCell>{loan.tenureMonths} months</TableCell>
+                <TableCell className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-green-600 border-green-600 hover:bg-green-50"
+                    onClick={() => onApprove(loan)}
+                    disabled={loading}
+                  >
+                    <ThumbsUp className="w-4 h-4 mr-1" /> Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600 border-red-600 hover:bg-red-50"
+                    onClick={() => onReject(loan)}
+                    disabled={loading}
+                  >
+                    <ThumbsDown className="w-4 h-4 mr-1" /> Reject
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
 };
 
 export default function Cooperative() {
   const [loans, setLoans] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [editingLoan, setEditingLoan] = useState(null);
-  
+
   const [loanToReject, setLoanToReject] = useState(null);
-  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionReason, setRejectionReason] = useState('');
+
+  const { currentUser } = useCurrentUser();
 
   useEffect(() => {
     loadData();
@@ -91,63 +99,137 @@ export default function Cooperative() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const user = await User.me();
-      setCurrentUser(user);
+      const [loansData, employeesData] = await Promise.all([loanService.getLoans(), employeeService.getEmployees()]);
 
-      const [loansData, employeesData] = await Promise.all([
-        Loan.list("-created_date"),
-        Employee.list(),
-      ]);
-
-      const enrichedLoans = loansData.map(loan => {
-        const employee = employeesData.find(e => e.id === loan.employee_id);
-        return { ...loan, employee_name: employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown', employee_email: employee ? employee.email : null };
+      const enrichedLoans = loansData.data.map((loan) => {
+        const employee = employeesData.data.find((e) => e.id === loan.employeeId);
+        return {
+          ...loan,
+          employeeName: employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown',
+          employeeEmail: employee ? employee.email : null,
+        };
       });
-      
-      setLoans(enrichedLoans);
-      setEmployees(employeesData);
-      
-      if (user && (user.role === 'head_of_operations' || user.role === 'managing_director')) {
-          const pending = enrichedLoans.filter(l => l.status === 'pending_approval' && l.approver_role === user.role);
-          setPendingApprovals(pending);
-      }
 
+      setLoans(enrichedLoans);
+      setEmployees(employeesData.data);
+
+      if (currentUser && (currentUser.role === 'headOfOperations' || currentUser.role === 'managingDirector')) {
+        const pending = enrichedLoans.filter((l) => l.status === 'pendingApproval' && l.approverRole === currentUser.role);
+        setPendingApprovals(pending);
+      }
     } catch (error) {
-      console.error("Error loading cooperative data:", error);
+      console.error('Error loading cooperative data:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDeleteLoan = async (loanId) => {
+    if (window.confirm('Are you sure you want to delete this loan? This action cannot be undone.')) {
+      try {
+        await Loan.delete(loanId);
+        loadData();
+      } catch (error) {
+        console.error('Failed to delete loan:', error);
+        alert('Failed to delete loan. Please try again.');
+      }
+    }
+  };
+
+  const downloadRepaymentSchedule = (loan) => {
+    const employee = employees.find((e) => e.id === loan.employeeId);
+    const employeeName = employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown';
+
+    // Calculate monthly interest rate
+    const monthlyInterestRate = loan.interestRate / 12 / 100;
+    const principal = loan.principalAmount;
+    const months = loan.tenureMonths;
+
+    // Generate repayment schedule
+    let remainingBalance = principal;
+    const schedule = [];
+    const startDate = new Date(loan.startDate);
+
+    for (let month = 1; month <= months; month++) {
+      const interestPayment = remainingBalance * monthlyInterestRate;
+      const principalPayment = loan.monthlyDeduction - interestPayment;
+      remainingBalance = Math.max(0, remainingBalance - principalPayment);
+
+      const paymentDate = new Date(startDate);
+      paymentDate.setMonth(startDate.getMonth() + month - 1);
+
+      schedule.push({
+        month,
+        paymentDate: paymentDate.toISOString().split('T')[0],
+        monthlyPayment: loan.monthlyDeduction.toFixed(2),
+        principalPayment: principalPayment.toFixed(2),
+        interestPayment: interestPayment.toFixed(2),
+        remainingBalance: remainingBalance.toFixed(2),
+      });
+    }
+
+    // Create CSV content
+    const headers = ['Loan Repayment Schedule', '', '', '', '', ''];
+
+    const loanDetails = [
+      `Employee: ${employeeName}`,
+      `Loan Type: ${loan.loanType.replace('_', ' ')}`,
+      `Principal Amount: ₦${principal.toLocaleString()}`,
+      `Interest Rate: ${loan.interestRate}% per annum`,
+      `Tenure: ${months} months`,
+      `Monthly Deduction: ₦${loan.monthlyDeduction.toLocaleString()}`,
+      `Total Repayment: ₦${loan.totalRepayment.toLocaleString()}`,
+      `Start Date: ${loan.startDate}`,
+      `End Date: ${loan.endDate}`,
+      `Status: ${loan.status}`,
+      '',
+      '',
+    ];
+
+    const scheduleHeaders = [
+      'Month',
+      'Payment Date',
+      'Monthly Payment (₦)',
+      'Principal Payment (₦)',
+      'Interest Payment (₦)',
+      'Remaining Balance (₦)',
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...loanDetails.map((detail) => `"${detail}"`),
+      scheduleHeaders.join(','),
+      ...schedule.map((row) =>
+        [row.month, row.paymentDate, row.monthlyPayment, row.principalPayment, row.interestPayment, row.remainingBalance].join(
+          ',',
+        ),
+      ),
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Loan_Repayment_Schedule_${employeeName.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   const handleLoanSubmit = async (loanData) => {
     try {
       if (editingLoan) {
-        await Loan.update(editingLoan.id, loanData);
+        await loanService.updateLoan(editingLoan.id, loanData);
       } else {
-        const newLoan = await Loan.create(loanData);
-        // Send notification to approver
-        const approvers = await User.filter({ role: loanData.approver_role });
-        const employee = employees.find(e => e.id === loanData.employee_id);
-        
-        for (const approver of approvers) {
-            await SendEmail({
-                to: approver.email,
-                subject: 'New Loan Request for Approval',
-                body: `
-                    <p>Dear ${approver.full_name},</p>
-                    <p>A new loan request from <strong>${employee?.first_name} ${employee?.last_name}</strong> for the amount of <strong>₦${loanData.principal_amount.toLocaleString()}</strong> is awaiting your approval.</p>
-                    <p>Please log in to the Orbit360 platform to review and take action.</p>
-                    <p>Thank you.</p>
-                `,
-                from_name: "Orbit360 System"
-            });
-        }
+        await loanService.createLoan(loanData);
       }
       setShowLoanForm(false);
       setEditingLoan(null);
       loadData();
     } catch (error) {
-      console.error("Error saving loan:", error);
+      console.error('Error saving loan:', error);
     }
   };
 
@@ -155,76 +237,81 @@ export default function Cooperative() {
     setEditingLoan(loan);
     setShowLoanForm(true);
   };
-  
+
   const getEmployeeName = (employeeId) => {
-    const employee = employees.find(e => e.id === employeeId);
-    return employee ? `${employee.first_name} ${employee.last_name}` : "Unknown Employee";
+    const employee = employees.find((e) => e.id === employeeId);
+    return employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown Employee';
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "active": return "bg-green-100 text-green-700";
-      case "paid_off": return "bg-blue-100 text-blue-700";
-      case "pending_approval": return "bg-yellow-100 text-yellow-700";
-      case "rejected": return "bg-red-100 text-red-700";
-      default: return "bg-gray-100 text-gray-700";
+      case 'active':
+        return 'bg-green-100 text-green-700';
+      case 'paidOff':
+        return 'bg-blue-100 text-blue-700';
+      case 'pendingApproval':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'rejected':
+        return 'bg-red-100 text-red-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
   const handleApproveLoan = async (loan) => {
-      setActionLoading(true);
-      try {
-          await Loan.update(loan.id, {
-              status: 'active',
-              approved_by: currentUser.full_name,
-              approved_date: new Date().toISOString().split('T')[0]
-          });
-          if (loan.employee_email) {
-              await SendEmail({
-                  to: loan.employee_email,
-                  subject: 'Your Loan Request Has Been Approved',
-                  body: `<p>Dear ${loan.employee_name},</p><p>Your loan request for <strong>₦${loan.principal_amount.toLocaleString()}</strong> has been approved. Deductions will commence from your next payroll.</p><p>Thank you.</p>`,
-                  from_name: "Orbit360 Finance"
-              });
-          }
-          loadData();
-      } catch (error) {
-          console.error("Failed to approve loan:", error);
-      } finally {
-          setActionLoading(false);
+    setActionLoading(true);
+    try {
+      await Loan.update(loan.id, {
+        status: 'active',
+        approvedBy: currentUser.fullName,
+        approvedDate: new Date().toISOString().split('T')[0],
+      });
+      if (loan.employeeEmail) {
+        await SendEmail({
+          to: loan.employeeEmail,
+          subject: 'Your Loan Request Has Been Approved',
+          body: `<p>Dear ${loan.employeeName},</p><p>Your loan request for <strong>₦${loan.principalAmount.toLocaleString()}</strong> has been approved. Deductions will commence from your next payroll.</p><p>Thank you.</p>`,
+          fromName: 'Orbit360 Finance',
+        });
       }
+      loadData();
+    } catch (error) {
+      console.error('Failed to approve loan:', error);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleRejectLoan = async () => {
-      if (!loanToReject || !rejectionReason) return;
-      setActionLoading(true);
-      try {
-          await Loan.update(loanToReject.id, {
-              status: 'rejected',
-              approved_by: currentUser.full_name,
-              approved_date: new Date().toISOString().split('T')[0],
-              rejection_reason: rejectionReason,
-          });
-          if (loanToReject.employee_email) {
-              await SendEmail({
-                  to: loanToReject.employee_email,
-                  subject: 'Update on Your Loan Request',
-                  body: `<p>Dear ${loanToReject.employee_name},</p><p>We regret to inform you that your loan request for <strong>₦${loanToReject.principal_amount.toLocaleString()}</strong> has been rejected.</p><p><strong>Reason:</strong> ${rejectionReason}</p><p>Thank you.</p>`,
-                  from_name: "Orbit360 Finance"
-              });
-          }
-          setLoanToReject(null);
-          setRejectionReason("");
-          loadData();
-      } catch (error) {
-          console.error("Failed to reject loan:", error);
-      } finally {
-          setActionLoading(false);
+    if (!loanToReject || !rejectionReason) return;
+    setActionLoading(true);
+    try {
+      await Loan.update(loanToReject.id, {
+        status: 'rejected',
+        approvedBy: currentUser.fullName,
+        approvedDate: new Date().toISOString().split('T')[0],
+        rejectionReason: rejectionReason,
+      });
+      if (loanToReject.employeeEmail) {
+        await SendEmail({
+          to: loanToReject.employeeEmail,
+          subject: 'Update on Your Loan Request',
+          body: `<p>Dear ${loanToReject.employeeName},</p><p>We regret to inform you that your loan request for <strong>₦${loanToReject.principalAmount.toLocaleString()}</strong> has been rejected.</p><p><strong>Reason:</strong> ${rejectionReason}</p><p>Thank you.</p>`,
+          fromName: 'Orbit360 Finance',
+        });
       }
+      setLoanToReject(null);
+      setRejectionReason('');
+      loadData();
+    } catch (error) {
+      console.error('Failed to reject loan:', error);
+    } finally {
+      setActionLoading(false);
+    }
   };
-  
-  const totalLoaned = loans.filter(l => l.status === 'active').reduce((sum, l) => sum + l.principal_amount, 0);
-  const activeLoans = loans.filter(l => l.status === 'active').length;
+
+  const totalLoaned = loans.filter((l) => l.status === 'active').reduce((sum, l) => sum + l.principalAmount, 0);
+  const activeLoans = loans.filter((l) => l.status === 'active').length;
 
   if (loading) {
     return <div className="p-8 text-center">Loading Cooperative data...</div>;
@@ -249,14 +336,17 @@ export default function Cooperative() {
             </Button>
             <Dialog open={showLoanForm} onOpenChange={setShowLoanForm}>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-lg shadow-blue-700/25" onClick={() => setEditingLoan(null)}>
+                <Button
+                  className="bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-lg shadow-blue-700/25"
+                  onClick={() => setEditingLoan(null)}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Create Loan
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>{editingLoan ? "Edit Loan" : "Create New Loan"}</DialogTitle>
+                  <DialogTitle>{editingLoan ? 'Edit Loan' : 'Create New Loan'}</DialogTitle>
                 </DialogHeader>
                 <LoanForm
                   loan={editingLoan}
@@ -269,21 +359,41 @@ export default function Cooperative() {
           </div>
         </div>
 
-        <LoanApprovalCard loans={pendingApprovals} onApprove={handleApproveLoan} onReject={setLoanToReject} loading={actionLoading} />
+        <LoanApprovalCard
+          loans={pendingApprovals}
+          onApprove={handleApproveLoan}
+          onReject={setLoanToReject}
+          loading={actionLoading}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Disbursed (Active)</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                <CardContent><div className="text-2xl font-bold">₦{totalLoaned.toLocaleString()}</div></CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Active Loans</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                <CardContent><div className="text-2xl font-bold">{activeLoans}</div></CardContent>
-            </Card>
-             <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paid Off Loans</CardTitle><Banknote className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                <CardContent><div className="text-2xl font-bold">{loans.filter(l => l.status === 'paid_off').length}</div></CardContent>
-            </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Disbursed (Active)</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₦{totalLoaned.toLocaleString()}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Loans</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{activeLoans}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Paid Off Loans</CardTitle>
+              <Banknote className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{loans.filter((l) => l.status === 'paidOff').length}</div>
+            </CardContent>
+          </Card>
         </div>
 
         <Card>
@@ -306,26 +416,44 @@ export default function Cooperative() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loans.map(loan => (
+                {loans.map((loan) => (
                   <TableRow key={loan.id}>
-                    <TableCell>{getEmployeeName(loan.employee_id)}</TableCell>
-                    <TableCell className="capitalize">{loan.loan_type?.replace('_', ' ')}</TableCell>
-                    <TableCell>₦{loan.principal_amount?.toLocaleString()}</TableCell>
-                    <TableCell>₦{loan.monthly_deduction?.toLocaleString()}</TableCell>
-                    <TableCell>{new Date(loan.start_date).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(loan.end_date).toLocaleDateString()}</TableCell>
-                    <TableCell><Badge className={getStatusColor(loan.status)}>{loan.status.replace('_', ' ')}</Badge></TableCell>
+                    <TableCell>{getEmployeeName(loan.employeeId)}</TableCell>
+                    <TableCell className="capitalize">{loan.loanType?.replace('_', ' ')}</TableCell>
+                    <TableCell>₦{loan.principalAmount?.toLocaleString()}</TableCell>
+                    <TableCell>₦{loan.monthlyDeduction?.toLocaleString()}</TableCell>
+                    <TableCell>{new Date(loan.startDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(loan.endDate).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(loan)}>
-                        Edit
-                      </Button>
+                      <Badge className={getStatusColor(loan.status)}>{loan.status.replace('_', ' ')}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(loan)}>
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => downloadRepaymentSchedule(loan)}>
+                          <Download className="w-4 h-4 mr-1" />
+                          Schedule
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteLoan(loan.id)}
+                          className="text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
                 {loans.length === 0 && (
-                    <TableRow>
-                        <TableCell colSpan={8} className="text-center h-24">No loans found.</TableCell>
-                    </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center h-24">
+                      No loans found.
+                    </TableCell>
+                  </TableRow>
                 )}
               </TableBody>
             </Table>
@@ -333,32 +461,44 @@ export default function Cooperative() {
         </Card>
       </div>
 
-      <Dialog open={!!loanToReject} onOpenChange={() => {
-        setLoanToReject(null);
-        setRejectionReason(""); // Clear reason on dialog close
-      }}>
-          <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>Reject Loan Request</DialogTitle>
-                  <DialogDescription>Please provide a reason for rejecting this loan request. The employee will be notified.</DialogDescription>
-              </DialogHeader>
-              <div className="py-4 space-y-2">
-                  <Label htmlFor="rejectionReason">Rejection Reason</Label>
-                  <Input 
-                      id="rejectionReason"
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      placeholder="e.g., Incomplete documentation, policy violation..."
-                  />
-              </div>
-              <DialogFooter>
-                  <Button variant="outline" onClick={() => {
-                      setLoanToReject(null);
-                      setRejectionReason("");
-                  }}>Cancel</Button>
-                  <Button variant="destructive" onClick={handleRejectLoan} disabled={actionLoading || !rejectionReason}>Confirm Rejection</Button>
-              </DialogFooter>
-          </DialogContent>
+      <Dialog
+        open={!!loanToReject}
+        onOpenChange={() => {
+          setLoanToReject(null);
+          setRejectionReason(''); // Clear reason on dialog close
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Loan Request</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this loan request. The employee will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <Label htmlFor="rejectionReason">Rejection Reason</Label>
+            <Input
+              id="rejectionReason"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="e.g., Incomplete documentation, policy violation..."
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setLoanToReject(null);
+                setRejectionReason('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRejectLoan} disabled={actionLoading || !rejectionReason}>
+              Confirm Rejection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );

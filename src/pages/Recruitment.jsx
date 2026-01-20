@@ -1,32 +1,16 @@
+import { employeeService, recruitmentService, userService } from '@/api';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { showToast } from '@/utils/toast';
+import { Briefcase, Calendar, Check, Copy, Linkedin, Plus, TrendingUp, Users, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-import React, { useState, useEffect } from "react";
-import { userService, employeeService, recruitmentService } from "@/api";
-import { showToast } from "@/utils/toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, Plus, Briefcase, Calendar, TrendingUp, Linkedin, Check, X, Copy } from "lucide-react";
-
-import JobPostingForm from "../components/recruitment/JobPostingForm";
-import ApplicationPipeline from "../components/recruitment/ApplicationPipeline";
+import ApplicationPipeline from '../components/recruitment/ApplicationPipeline';
+import JobPostingForm from '../components/recruitment/JobPostingForm';
 
 export default function Recruitment() {
   const [jobPostings, setJobPostings] = useState([]);
@@ -53,11 +37,11 @@ export default function Recruitment() {
     try {
       const user = await userService.getCurrentUser();
       setCurrentUser(user?.data || user);
-      
+
       // Check if user is a Managing Director
       const employees = await employeeService.getEmployees(1, 100);
-      const currentEmployee = employees?.data?.find(e => e.email === (user?.data?.email || user?.email));
-      const isMDUser = currentEmployee?.position === "Managing Director";
+      const currentEmployee = employees?.data?.find((e) => e.email === (user?.data?.email || user?.email));
+      const isMDUser = currentEmployee?.position === 'Managing Director';
       console.log('Current user:', user?.data?.email || user?.email);
       console.log('Current employee:', currentEmployee?.position);
       console.log('Is Managing Director:', isMDUser);
@@ -75,17 +59,17 @@ export default function Recruitment() {
       const [jobsResponse, applicationsResponse, statsResponse] = await Promise.all([
         recruitmentService.getJobPostings(1, 100),
         recruitmentService.getJobApplications(1, 100),
-        recruitmentService.getDashboardStats()
+        recruitmentService.getDashboardStats(),
       ]);
-      
+
       // Set job postings
-      const jobs = Array.isArray(jobsResponse) ? jobsResponse : (jobsResponse?.data || []);
+      const jobs = Array.isArray(jobsResponse) ? jobsResponse : jobsResponse?.data || [];
       setJobPostings(jobs);
-      
+
       // Set applications
-      const applications = Array.isArray(applicationsResponse) ? applicationsResponse : (applicationsResponse?.data || []);
+      const applications = Array.isArray(applicationsResponse) ? applicationsResponse : applicationsResponse?.data || [];
       setApplications(applications);
-      
+
       // Set dashboard stats from API
       const stats = statsResponse?.data || statsResponse || {};
       setDashboardStats({
@@ -103,14 +87,12 @@ export default function Recruitment() {
       setLoading(false);
     }
   };
-  
+
   const getManagingDirectorEmails = async () => {
-      const response = await employeeService.getEmployees(1, 100);
-      const employees = response.data || [];
-      return employees
-        .filter(e => e.position === "Managing Director")
-        .map(e => e.email);
-  }
+    const response = await employeeService.getEmployees(1, 100);
+    const employees = response.data || [];
+    return employees.filter((e) => e.position === 'Managing Director').map((e) => e.email);
+  };
 
   // Helper function to create public page PATH segments (e.g., "/PublicJobView?id=...")
   // This is a placeholder; in a real app, this might come from a router utility
@@ -129,8 +111,8 @@ export default function Recruitment() {
   const handleCopyLink = (job) => {
     const jobUrl = createPublicPageUrl(`PublicJobView?id=${job.id}`);
     navigator.clipboard.writeText(jobUrl).then(() => {
-        setCopiedJobId(job.id);
-        setTimeout(() => setCopiedJobId(null), 2000); // Reset after 2 seconds
+      setCopiedJobId(job.id);
+      setTimeout(() => setCopiedJobId(null), 2000); // Reset after 2 seconds
     });
   };
 
@@ -138,11 +120,11 @@ export default function Recruitment() {
     try {
       console.log('Job posting created successfully:', response);
       setShowJobForm(false);
-      
+
       // Extract title from the response
       const jobTitle = response?.title || response?.data?.title || 'Job posting';
       showToast.success(`"${jobTitle}" created successfully and is pending approval`, 'Job Posted');
-      
+
       // Reload data to show the new job posting
       await loadData();
     } catch (error) {
@@ -153,42 +135,42 @@ export default function Recruitment() {
 
   const handleApproval = async (job, approved) => {
     try {
-        if (approved) {
-            await recruitmentService.approveJobPosting(job.id, currentUser.email);
-        } else {
-            await recruitmentService.rejectJobPosting(job.id);
-        }
-        
-        showToast.success(`Job posting ${approved ? 'approved' : 'rejected'} successfully!`, 'Success');
-        loadData();
+      if (approved) {
+        await recruitmentService.approveJobPosting(job.id, currentUser.email);
+      } else {
+        await recruitmentService.rejectJobPosting(job.id);
+      }
+
+      showToast.success(`Job posting ${approved ? 'approved' : 'rejected'} successfully!`, 'Success');
+      loadData();
     } catch (error) {
-        console.error('Error updating job status:', error);
-        showToast.error(error.message || 'Failed to update job status', 'Error');
+      console.error('Error updating job status:', error);
+      showToast.error(error.message || 'Failed to update job status', 'Error');
     }
   };
 
   const handleCloseRole = async (job) => {
-      if (!window.confirm("Are you sure you want to close this role? This will prevent new applications.")) return;
-      try {
-          await recruitmentService.closeJobPosting(job.id);
-          showToast.success('Job posting closed successfully!', 'Success');
-          loadData();
-      } catch(error) {
-          console.error("Error closing role:", error);
-          showToast.error(error.message || 'Failed to close job posting', 'Error');
-      }
-  }
+    if (!window.confirm('Are you sure you want to close this role? This will prevent new applications.')) return;
+    try {
+      await recruitmentService.closeJobPosting(job.id);
+      showToast.success('Job posting closed successfully!', 'Success');
+      loadData();
+    } catch (error) {
+      console.error('Error closing role:', error);
+      showToast.error(error.message || 'Failed to close job posting', 'Error');
+    }
+  };
 
   const getStatusColor = (status) => {
     const colors = {
-      draft: "bg-gray-100 text-gray-700",
-      pending_approval: "bg-orange-100 text-orange-700",
-      active: "bg-green-100 text-green-700",
-      closed: "bg-red-100 text-red-700",
-      on_hold: "bg-yellow-100 text-yellow-700",
-      rejected: "bg-red-200 text-red-800"
+      draft: 'bg-gray-100 text-gray-700',
+      pending_approval: 'bg-orange-100 text-orange-700',
+      active: 'bg-green-100 text-green-700',
+      closed: 'bg-red-100 text-red-700',
+      on_hold: 'bg-yellow-100 text-yellow-700',
+      rejected: 'bg-red-200 text-red-800',
     };
-    return colors[status] || "bg-gray-100 text-gray-700";
+    return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
   if (loading) {
@@ -208,8 +190,8 @@ export default function Recruitment() {
   //       <div>
   //         <p className="text-red-600 font-semibold mb-4">Failed to load user information</p>
   //         <p className="text-gray-600 mb-4">Backend server may not be running at http://localhost:3000</p>
-  //         <button 
-  //           onClick={() => window.location.reload()} 
+  //         <button
+  //           onClick={() => window.location.reload()}
   //           className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
   //         >
   //           Retry
@@ -218,8 +200,8 @@ export default function Recruitment() {
   //     </div>
   //   );
   // }
-  
-  const pendingApprovalJobs = jobPostings.filter(j => j.status === 'pending_approval');
+
+  const pendingApprovalJobs = jobPostings.filter((j) => j.status === 'pending_approval');
   const displayedJobs = jobPostings; // Show all jobs in the main table
 
   return (
@@ -302,40 +284,56 @@ export default function Recruitment() {
             </CardContent>
           </Card>
         </div>
-        
+
         {isMD && pendingApprovalJobs.length > 0 && (
-            <Card className="bg-white/90 backdrop-blur-sm border-orange-200 shadow-xl shadow-orange-200/50">
-                <CardHeader>
-                    <CardTitle className="text-orange-700">Action Required: Pending Approvals</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Job Title</TableHead>
-                                    <TableHead>Department</TableHead>
-                                    <TableHead>Created By</TableHead>
-                                    <TableHead>Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {pendingApprovalJobs.map(job => (
-                                    <TableRow key={job.id} className="hover:bg-orange-50/50 transition-colors">
-                                        <TableCell>{job.title}</TableCell>
-                                        <TableCell className="capitalize">{job.department}</TableCell>
-                                        <TableCell>{job.created_by}</TableCell>
-                                        <TableCell className="flex gap-2">
-                                            <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50" onClick={() => handleApproval(job, true)}><Check className="w-4 h-4 mr-1"/>Approve</Button>
-                                            <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50" onClick={() => handleApproval(job, false)}><X className="w-4 h-4 mr-1"/>Reject</Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
+          <Card className="bg-white/90 backdrop-blur-sm border-orange-200 shadow-xl shadow-orange-200/50">
+            <CardHeader>
+              <CardTitle className="text-orange-700">Action Required: Pending Approvals</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Job Title</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Created By</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingApprovalJobs.map((job) => (
+                      <TableRow key={job.id} className="hover:bg-orange-50/50 transition-colors">
+                        <TableCell>{job.title}</TableCell>
+                        <TableCell className="capitalize">{job.department}</TableCell>
+                        <TableCell>{job.created_by}</TableCell>
+                        <TableCell className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 border-green-600 hover:bg-green-50"
+                            onClick={() => handleApproval(job, true)}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-600 hover:bg-red-50"
+                            onClick={() => handleApproval(job, false)}
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Job Postings Table */}
@@ -359,7 +357,7 @@ export default function Recruitment() {
                 </TableHeader>
                 <TableBody>
                   {displayedJobs.map((job) => {
-                    const jobApplications = applications.filter(a => a.job_posting_id === job.id);
+                    const jobApplications = applications.filter((a) => a.job_posting_id === job.id);
                     return (
                       <TableRow key={job.id} className="hover:bg-gray-50/50 transition-colors">
                         <TableCell>
@@ -372,24 +370,17 @@ export default function Recruitment() {
                         <TableCell className="capitalize">{job.employment_type.replace('_', ' ')}</TableCell>
                         <TableCell>
                           <Badge variant="secondary">
-                            {jobApplications.length} application{jobApplications.length > 1 ? 's' : ''}
+                            {jobApplications.length} application
+                            {jobApplications.length > 1 ? 's' : ''}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(job.status)}>
-                            {job.status.replace("_", " ")}
-                          </Badge>
+                          <Badge className={getStatusColor(job.status)}>{job.status.replace('_', ' ')}</Badge>
                         </TableCell>
-                        <TableCell>
-                          {job.posted_date && new Date(job.posted_date).toLocaleDateString()}
-                        </TableCell>
+                        <TableCell>{job.posted_date && new Date(job.posted_date).toLocaleDateString()}</TableCell>
                         <TableCell className="flex gap-1 flex-wrap">
                           <TooltipProvider>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedJob(job)}
-                            >
+                            <Button size="sm" variant="outline" onClick={() => setSelectedJob(job)}>
                               View Applications
                             </Button>
                             {job.status === 'pending_approval' && isMD && (
@@ -415,52 +406,57 @@ export default function Recruitment() {
                               </>
                             )}
                             <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="pointer-events-auto">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-blue-600 border-blue-600 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  onClick={() => handleShareOnLinkedIn(job)}
-                                  disabled={job.status !== 'active'}
-                                >
-                                  <Linkedin className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {job.status === 'active' ? 'Share on LinkedIn' : 'Only available for active jobs'}
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="pointer-events-auto">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-gray-600 border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  onClick={() => handleCopyLink(job)}
-                                  disabled={job.status !== 'active'}
-                                >
-                                  {copiedJobId === job.id ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                                </Button>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {job.status === 'active' ? 'Copy link' : 'Only available for active jobs'}
-                            </TooltipContent>
-                          </Tooltip>
-                           {job.status === 'active' && 
-                             <Button 
-                                 size="sm" 
-                                 variant="destructive" 
-                                 className="bg-red-500 hover:bg-red-600 text-white"
-                                 onClick={() => handleCloseRole(job)}
-                             >
-                                 Close Role
-                             </Button>}
-                           </TooltipProvider>
-                           </TableCell>
+                              <TooltipTrigger asChild>
+                                <div className="pointer-events-auto">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-blue-600 border-blue-600 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={() => handleShareOnLinkedIn(job)}
+                                    disabled={job.status !== 'active'}
+                                  >
+                                    <Linkedin className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {job.status === 'active' ? 'Share on LinkedIn' : 'Only available for active jobs'}
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="pointer-events-auto">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-gray-600 border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={() => handleCopyLink(job)}
+                                    disabled={job.status !== 'active'}
+                                  >
+                                    {copiedJobId === job.id ? (
+                                      <Check className="w-4 h-4 text-green-600" />
+                                    ) : (
+                                      <Copy className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {job.status === 'active' ? 'Copy link' : 'Only available for active jobs'}
+                              </TooltipContent>
+                            </Tooltip>
+                            {job.status === 'active' && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="bg-red-500 hover:bg-red-600 text-white"
+                                onClick={() => handleCloseRole(job)}
+                              >
+                                Close Role
+                              </Button>
+                            )}
+                          </TooltipProvider>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -486,17 +482,26 @@ export default function Recruitment() {
         </Card>
 
         {/* Application Pipeline in a Modal */}
-        <Dialog open={!!selectedJob} onOpenChange={(isOpen) => { if (!isOpen) setSelectedJob(null); }}>
+        <Dialog
+          open={!!selectedJob}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setSelectedJob(null);
+          }}
+        >
           <DialogContent className="max-w-screen-xl w-11/12 h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle className="text-2xl">Application Pipeline</DialogTitle>
-              {selectedJob && <DialogDescription>Viewing applicants for: <span className="font-semibold text-blue-700">{selectedJob.title}</span></DialogDescription>}
+              {selectedJob && (
+                <DialogDescription>
+                  Viewing applicants for: <span className="font-semibold text-blue-700">{selectedJob.title}</span>
+                </DialogDescription>
+              )}
             </DialogHeader>
             <div className="flex-grow overflow-hidden">
               {selectedJob && (
                 <ApplicationPipeline
                   job={selectedJob}
-                  applications={applications.filter(a => a.job_posting_id === selectedJob.id)}
+                  applications={applications.filter((a) => a.job_posting_id === selectedJob.id)}
                   onClose={() => setSelectedJob(null)}
                   onRefreshApplications={loadData}
                 />
