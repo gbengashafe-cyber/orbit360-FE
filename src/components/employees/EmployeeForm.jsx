@@ -1,219 +1,105 @@
-
-import React, { useState, useEffect } from "react";
-import { Employee } from "@/api/entities";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { employeeService } from '@/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, parseISO } from 'date-fns';
-import { Info, HelpCircle, UserPlus } from "lucide-react";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-  } from "@/components/ui/table";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { HelpCircle, UserPlus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { LoanUtil } from '../cooperative/loan.utils';
+import { EmployeeUtil } from './employee.utils';
+import EmployeeLoans from './EmployeeLoans';
 
-const NIGERIAN_STATES = [
-  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River",
-  "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT - Abuja", "Gombe", "Imo", "Jigawa", "Kaduna",
-  "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo",
-  "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
-];
-
-// Nigerian PAYE Tax Brackets (2024) - used for reference but the calculation logic directly implements the tiers
-const TAX_BRACKETS = [
-  { min: 0, max: 300000, rate: 7 },
-  { min: 300000, max: 600000, rate: 11 },
-  { min: 600000, max: 1100000, rate: 15 },
-  { min: 1100000, max: 1600000, rate: 19 },
-  { min: 1600000, max: 3200000, rate: 21 },
-  { min: 3200000, max: Infinity, rate: 24 }
-];
-
-export default function EmployeeForm({ employee, onSubmit, onCancel }) {
+export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartments = [], jobRoles = [] }) {
   const [allEmployees, setAllEmployees] = useState([]);
+  const [employeeLoans, setEmployeeLoans] = useState([]);
   const [formData, setFormData] = useState(
     employee
-      ? { 
-          ...employee, 
-          hire_date: employee.hire_date ? format(parseISO(employee.hire_date), "yyyy-MM-dd") : "",
-          date_of_birth: employee.date_of_birth ? format(parseISO(employee.date_of_birth), "yyyy-MM-dd") : ""
+      ? {
+          ...employee,
+          hireDate: employee.hireDate ? format(parseISO(employee.hireDate), 'yyyy-MM-dd') : '',
+          dob: employee.dob ? format(parseISO(employee.dob), 'yyyy-MM-dd') : '',
         }
       : {
-          employee_id: "",
-          first_name: "",
-          last_name: "",
-          email: "",
-          phone: "",
-          gender: "",
-          date_of_birth: "",
-          nationality: "Nigerian",
-          home_address: "",
-          department: "hr",
-          position: "",
-          employment_status: "active",
-          hire_date: "",
-          supervisor_id: "",
-          supervisor_name: "",
-          supervisor_role: "",
-          supervisor_department: "",
-          annual_basic_salary: 0,
-          annual_housing_allowance: 0,
-          annual_transport_allowance: 0,
-          annual_leave_allowance: 0,
-          annual_other_allowances: 0,
-          pension_rate: 8,
-          nhf_applicable: true,
-          nhf_rate: 2.5,
-          bank_name: "",
-          account_number: "",
-          account_name: "",
-          beneficiary_name: "",
-          beneficiary_relationship: "",
-          beneficiary_phone: "",
-          next_of_kin_name: "",
-          next_of_kin_relationship: "",
-          next_of_kin_phone: "",
-          next_of_kin_address: "",
-        }
+          employeeId: '',
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          gender: '',
+          dob: '',
+          nationality: 'Nigerian',
+          address: '',
+          departmentName: 'hr',
+          jobRole: '',
+          status: 'active',
+          hireDate: '',
+          supervisorId: '',
+          supervisorName: '',
+          supervisorRole: '',
+          supervisorDepartment: '',
+          annualBasicSalary: 0,
+          annualHousingAllowance: 0,
+          annualTransportAllowance: 0,
+          annualLeaveAllowance: 0,
+          annualOtherAllowances: 0,
+          pensionApplicable: true,
+          pensionRate: 8,
+          nhfApplicable: true,
+          nhfRate: 2.5,
+          bankName: '',
+          bankCode: '',
+          accountNumber: '',
+          accountName: '',
+          beneficiaryName: '',
+          beneficiaryRelationship: '',
+          beneficiaryPhone: '',
+          nextOfKinName: '',
+          nextOfKinRelationship: '',
+          nextOfKinPhone: '',
+          nextOfKinAddress: '',
+          leaveEntitlement: 22,
+        },
   );
   const [createUserAccount, setCreateUserAccount] = useState(true);
 
   useEffect(() => {
-    async function loadEmployees() {
-      const employees = await Employee.list();
-      setAllEmployees(employees);
-    }
-    loadEmployees();
-  }, []);
+    async function loadData() {
+      try {
+        const employees = await employeeService.getEmployees({ rows: 1000 });
+        setAllEmployees(employees.data);
 
-  // Calculate total gross pay
-  const calculateTotalGrossPay = () => {
-    const basic = parseFloat(formData.annual_basic_salary) || 0;
-    const housing = parseFloat(formData.annual_housing_allowance) || 0;
-    const transport = parseFloat(formData.annual_transport_allowance) || 0;
-    const leave = parseFloat(formData.annual_leave_allowance) || 0;
-    const other = parseFloat(formData.annual_other_allowances) || 0;
-    return basic + housing + transport + leave + other;
-  };
-
-  // Calculate pension deduction (8% of Basic + Housing + Transport)
-  const calculatePensionDeduction = () => {
-    const basic = parseFloat(formData.annual_basic_salary) || 0;
-    const housing = parseFloat(formData.annual_housing_allowance) || 0;
-    const transport = parseFloat(formData.annual_transport_allowance) || 0;
-    const pensionableIncome = basic + housing + transport;
-    return (pensionableIncome * 8) / 100;
-  };
-
-  // Calculate NHF deduction (2.5% of Basic Salary only, if applicable)
-  const calculateNHFDeduction = () => {
-    if (!formData.nhf_applicable) return 0;
-    const basic = parseFloat(formData.annual_basic_salary) || 0;
-    return (basic * 2.5) / 100;
-  };
-
-  const calculateConsolidatedReliefAllowance = () => {
-    const totalGross = calculateTotalGrossPay();
-    const onePercentOfGross = totalGross * 0.01;
-    const twentyPercentOfGross = totalGross * 0.2;
-    const higherAmount = Math.max(200000, onePercentOfGross);
-    return {
-      total: twentyPercentOfGross + higherAmount,
-      breakdown: {
-        onePercent: onePercentOfGross,
-        twentyPercent: twentyPercentOfGross,
-        higher: higherAmount
+        if (employee?.id) {
+          const employeeData = await employeeService.getEmployeeById(employee.id);
+          const activeLoans = employeeData.data.loans.filter((l) => l.status === 'active');
+          setEmployeeLoans(activeLoans);
+        }
+      } catch (error) {
+        console.log(error);
       }
-    };
-  };
+    }
+    loadData();
+  }, [employee]);
 
-  const calculatePAYE = () => {
-    const annualGross = calculateTotalGrossPay();
-    const annualPension = calculatePensionDeduction();
-    const annualNhf = calculateNHFDeduction();
-    const consolidatedRelief = calculateConsolidatedReliefAllowance().total;
-
-    const taxableIncome = Math.max(0, annualGross - annualPension - annualNhf - consolidatedRelief);
-    
-    let tax = 0;
-    let taxBreakdown = [];
-
-    // Corrected tax bracket logic for progressive taxation
-    let incomeLeft = taxableIncome;
-
-    if (incomeLeft > 0) {
-        let band = Math.min(incomeLeft, 300000); // First 300,000
-        let bandTax = band * 0.07;
-        tax += bandTax;
-        taxBreakdown.push({ tier: "First ₦300,000", rate: "7%", tax: bandTax });
-        incomeLeft -= band;
-    }
-    if (incomeLeft > 0) {
-        let band = Math.min(incomeLeft, 300000); // Next 300,000 (up to 600,000 total)
-        let bandTax = band * 0.11;
-        tax += bandTax;
-        taxBreakdown.push({ tier: "Next ₦300,000", rate: "11%", tax: bandTax });
-        incomeLeft -= band;
-    }
-    if (incomeLeft > 0) {
-        let band = Math.min(incomeLeft, 500000); // Next 500,000 (up to 1,100,000 total)
-        let bandTax = band * 0.15;
-        tax += bandTax;
-        taxBreakdown.push({ tier: "Next ₦500,000", rate: "15%", tax: bandTax });
-        incomeLeft -= band;
-    }
-    if (incomeLeft > 0) {
-        let band = Math.min(incomeLeft, 500000); // Next 500,000 (up to 1,600,000 total)
-        let bandTax = band * 0.19;
-        tax += bandTax;
-        taxBreakdown.push({ tier: "Next ₦500,000", rate: "19%", tax: bandTax });
-        incomeLeft -= band;
-    }
-    if (incomeLeft > 0) {
-        let band = Math.min(incomeLeft, 1600000); // Next 1,600,000 (up to 3,200,000 total)
-        let bandTax = band * 0.21;
-        tax += bandTax;
-        taxBreakdown.push({ tier: "Next ₦1,600,000", rate: "21%", tax: bandTax });
-        incomeLeft -= band;
-    }
-    if (incomeLeft > 0) {
-        let band = incomeLeft; // Remaining income
-        let bandTax = band * 0.24;
-        tax += bandTax;
-        taxBreakdown.push({ tier: "Above ₦3,200,000", rate: "24%", tax: bandTax });
-    }
-
-    return { tax, taxableIncome, breakdown: taxBreakdown };
-  };
-  
   const handleSubmit = (e) => {
     e.preventDefault();
-    const totalGrossPay = calculateTotalGrossPay();
-    const consolidatedReliefData = calculateConsolidatedReliefAllowance();
+    const totalGrossPay = EmployeeUtil.calculateTotalGrossPay(formData);
     const submissionData = {
       ...formData,
-      annual_basic_salary: parseFloat(formData.annual_basic_salary) || 0,
-      annual_housing_allowance: parseFloat(formData.annual_housing_allowance) || 0,
-      annual_transport_allowance: parseFloat(formData.annual_transport_allowance) || 0,
-      annual_leave_allowance: parseFloat(formData.annual_leave_allowance) || 0,
-      annual_other_allowances: parseFloat(formData.annual_other_allowances) || 0,
-      pension_rate: 8,
-      nhf_rate: 2.5,
-      nhf_applicable: Boolean(formData.nhf_applicable),
-      total_annual_gross_pay: parseFloat(totalGrossPay.toFixed(2)),
-      consolidated_relief_allowance: parseFloat(consolidatedReliefData.total.toFixed(2)),
+      annualBasicSalary: parseFloat(formData.annualBasicSalary) || 0,
+      annualHousingAllowance: parseFloat(formData.annualHousingAllowance) || 0,
+      annualTransportAllowance: parseFloat(formData.annualTransportAllowance) || 0,
+      annualLeaveAllowance: parseFloat(formData.annualLeaveAllowance) || 0,
+      annualOtherAllowances: parseFloat(formData.annualOtherAllowances) || 0,
+      pensionApplicable: formData.pensionApplicable !== false,
+      pensionRate: 8,
+      nhfRate: 2.5,
+      nhfApplicable: Boolean(formData.nhfApplicable),
+      totalAnnualGrossPay: parseFloat(totalGrossPay.toFixed(2)),
     };
     onSubmit({ employeeData: submissionData, createUser: !employee && createUserAccount });
   };
@@ -222,351 +108,581 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }) {
     setFormData((prev) => {
       const newFormData = { ...prev, [field]: value };
 
-      // Auto-calculate leave allowance as 10% of basic salary
-      if (field === "annual_basic_salary") {
+      if (field === 'annualBasicSalary') {
         const basicSalary = parseFloat(value) || 0;
-        newFormData.annual_leave_allowance = basicSalary * 0.1;
+        newFormData.annualLeaveAllowance = basicSalary * 0.1;
       }
       return newFormData;
     });
   };
 
   const handleSupervisorChange = (supervisorId) => {
-    const selectedSupervisor = allEmployees.find(emp => emp.id === supervisorId);
+    const selectedSupervisor = allEmployees.find((emp) => emp.employeeId === supervisorId);
     if (selectedSupervisor) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        supervisor_id: selectedSupervisor.id,
-        supervisor_name: `${selectedSupervisor.first_name} ${selectedSupervisor.last_name}`,
-        supervisor_role: selectedSupervisor.position,
-        supervisor_department: selectedSupervisor.department
+        supervisorId: selectedSupervisor.employeeId,
+        supervisorName: `${selectedSupervisor.firstName} ${selectedSupervisor.lastName}`,
+        supervisorRole: selectedSupervisor.position,
+        supervisorDepartment: selectedSupervisor.departmentName,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        supervisorId: null,
       }));
     }
   };
 
-  const totalGrossPay = calculateTotalGrossPay();
-  const annualPensionDeduction = calculatePensionDeduction();
-  const annualNHFDeduction = calculateNHFDeduction();
-  const consolidatedReliefData = calculateConsolidatedReliefAllowance();
-  const annualPAYEData = calculatePAYE();
+  const totalGrossPay = EmployeeUtil.calculateTotalGrossPay(formData);
+  const annualPensionDeduction = EmployeeUtil.calculatePensionDeduction(formData);
+  const annualNHFDeduction = EmployeeUtil.calculateNHFDeduction(formData);
+  const annualPAYEData = EmployeeUtil.calculatePAYE(formData);
 
+  const totalMonthlyLoanDeduction = employeeLoans.reduce(
+    (sum, loan) => sum + (LoanUtil.calculations(loan).monthlyDeduction || 0),
+    0,
+  );
+  const totalAnnualLoanDeduction = totalMonthlyLoanDeduction * 12;
 
-  const formatCurrency = (value) => {
-    return (value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
+  const monthlyGross = totalGrossPay / 12;
+  const monthlyPension = annualPensionDeduction / 12;
+  const monthlyNHF = annualNHFDeduction / 12;
+  const monthlyTax = annualPAYEData.tax / 12;
+  const monthlyNetSalary = monthlyGross - monthlyPension - monthlyNHF - monthlyTax - totalMonthlyLoanDeduction;
+
+  const annualNetSalary = monthlyNetSalary * 12;
+
+  const formatCurrency = (value) =>
+    (value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <Card className="bg-white/90 backdrop-blur-sm border-slate-200/60 shadow-2xl shadow-slate-200/60 mt-6">
       <CardHeader>
-        <CardTitle>{employee ? `Edit Employee: ${employee.first_name} ${employee.last_name}` : "Create New Employee"}</CardTitle>
+        <CardTitle>{employee ? `Edit Employee: ${employee.firstName} ${employee.lastName}` : 'Create New Employee'}</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <h3 className="font-semibold text-lg text-gray-800 border-b pb-2">Personal Information</h3>
           {/* Personal Information Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-             {/* Employee ID */}
+            {/* Employee ID */}
             <div className="space-y-2">
-              <Label htmlFor="employee_id">Employee ID *</Label>
-              <Input id="employee_id" value={formData.employee_id} onChange={(e) => handleInputChange("employee_id", e.target.value)} required />
+              <Label htmlFor="employeeId">Employee ID *</Label>
+              <Input
+                id="employeeId"
+                value={formData.employeeId}
+                onChange={(e) => handleInputChange('employeeId', e.target.value)}
+                required
+              />
             </div>
             {/* First Name */}
             <div className="space-y-2">
-              <Label htmlFor="first_name">First Name *</Label>
-              <Input id="first_name" value={formData.first_name} onChange={(e) => handleInputChange("first_name", e.target.value)} required />
+              <Label htmlFor="firstName">First Name *</Label>
+              <Input
+                id="firstName"
+                value={formData.firstName}
+                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                required
+              />
             </div>
             {/* Last Name */}
             <div className="space-y-2">
-              <Label htmlFor="last_name">Last Name *</Label>
-              <Input id="last_name" value={formData.last_name} onChange={(e) => handleInputChange("last_name", e.target.value)} required />
+              <Label htmlFor="lastName">Last Name *</Label>
+              <Input
+                id="lastName"
+                value={formData.lastName}
+                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                required
+              />
             </div>
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
-              <Input id="email" type="email" value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} required />
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                required
+              />
             </div>
             {/* Phone */}
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} />
+              <Input id="phone" value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} />
             </div>
             {/* Date of Birth */}
             <div className="space-y-2">
-              <Label htmlFor="date_of_birth">Date of Birth</Label>
-              <Input id="date_of_birth" type="date" value={formData.date_of_birth} onChange={(e) => handleInputChange("date_of_birth", e.target.value)} />
+              <Label htmlFor="dob">Date of Birth *</Label>
+              <Input id="dob" type="date" value={formData.dob} onChange={(e) => handleInputChange('dob', e.target.value)} />
             </div>
-             {/* Gender */}
+            {/* Gender */}
             <div className="space-y-2">
               <Label htmlFor="gender">Gender</Label>
-              <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)}>
-                <SelectTrigger id="gender"><SelectValue /></SelectTrigger>
+              <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                <SelectTrigger id="gender">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="M">Male</SelectItem>
+                  <SelectItem value="F">Female</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {/* Nationality */}
             <div className="space-y-2">
               <Label htmlFor="nationality">Nationality</Label>
-              <Input id="nationality" value={formData.nationality} onChange={(e) => handleInputChange("nationality", e.target.value)} />
+              <Input
+                id="nationality"
+                value={formData.nationality}
+                onChange={(e) => handleInputChange('nationality', e.target.value)}
+              />
             </div>
             {/* Home Address */}
             <div className="space-y-2 col-span-1 md:col-span-2">
-              <Label htmlFor="home_address">Home Address</Label>
-              <Input id="home_address" value={formData.home_address} onChange={(e) => handleInputChange("home_address", e.target.value)} />
+              <Label htmlFor="address">Home Address</Label>
+              <Input id="address" value={formData.address} onChange={(e) => handleInputChange('address', e.target.value)} />
             </div>
           </div>
-          
+
           <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Employment Details</h3>
           {/* Employment Details Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="hireDate">Hire Date *</Label>
+              <Input
+                id="hireDate"
+                type="date"
+                value={formData.hireDate}
+                onChange={(e) => handleInputChange('hireDate', e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="departmentName">Department</Label>
+              <Select value={formData.departmentName} onValueChange={(value) => handleInputChange('departmentName', value)}>
+                <SelectTrigger id="departmentName">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {allDepartments.map((_department) => (
+                    <SelectItem key={_department.id} value={_department.name}>
+                      {_department.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="jobRole">Job Role</Label>
+
+              <Select value={formData.jobRole} onValueChange={(value) => handleInputChange('jobRole', value)}>
+                <SelectTrigger id="jobRole">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobRoles.map((_jobRole) => {
+                    return (
+                      <SelectItem key={_jobRole.id} value={_jobRole.title}>
+                        {_jobRole.title}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            {formData.id ? (
               <div className="space-y-2">
-              <Label htmlFor="hire_date">Hire Date *</Label>
-              <Input id="hire_date" type="date" value={formData.hire_date} onChange={(e) => handleInputChange("hire_date", e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
-              <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
-                <SelectTrigger id="department"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hr">HR</SelectItem>
-                  <SelectItem value="sales">Sales</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="finance">Finance</SelectItem>
-                  <SelectItem value="operations">Operations</SelectItem>
-                  <SelectItem value="it">IT</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="position">Position</Label>
-              <Input id="position" value={formData.position} onChange={(e) => handleInputChange("position", e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="employment_status">Employment Status</Label>
-              <Select value={formData.employment_status} onValueChange={(value) => handleInputChange("employment_status", value)}>
-                <SelectTrigger id="employment_status"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="terminated">Terminated</SelectItem>
-                  <SelectItem value="on_leave">On Leave</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <Label htmlFor="status">Employment Status</Label>
+                <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                  <SelectTrigger id="status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="terminated">Terminated</SelectItem>
+                    <SelectItem value="on_leave">On Leave</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </div>
 
           <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Reporting Line</h3>
           {/* Reporting Line Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="supervisor_id">Supervisor</Label>
-              <Select value={formData.supervisor_id} onValueChange={handleSupervisorChange}>
-                <SelectTrigger id="supervisor_id"><SelectValue placeholder="Select a supervisor" /></SelectTrigger>
+              <Label htmlFor="supervisorId">Supervisor</Label>
+              <Select value={formData.supervisorId} onValueChange={handleSupervisorChange}>
+                <SelectTrigger id="supervisorId">
+                  <SelectValue placeholder="Select a supervisor" />
+                </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={null}>Select supervisor</SelectItem>
                   {allEmployees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} ({emp.employee_id})</SelectItem>
+                    <SelectItem key={emp.id} value={emp.employeeId}>
+                      {emp.firstName} {emp.lastName} ({emp.employeeId} - {emp.departmentName})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Supervisor Department</Label>
-              <Input value={formData.supervisor_department} disabled />
             </div>
           </div>
 
           <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Compensation & Benefits (Annual)</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="annual_basic_salary">Annual Basic Salary (₦) *</Label>
-              <Input id="annual_basic_salary" type="number" value={formData.annual_basic_salary} onChange={(e) => handleInputChange("annual_basic_salary", e.target.value)} required />
+              <Label htmlFor="annualBasicSalary">Annual Basic Salary (₦) *</Label>
+              <Input
+                id="annualBasicSalary"
+                type="number"
+                value={formData.annualBasicSalary}
+                onChange={(e) => handleInputChange('annualBasicSalary', e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="annual_housing_allowance">Annual Housing Allowance (₦)</Label>
-              <Input id="annual_housing_allowance" type="number" value={formData.annual_housing_allowance} onChange={(e) => handleInputChange("annual_housing_allowance", e.target.value)} />
+              <Label htmlFor="annualHousingAllowance">Annual Housing Allowance (₦)</Label>
+              <Input
+                id="annualHousingAllowance"
+                type="number"
+                value={formData.annualHousingAllowance}
+                onChange={(e) => handleInputChange('annualHousingAllowance', e.target.value)}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="annual_transport_allowance">Annual Transport Allowance (₦)</Label>
-              <Input id="annual_transport_allowance" type="number" value={formData.annual_transport_allowance} onChange={(e) => handleInputChange("annual_transport_allowance", e.target.value)} />
+              <Label htmlFor="annualTransportAllowance">Annual Transport Allowance (₦)</Label>
+              <Input
+                id="annualTransportAllowance"
+                type="number"
+                value={formData.annualTransportAllowance}
+                onChange={(e) => handleInputChange('annualTransportAllowance', e.target.value)}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="annual_leave_allowance">Annual Leave Allowance (₦)</Label>
-              <Input id="annual_leave_allowance" type="number" value={formData.annual_leave_allowance} disabled className="bg-gray-100" />
+              <Label htmlFor="annualLeaveAllowance">Annual Leave Allowance (₦)</Label>
+              <Input
+                id="annualLeaveAllowance"
+                type="number"
+                value={formData.annualLeaveAllowance}
+                disabled
+                className="bg-gray-100"
+              />
               <p className="text-xs text-gray-400">10% of Basic Salary</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="annual_other_allowances">Other Allowances (Annual, ₦)</Label>
-              <Input id="annual_other_allowances" type="number" value={formData.annual_other_allowances} onChange={(e) => handleInputChange("annual_other_allowances", e.target.value)} />
+              <Label htmlFor="annualOtherAllowances">Other Allowances (Annual, ₦)</Label>
+              <Input
+                id="annualOtherAllowances"
+                type="number"
+                value={formData.annualOtherAllowances}
+                onChange={(e) => handleInputChange('annualOtherAllowances', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leaveEntitlement">Leave Entitlement (Annual - Days)</Label>
+              <Input
+                id="leaveEntitlement"
+                type="number"
+                value={formData.leaveEntitlement}
+                onChange={(e) => handleInputChange('leaveEntitlement', e.target.value)}
+              />
             </div>
             <div className="bg-blue-50 p-3 rounded-lg flex flex-col justify-center">
-                <Label className="text-blue-800">Total Annual Gross Pay</Label>
-                <p className="text-xl font-bold text-blue-800">₦{formatCurrency(totalGrossPay)}</p>
+              <Label className="text-blue-800">Total Annual Gross Pay</Label>
+              <p className="text-xl font-bold text-blue-800">₦{formatCurrency(totalGrossPay)}</p>
             </div>
           </div>
-          
+
           <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Deductions & Relief Configuration (Annual)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="pension_rate">Pension Deduction (Fixed at 8%)</Label>
-              <Input 
-                id="pension_rate" 
-                type="number" 
-                value="8"
-                disabled
-                className="bg-gray-100 cursor-not-allowed"
-              />
-              <p className="text-xs text-gray-500 font-medium">
-                Annual: ₦{formatCurrency(annualPensionDeduction)}
-              </p>
-              <p className="text-xs text-gray-500">
-                Monthly: ₦{formatCurrency(annualPensionDeduction / 12)}
-              </p>
+              <Input id="pension_rate" type="number" value="8" disabled className="bg-gray-100 cursor-not-allowed" />
+              <p className="text-xs text-gray-500 font-medium">Annual: ₦{formatCurrency(annualPensionDeduction)}</p>
+              <p className="text-xs text-gray-500">Monthly: ₦{formatCurrency(annualPensionDeduction / 12)}</p>
               <p className="text-xs text-gray-400">Based on Basic + Housing + Transport</p>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="nhf_applicable"
-                  checked={formData.nhf_applicable}
-                  onCheckedChange={(checked) => handleInputChange("nhf_applicable", checked)}
+                  id="pensionApplicable"
+                  checked={formData.pensionApplicable !== false}
+                  onCheckedChange={(checked) => handleInputChange('pensionApplicable', checked)}
                 />
-                <Label htmlFor="nhf_applicable" className="text-base font-normal">
+                <Label htmlFor="pensionApplicable" className="text-base font-normal">
+                  Apply Pension Deduction (8%)
+                </Label>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="nhfApplicable"
+                  checked={formData.nhfApplicable}
+                  onCheckedChange={(checked) => handleInputChange('nhfApplicable', checked)}
+                />
+                <Label htmlFor="nhfApplicable" className="text-base font-normal">
                   Apply NHF Deduction (2.5%)
                 </Label>
               </div>
-               <p className="text-xs text-gray-500 font-medium">
-                Annual: ₦{formatCurrency(annualNHFDeduction)}
-              </p>
-              <p className="text-xs text-gray-500">
-                Monthly: ₦{formatCurrency(annualNHFDeduction / 12)}
-              </p>
+              <p className="text-xs text-gray-500 font-medium">Annual: ₦{formatCurrency(annualNHFDeduction)}</p>
+              <p className="text-xs text-gray-500">Monthly: ₦{formatCurrency(annualNHFDeduction / 12)}</p>
               <p className="text-xs text-gray-400">Based on Basic Salary only</p>
             </div>
-            
-            <div className="p-4 bg-gray-50 rounded-lg space-y-2">
-              <h4 className="font-semibold text-gray-700">Consolidated Relief Allowance (CRA)</h4>
-              <div className="text-xs text-gray-500 space-y-1">
-                <p>20% of Gross: ₦{formatCurrency(consolidatedReliefData.breakdown.twentyPercent)}</p>
-                <p>Higher of ₦200,000 or 1% of Gross (₦{formatCurrency(consolidatedReliefData.breakdown.onePercent)}): ₦{formatCurrency(consolidatedReliefData.breakdown.higher)}</p>
-              </div>
-              <p className="text-sm font-bold text-gray-800 pt-1 border-t">
-                Annual CRA: ₦{formatCurrency(consolidatedReliefData.total)}
-              </p>
-              <p className="text-sm text-gray-600">
-                Monthly: ₦{formatCurrency(consolidatedReliefData.total / 12)}
-              </p>
-            </div>
           </div>
-          
-          <Card className="mt-6 border-blue-200 shadow-md">
-            <CardHeader>
-                <CardTitle className="text-blue-800 flex items-center">
-                    Annual Tax Calculation Summary
-                     <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <HelpCircle className="w-4 h-4 ml-2 text-gray-400 cursor-pointer" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Taxable Income = Gross - (CRA + Pension + NHF)</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                </CardTitle>
+
+          {employee && employeeLoans.length > 0 ? (
+            <EmployeeLoans
+              employeeLoans={employeeLoans}
+              totalAnnualLoanDeduction={totalAnnualLoanDeduction}
+              totalMonthlyLoanDeduction={totalMonthlyLoanDeduction}
+            />
+          ) : null}
+
+          <Card className="mt-6 border-blue-200 shadow-lg bg-blue-50/30 sticky top-4 z-10">
+            <CardHeader className="bg-gradient-to-r from-blue-700 to-blue-800 text-white rounded-t-lg">
+              <CardTitle className="flex items-center text-white">
+                Annual Tax Calculation Summary (2026 Tax Law)
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-4 h-4 ml-2 text-blue-100 cursor-pointer" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Taxable Income = Gross - (CRA + Pension + NHF)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                    <div className="space-y-2 text-sm pr-4">
-                        <div className="flex justify-between"><span>Total Annual Gross Pay:</span> <span>₦{formatCurrency(totalGrossPay)}</span></div>
-                        <div className="flex justify-between text-red-600"><span>Less: Consolidated Relief:</span> <span>(₦{formatCurrency(consolidatedReliefData.total)})</span></div>
-                        <div className="flex justify-between text-red-600"><span>Less: Annual Pension:</span> <span>(₦{formatCurrency(annualPensionDeduction)})</span></div>
-                        <div className="flex justify-between text-red-600"><span>Less: Annual NHF:</span> <span>(₦{formatCurrency(annualNHFDeduction)})</span></div>
-                        <div className="flex justify-between font-bold border-t pt-2 mt-2"><span>Annual Taxable Income:</span> <span>₦{formatCurrency(annualPAYEData.taxableIncome)}</span></div>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="space-y-3 text-sm">
+                  <h4 className="font-semibold text-base mb-4 text-gray-800">Income & Deductions Breakdown</h4>
+                  <div className="flex justify-between py-1">
+                    <span className="font-medium">Total Annual Gross Pay:</span>{' '}
+                    <span className="font-semibold">₦{formatCurrency(totalGrossPay)}</span>
+                  </div>
+                  {formData.pensionApplicable !== false && (
+                    <div className="flex justify-between text-red-600 py-1">
+                      <span>Less: Annual Pension (8%):</span> <span>(₦{formatCurrency(annualPensionDeduction)})</span>
                     </div>
-                    <div>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                <TableHead>Tax Bracket</TableHead>
-                                <TableHead>Rate</TableHead>
-                                <TableHead className="text-right">Tax Payable (₦)</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {annualPAYEData.breakdown.map((item, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="text-xs">{item.tier}</TableCell>
-                                        <TableCell className="text-xs">{item.rate}</TableCell>
-                                        <TableCell className="text-xs text-right">{formatCurrency(item.tax)}</TableCell>
-                                    </TableRow>
-                                ))}
-                                <TableRow className="bg-gray-100 font-bold">
-                                    <TableCell colSpan={2}>Total Annual PAYE Tax</TableCell>
-                                    <TableCell className="text-right">₦{formatCurrency(annualPAYEData.tax)}</TableCell>
-                                </TableRow>
-                                <TableRow className="bg-blue-50 font-bold">
-                                    <TableCell colSpan={2}>Effective Monthly PAYE Tax</TableCell>
-                                    <TableCell className="text-right text-blue-700">₦{formatCurrency(annualPAYEData.tax / 12)}</TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
+                  )}
+                  {formData.nhfApplicable && (
+                    <div className="flex justify-between text-red-600 py-1">
+                      <span>Less: Annual NHF (2.5%):</span> <span>(₦{formatCurrency(annualNHFDeduction)})</span>
                     </div>
+                  )}
+                  <div className="flex justify-between font-bold text-base border-t-2 pt-3 mt-3 text-blue-900">
+                    <span>Annual Taxable Income:</span>
+                    <span>₦{formatCurrency(annualPAYEData.taxableIncome)}</span>
+                  </div>
                 </div>
+                <div>
+                  <h4 className="font-semibold text-base mb-4 text-gray-800">Tax Bands & Computation (2026)</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-100">
+                        <TableHead className="text-xs font-semibold">Band</TableHead>
+                        <TableHead className="text-xs font-semibold">Description</TableHead>
+                        <TableHead className="text-xs font-semibold text-right">Amount</TableHead>
+                        <TableHead className="text-xs font-semibold text-center">Rate</TableHead>
+                        <TableHead className="text-xs font-semibold text-right">Tax</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {annualPAYEData.breakdown.map((item, index) => (
+                        <TableRow key={index} className="hover:bg-gray-50">
+                          <TableCell className="text-xs font-medium">{item.band}</TableCell>
+                          <TableCell className="text-xs">{item.tier}</TableCell>
+                          <TableCell className="text-xs text-right">₦{formatCurrency(item.taxablePortion)}</TableCell>
+                          <TableCell className="text-xs text-center font-medium">{item.rate}</TableCell>
+                          <TableCell className="text-xs text-right font-semibold">₦{formatCurrency(item.tax)}</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-blue-100 font-bold border-t-2">
+                        <TableCell colSpan={4} className="text-sm py-3">
+                          Total Annual PAYE Tax
+                        </TableCell>
+                        <TableCell className="text-right text-sm py-3">₦{formatCurrency(annualPAYEData.tax)}</TableCell>
+                      </TableRow>
+                      <TableRow className="bg-green-100 font-bold border-t-2">
+                        <TableCell colSpan={4} className="text-sm py-3 text-green-800">
+                          Monthly PAYE Tax
+                          <div className="text-xs font-normal text-gray-600 mt-1">
+                            (₦{formatCurrency(annualPAYEData.tax)} ÷ 12)
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right text-sm py-3 text-green-800">
+                          ₦{formatCurrency(annualPAYEData.tax / 12)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
+          <Card className="mt-6 border-green-200 shadow-lg bg-green-50/30">
+            <CardHeader className="bg-gradient-to-r from-green-700 to-green-800 text-white rounded-t-lg">
+              <CardTitle className="text-white">Net Salary Computation</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-base mb-3 text-gray-800">Monthly Net Salary</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between py-1 text-green-700">
+                      <span className="font-medium">Gross Salary:</span>{' '}
+                      <span className="font-semibold">₦{formatCurrency(monthlyGross)}</span>
+                    </div>
+                    <div className="border-t pt-2 space-y-1 text-red-600">
+                      {formData.pensionApplicable !== false && (
+                        <div className="flex justify-between">
+                          <span>Less: Pension (8%):</span> <span>(₦{formatCurrency(monthlyPension)})</span>
+                        </div>
+                      )}
+                      {formData.nhfApplicable && (
+                        <div className="flex justify-between">
+                          <span>Less: NHF (2.5%):</span> <span>(₦{formatCurrency(monthlyNHF)})</span>
+                        </div>
+                      )}
+                      {totalMonthlyLoanDeduction > 0 && (
+                        <div className="flex justify-between font-semibold">
+                          <span>Less: Loan Deduction:</span> <span>(₦{formatCurrency(totalMonthlyLoanDeduction)})</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span>Less: PAYE Tax:</span> <span>(₦{formatCurrency(monthlyTax)})</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg border-t-2 pt-3 text-green-800">
+                      <span>Monthly Net Salary:</span>
+                      <span>₦{formatCurrency(monthlyNetSalary)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-base mb-3 text-gray-800">Annual Net Salary</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between py-1 text-green-700">
+                      <span className="font-medium">Annual Gross:</span>{' '}
+                      <span className="font-semibold">₦{formatCurrency(totalGrossPay)}</span>
+                    </div>
+                    <div className="border-t pt-2 space-y-1 text-red-600">
+                      {formData.pensionApplicable !== false && (
+                        <div className="flex justify-between">
+                          <span>Less: Pension:</span> <span>(₦{formatCurrency(annualPensionDeduction)})</span>
+                        </div>
+                      )}
+                      {formData.nhfApplicable && (
+                        <div className="flex justify-between">
+                          <span>Less: NHF:</span> <span>(₦{formatCurrency(annualNHFDeduction)})</span>
+                        </div>
+                      )}
+                      {totalAnnualLoanDeduction > 0 && (
+                        <div className="flex justify-between font-semibold">
+                          <span>Less: Loan Deduction:</span> <span>(₦{formatCurrency(totalAnnualLoanDeduction)})</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span>Less: PAYE Tax:</span> <span>(₦{formatCurrency(annualPAYEData.tax)})</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg border-t-2 pt-3 text-green-800">
+                      <span>Annual Net Salary:</span>
+                      <span>₦{formatCurrency(annualNetSalary)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Bank and Emergency Contact sections */}
           <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Bank Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="bank_name">Bank Name</Label>
-              <Input id="bank_name" value={formData.bank_name} onChange={(e) => handleInputChange("bank_name", e.target.value)} />
+              <Label htmlFor="bankName">Bank Name</Label>
+              <Input id="bankName" value={formData.bankName} onChange={(e) => handleInputChange('bankName', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="account_number">Account Number</Label>
-              <Input id="account_number" value={formData.account_number} onChange={(e) => handleInputChange("account_number", e.target.value)} />
+              <Label htmlFor="bankCode">Bank Code</Label>
+              <Input id="bankCode" value={formData.bankCode} onChange={(e) => handleInputChange('bankCode', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="account_name">Account Name</Label>
-              <Input id="account_name" value={formData.account_name} onChange={(e) => handleInputChange("account_name", e.target.value)} />
+              <Label htmlFor="accountNumber">Account Number</Label>
+              <Input
+                id="accountNumber"
+                value={formData.accountNumber}
+                onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="accountName">Account Name</Label>
+              <Input
+                id="accountName"
+                value={formData.accountName}
+                onChange={(e) => handleInputChange('accountName', e.target.value)}
+              />
             </div>
           </div>
-          
+
           <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Emergency Contact & Next of Kin</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-             <div className="space-y-2">
-              <Label htmlFor="beneficiary_name">Beneficiary Name</Label>
-              <Input id="beneficiary_name" value={formData.beneficiary_name} onChange={(e) => handleInputChange("beneficiary_name", e.target.value)} />
+            <div className="space-y-2">
+              <Label htmlFor="beneficiaryName">Beneficiary Name</Label>
+              <Input
+                id="beneficiaryName"
+                value={formData.beneficiaryName}
+                onChange={(e) => handleInputChange('beneficiaryName', e.target.value)}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="beneficiary_relationship">Beneficiary Relationship</Label>
-              <Input id="beneficiary_relationship" value={formData.beneficiary_relationship} onChange={(e) => handleInputChange("beneficiary_relationship", e.target.value)} />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="beneficiary_phone">Beneficiary Phone</Label>
-              <Input id="beneficiary_phone" value={formData.beneficiary_phone} onChange={(e) => handleInputChange("beneficiary_phone", e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="next_of_kin_name">Next of Kin Name</Label>
-              <Input id="next_of_kin_name" value={formData.next_of_kin_name} onChange={(e) => handleInputChange("next_of_kin_name", e.target.value)} />
+              <Label htmlFor="beneficiaryRelationship">Beneficiary Relationship</Label>
+              <Input
+                id="beneficiaryRelationship"
+                value={formData.beneficiaryRelationship}
+                onChange={(e) => handleInputChange('beneficiaryRelationship', e.target.value)}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="next_of_kin_relationship">Next of Kin Relationship</Label>
-              <Input id="next_of_kin_relationship" value={formData.next_of_kin_relationship} onChange={(e) => handleInputChange("next_of_kin_relationship", e.target.value)} />
+              <Label htmlFor="beneficiaryPhone">Beneficiary Phone</Label>
+              <Input
+                id="beneficiaryPhone"
+                value={formData.beneficiaryPhone}
+                onChange={(e) => handleInputChange('beneficiaryPhone', e.target.value)}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="next_of_kin_phone">Next of Kin Phone</Label>
-              <Input id="next_of_kin_phone" value={formData.next_of_kin_phone} onChange={(e) => handleInputChange("next_of_kin_phone", e.target.value)} />
+              <Label htmlFor="nokName">Next of Kin Name</Label>
+              <Input id="nokName" value={formData.nokName} onChange={(e) => handleInputChange('nokName', e.target.value)} />
             </div>
-             <div className="space-y-2 col-span-1 md:col-span-2">
-              <Label htmlFor="next_of_kin_address">Next of Kin Address</Label>
-              <Input id="next_of_kin_address" value={formData.next_of_kin_address} onChange={(e) => handleInputChange("next_of_kin_address", e.target.value)} />
+            <div className="space-y-2">
+              <Label htmlFor="nokRelationship">Next of Kin Relationship</Label>
+              <Input
+                id="nokRelationship"
+                value={formData.nokRelationship}
+                onChange={(e) => handleInputChange('nokRelationship', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nokPhone">Next of Kin Phone</Label>
+              <Input id="nokPhone" value={formData.nokPhone} onChange={(e) => handleInputChange('nokPhone', e.target.value)} />
+            </div>
+            <div className="space-y-2 col-span-1 md:col-span-2">
+              <Label htmlFor="nokAddress">Next of Kin Address</Label>
+              <Input
+                id="nokAddress"
+                value={formData.nokAddress}
+                onChange={(e) => handleInputChange('nokAddress', e.target.value)}
+              />
             </div>
           </div>
 
@@ -587,11 +703,12 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }) {
                       htmlFor="createUserAccount"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
                     >
-                      <UserPlus className="w-4 h-4 mr-2 text-blue-600"/>
+                      <UserPlus className="w-4 h-4 mr-2 text-blue-600" />
                       Create User Account for this Employee
                     </label>
                     <p className="text-sm text-muted-foreground">
-                      This will create a user profile, granting access to the Employee Self-Service Portal. An email will be sent with instructions to log in via their Google account.
+                      This will create a user profile, granting access to the Employee Self-Service Portal. An email will be sent
+                      with instructions to log in via their Google account.
                     </p>
                   </div>
                 </div>
@@ -599,12 +716,19 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }) {
             </>
           )}
 
+          <div className="flex justify-end gap-2 mt-8 pt-6 border-t">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
+            >
+              {employee ? 'Update Employee' : 'Save Employee'}
+            </Button>
+          </div>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={handleSubmit} className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25">Save</Button>
-      </CardFooter>
     </Card>
   );
 }
