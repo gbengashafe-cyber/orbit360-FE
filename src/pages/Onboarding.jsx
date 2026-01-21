@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Employee, OnboardingDocument } from '@/api/entities';
-import { UploadFile } from '@/api/integrations';
+import { employeeService, onboardingService } from '@/api';
+import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { UserCheck, Upload, Loader2, FileText, CheckCircle2, Circle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { UserCheck, Upload, Loader2, FileText, CheckCircle2, Circle, Trash2 } from 'lucide-react';
 
 const DOCUMENT_TYPES = [
   "Offer Letter", "CV", "CBN Approval", "Medical Report", "References", 
@@ -21,6 +29,8 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadForm, setUploadForm] = useState({ documentType: '', file: null });
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [docToDelete, setDocToDelete] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -29,57 +39,106 @@ export default function Onboarding() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [empData, docData] = await Promise.all([
-        Employee.list('-created_date'),
-        OnboardingDocument.list()
+      const [empData, onboardingData] = await Promise.all([
+        employeeService.getEmployees(1, 100),
+        onboardingService.getOnboardings(1, 100)
       ]);
-      setEmployees(empData);
-      setOnboardingDocs(docData);
+      
+      console.log('Employee data:', empData);
+      console.log('Onboarding data:', onboardingData);
+      
+      const employees = empData?.data || empData || [];
+      const onboardingDocs = onboardingData?.data || onboardingData || [];
+      
+      console.log('Processed employees:', employees);
+      
+      setEmployees(employees);
+      setOnboardingDocs(onboardingDocs);
     } catch (error) {
       console.error("Error loading data:", error);
+      showToast.error('Failed to load onboarding data', 'Error');
     } finally {
       setLoading(false);
     }
   };
   
   const handleUpload = async () => {
-    if (!selectedEmployeeId || !uploadForm.documentType || !uploadForm.file) {
-      alert("Please select an employee, document type, and a file.");
+    if (!selectedEmployeeId || !uploadForm.documentType) {
+      showToast.error('Please select an employee and document type', 'Validation Error');
       return;
     }
     setIsUploading(true);
     try {
-      const { file_url } = await UploadFile({ file: uploadForm.file });
-      await OnboardingDocument.create({
-        employee_id: selectedEmployeeId,
-        document_type: uploadForm.documentType,
-        file_url: file_url,
-        document_name: uploadForm.file.name
+      const documentUrl = uploadForm.file 
+        ? URL.createObjectURL(uploadForm.file) 
+        : 'https://example.com/documents/placeholder.pdf';
+
+      await onboardingService.createOnboarding({
+        employeeId: parseInt(selectedEmployeeId),
+        documentType: uploadForm.documentType,
+        documentName: uploadForm.file?.name || `${uploadForm.documentType}_Document`,
+        documentUrl: documentUrl
       });
-      alert("Document uploaded successfully!");
+      
+      showToast.success('Document created successfully!', 'Success');
       setUploadForm({ documentType: '', file: null });
-      // Refresh docs for the current employee
-      const docData = await OnboardingDocument.list();
-      setOnboardingDocs(docData);
+      
+      // Refresh documents
+      const onboardingData = await onboardingService.getOnboardings(1, 100);
+      const onboardingDocs = onboardingData?.data || onboardingData || [];
+      setOnboardingDocs(onboardingDocs);
     } catch (error) {
       console.error("Error uploading document:", error);
-      alert("Failed to upload document.");
+      showToast.error(error.message || 'Failed to upload document', 'Error');
     } finally {
       setIsUploading(false);
     }
   };
   
-  const selectedEmployeeDocs = onboardingDocs.filter(doc => doc.employee_id === selectedEmployeeId);
+  const selectedEmployeeDocs = onboardingDocs.filter(doc => 
+    String(doc.employeeId || doc.employee_id) === String(selectedEmployeeId)
+  );
   
+  const openDeleteModal = (docId) => {
+    setDocToDelete(docId);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!docToDelete) return;
+    
+    setIsUploading(true);
+    try {
+      await onboardingService.deleteOnboarding(docToDelete);
+      showToast.success('Document deleted successfully', 'Success');
+      setDeleteModalOpen(false);
+      setDocToDelete(null);
+      
+      // Refresh documents
+      const onboardingData = await onboardingService.getOnboardings(1, 100);
+      const onboardingDocs = onboardingData?.data || onboardingData || [];
+      setOnboardingDocs(onboardingDocs);
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      showToast.error('Failed to delete document', 'Error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const getEmployeeChecklist = () => {
     return DOCUMENT_TYPES.map(type => {
-      const doc = selectedEmployeeDocs.find(d => d.document_type === type);
+      const doc = selectedEmployeeDocs.find(d => 
+        (d.documentType || d.document_type) === type
+      );
       return {
+        id: doc?.id,
         type,
-        uploaded: !!doc,
-        file_url: doc?.file_url,
-        document_name: doc?.document_name,
-        uploaded_date: doc?.created_date
+        uploaded: doc?.status === 'submitted' || doc?.status === 'approved',
+        documentUrl: doc?.documentUrl || doc?.document_url,
+        documentName: doc?.documentName || doc?.document_name,
+        uploadedDate: doc?.createdAt || doc?.created_at,
+        status: doc?.status
       };
     });
   };
@@ -108,10 +167,10 @@ export default function Onboarding() {
               </SelectTrigger>
               <SelectContent>
                 {employees.map(emp => (
-                  <SelectItem key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} ({emp.employee_id})
-                  </SelectItem>
-                ))}
+                   <SelectItem key={emp.id} value={String(emp.id)}>
+                     {((emp.firstName || emp.first_name) + ' ' + (emp.lastName || emp.last_name)).toUpperCase()}
+                   </SelectItem>
+                 ))}
               </SelectContent>
             </Select>
           </CardContent>
@@ -161,14 +220,24 @@ export default function Onboarding() {
                           {item.uploaded ? <CheckCircle2 className="w-6 h-6 text-green-500" /> : <Circle className="w-6 h-6 text-gray-300" />}
                           <span className="font-medium text-gray-800">{item.type}</span>
                         </div>
-                        <div>
+                        <div className="flex items-center gap-2">
                           {item.uploaded ? (
-                            <a href={item.file_url} target="_blank" rel="noopener noreferrer">
-                              <Button variant="outline" size="sm">
-                                <FileText className="w-4 h-4 mr-2" />
-                                View Document
+                            <>
+                              <a href={item.documentUrl} target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" size="sm">
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  View Document
+                                </Button>
+                              </a>
+                              <Button 
+                                variant="destructive" 
+                                size="sm"
+                                onClick={() => item.id && openDeleteModal(item.id)}
+                                disabled={isUploading}
+                              >
+                                <Trash2 className="w-4 h-4" />
                               </Button>
-                            </a>
+                            </>
                           ) : (
                             <Badge variant="secondary">Pending</Badge>
                           )}
@@ -181,6 +250,35 @@ export default function Onboarding() {
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Document</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this document? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={isUploading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleDelete}
+                disabled={isUploading}
+              >
+                {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

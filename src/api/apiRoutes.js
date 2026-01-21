@@ -37,37 +37,37 @@ export class ApiRoutes {
   static DeleteJobRole = (id) => `/v1/job-roles/${id}`;
 
   // Recruitment - Job Postings
-  static GetJobPostings = '/v1/recruitments/postings';
-  static GetJobPostingById = (id) => `/v1/recruitments/postings/${id}`;
-  static CreateJobPosting = '/v1/recruitments/postings';
-  static UpdateJobPosting = (id) => `/v1/recruitments/postings/${id}`;
-  static DeleteJobPosting = (id) => `/v1/recruitments/postings/${id}`;
-  static ApproveJobPosting = (id) => `/v1/recruitments/postings/${id}/approve`;
-  static RejectJobPosting = (id) => `/v1/recruitments/postings/${id}/reject`;
-  static CloseJobPosting = (id) => `/v1/recruitments/postings/${id}/close`;
+  static GetJobPostings = '/v1/recruitment/postings';
+  static GetJobPostingById = (id) => `/v1/recruitment/postings/${id}`;
+  static CreateJobPosting = '/v1/recruitment/postings';
+  static UpdateJobPosting = (id) => `/v1/recruitment/postings/${id}`;
+  static DeleteJobPosting = (id) => `/v1/recruitment/postings/${id}`;
+  static ApproveJobPosting = (id) => `/v1/recruitment/postings/${id}/approve`;
+  static RejectJobPosting = (id) => `/v1/recruitment/postings/${id}/reject`;
+  static CloseJobPosting = (id) => `/v1/recruitment/postings/${id}/close`;
 
   // Recruitment - Job Applications
-  static GetJobApplications = '/v1/recruitments/applications';
-  static GetJobApplicationById = (id) => `/v1/recruitments/applications/${id}`;
-  static CreateJobApplication = '/v1/recruitments/applications';
-  static DeleteJobApplication = (id) => `/v1/recruitments/applications/${id}`;
-  static GetApplicationsByJobPosting = (jobPostingId) => `/v1/recruitments/applications/by-posting/${jobPostingId}`;
-  static GetApplicationPipeline = (jobPostingId) => `/v1/recruitments/applications/pipeline/${jobPostingId}`;
-  static UpdateApplicationStatus = (id) => `/v1/recruitments/applications/${id}/status`;
-  static ScheduleInterview = (id) => `/v1/recruitments/applications/${id}/schedule-interview`;
-  static SendOffer = (id) => `/v1/recruitments/applications/${id}/send-offer`;
-  static HireApplicant = (id) => `/v1/recruitments/applications/${id}/hire`;
-  static RejectApplicant = (id) => `/v1/recruitments/applications/${id}/reject`;
+  static GetJobApplications = '/v1/recruitment/applications';
+  static GetJobApplicationById = (id) => `/v1/recruitment/applications/${id}`;
+  static CreateJobApplication = '/v1/recruitment/applications';
+  static DeleteJobApplication = (id) => `/v1/recruitment/applications/${id}`;
+  static GetApplicationsByJobPosting = (jobPostingId) => `/v1/recruitment/applications/by-posting/${jobPostingId}`;
+  static GetApplicationPipeline = (jobPostingId) => `/v1/recruitment/applications/pipeline/${jobPostingId}`;
+  static UpdateApplicationStatus = (id) => `/v1/recruitment/applications/${id}/status`;
+  static ScheduleInterview = (id) => `/v1/recruitment/applications/${id}/schedule-interview`;
+  static SendOffer = (id) => `/v1/recruitment/applications/${id}/send-offer`;
+  static HireApplicant = (id) => `/v1/recruitment/applications/${id}/hire`;
+  static RejectApplicant = (id) => `/v1/recruitment/applications/${id}/reject`;
 
   // Recruitment - Applicants (Profile Management)
-  static GetApplicants = '/v1/recruitments/applicants';
-  static GetApplicantById = (id) => `/v1/recruitments/applicants/${id}`;
-  static CreateApplicant = '/v1/recruitments/applicants';
-  static UpdateApplicant = (id) => `/v1/recruitments/applicants/${id}`;
-  static DeleteApplicant = (id) => `/v1/recruitments/applicants/${id}`;
+  static GetApplicants = '/v1/recruitment/applicants';
+  static GetApplicantById = (id) => `/v1/recruitment/applicants/${id}`;
+  static CreateApplicant = '/v1/recruitment/applicants';
+  static UpdateApplicant = (id) => `/v1/recruitment/applicants/${id}`;
+  static DeleteApplicant = (id) => `/v1/recruitment/applicants/${id}`;
 
   // Recruitment - Dashboard
-  static GetRecruitmentDashboardStats = '/v1/recruitments/dashboard/stats';
+  static GetRecruitmentDashboardStats = '/v1/recruitment/dashboard/stats';
 
   // Leave Management
   static GetLeaves = '/v1/leaves';

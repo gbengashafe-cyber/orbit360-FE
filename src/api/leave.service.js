@@ -1,40 +1,40 @@
 import { apiClient } from './apiClient';
-import { apiRoutes } from './apiRoutes';
+import { ApiRoutes } from './apiRoutes';
 
 export const leaveService = {
   async getLeaves(page = 1, rows = 10) {
-    return apiClient.get(`${apiRoutes.leaves.list}?page=${page}&rows=${rows}`);
+    return apiClient.get(`${ApiRoutes.GetLeaves}?page=${page}&rows=${rows}`);
   },
 
   async getLeaveById(id) {
-    return apiClient.get(apiRoutes.leaves.get(id));
+    return apiClient.get(ApiRoutes.GetLeaveById(id));
   },
 
   async getLeavesByEmployee(employeeId, page = 1, rows = 10) {
-    return apiClient.get(`${apiRoutes.leaves.byEmployee(employeeId)}?page=${page}&rows=${rows}`);
+    return apiClient.get(`${ApiRoutes.GetLeavesByEmployee(employeeId)}?page=${page}&rows=${rows}`);
   },
 
   async createLeave(data) {
-    return apiClient.post(apiRoutes.leaves.create, data);
+    return apiClient.post(ApiRoutes.CreateLeave, data);
   },
 
   async updateLeave(id, data) {
-    return apiClient.put(apiRoutes.leaves.update(id), data);
+    return apiClient.put(ApiRoutes.UpdateLeave(id), data);
   },
 
   async deleteLeave(id) {
-    return apiClient.delete(apiRoutes.leaves.delete(id));
+    return apiClient.delete(ApiRoutes.DeleteLeave(id));
   },
 
   async getLeaveTypes() {
-    return apiClient.get(apiRoutes.leaves.types);
+    return apiClient.get(ApiRoutes.GetLeaveTypes);
   },
 
   async getLeaveBalance(employeeId) {
-    return apiClient.get(apiRoutes.leaves.balance(employeeId));
+    return apiClient.get(ApiRoutes.GetLeaveBalance(employeeId));
   },
 
   async updateLeaveStatus(id, status) {
-    return apiClient.patch(apiRoutes.leaves.updateStatus(id), { status });
+    return apiClient.put(ApiRoutes.UpdateLeaveStatus(id), { status });
   },
 };
