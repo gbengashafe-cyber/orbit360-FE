@@ -53,28 +53,10 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     }, [employee.annual_leave_entitlement]);
 
     const loadData = React.useCallback(async () => {
-        if (!employee?.id) return;
-
-        // If we have preLoaded leaves, use them directly
-        if (preLoadedLeaves && preLoadedLeaves.length > 0) {
-            setLeaveRequests(preLoadedLeaves);
-            setLoading(false);
-            calculateLeaveBalance(preLoadedLeaves);
-            // Still load employees
-            try {
-                const allEmployeesData = await employeeService.getEmployees({ page: 1, rows: 100 });
-                const allEmps = allEmployeesData?.data || allEmployeesData || [];
-                setEmployees(allEmps);
-            } catch (error) {
-                console.error('Error loading employees:', error);
-            }
-            return;
-        }
-
         setLoading(true);
         try {
             const [leavesData, allEmployeesData] = await Promise.all([
-                leaveService.getLeavesByEmployee(employee.id, 1, 100),
+                leaveService.getLeaves(1, 100),
                 employeeService.getEmployees({ page: 1, rows: 100 })
             ]);
 
@@ -83,14 +65,16 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
 
             setLeaveRequests(requests);
             setEmployees(allEmps);
-            calculateLeaveBalance(requests);
+            if (employee?.annual_leave_entitlement) {
+                calculateLeaveBalance(requests);
+            }
         } catch (error) {
             console.error('Error loading leave data:', error);
             showToast.error('Failed to load leave requests', 'Error');
         } finally {
             setLoading(false);
         }
-    }, [employee?.id, calculateLeaveBalance, preLoadedLeaves]);
+    }, [calculateLeaveBalance, employee?.annual_leave_entitlement]);
 
     useEffect(() => {
         loadData();
@@ -182,7 +166,8 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             pending_hr_approval: 'bg-yellow-100 text-yellow-700',
             approved: 'bg-green-100 text-green-700',
             rejected: 'bg-red-100 text-red-700',
-            cancelled: 'bg-gray-100 text-gray-700'
+            cancelled: 'bg-gray-100 text-gray-700',
+            pending: 'bg-orange-100 text-orange-700' // Added pending status with orange color
         };
         return colors[status] || 'bg-gray-100 text-gray-700';
     };
@@ -193,7 +178,8 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             pending_hr_approval: <Clock className="w-4 h-4" />,
             approved: <CheckCircle className="w-4 h-4" />,
             rejected: <XCircle className="w-4 h-4" />,
-            cancelled: <XCircle className="w-4 h-4" />
+            cancelled: <XCircle className="w-4 h-4" />,
+            pending: <UserCheck className="w-4 h-4" /> // Added pending status with UserCheck icon
         };
         return icons[status] || <Clock className="w-4 h-4" />;
     };
@@ -271,6 +257,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             </div>
 
             {/* Employee Selector */}
+            {/*
             <Card className="bg-white/90 backdrop-blur-sm">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><User className="w-5 h-5" />Select Employee</CardTitle>
@@ -312,9 +299,12 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                     )}
                 </CardContent>
             </Card>
+            */}
 
             <Card className="bg-white/90 backdrop-blur-sm">
-                <CardHeader><CardTitle>My Leave</CardTitle></CardHeader>
+                <CardHeader>
+                    <CardTitle>My Leave</CardTitle>
+                </CardHeader>
                 <CardContent>
                     {loading ? (
                         <div className="text-center p-8">Loading leave requests...</div>
