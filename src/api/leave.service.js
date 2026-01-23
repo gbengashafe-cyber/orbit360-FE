@@ -35,6 +35,6 @@ export const leaveService = {
   },
 
   async updateLeaveStatus(id, status) {
-    return apiClient.put(ApiRoutes.UpdateLeaveStatus(id), { status });
+    return apiClient.patch(ApiRoutes.UpdateLeaveStatus(id), { status });
   },
 };

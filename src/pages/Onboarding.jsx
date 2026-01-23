@@ -23,14 +23,15 @@ const DOCUMENT_TYPES = [
 ];
 
 export default function Onboarding() {
-  const [employees, setEmployees] = useState([]);
-  const [onboardingDocs, setOnboardingDocs] = useState([]);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadForm, setUploadForm] = useState({ documentType: '', file: null });
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [docToDelete, setDocToDelete] = useState(null);
+   const [employees, setEmployees] = useState([]);
+   const [onboardingDocs, setOnboardingDocs] = useState([]);
+   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+   const [loading, setLoading] = useState(true);
+   const [isUploading, setIsUploading] = useState(false);
+   const [uploadForm, setUploadForm] = useState({ documentType: '', file: null });
+   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+   const [docToDelete, setDocToDelete] = useState(null);
+   const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -38,6 +39,7 @@ export default function Onboarding() {
 
   const loadData = async () => {
     setLoading(true);
+    setAccessDenied(false);
     try {
       const [empData, onboardingData] = await Promise.all([
         employeeService.getEmployees(1, 100),
@@ -56,7 +58,11 @@ export default function Onboarding() {
       setOnboardingDocs(onboardingDocs);
     } catch (error) {
       console.error("Error loading data:", error);
-      showToast.error('Failed to load onboarding data', 'Error');
+      if (error?.response?.status === 403 || error?.code === 403) {
+        setAccessDenied(true);
+      } else {
+        showToast.error('Failed to load onboarding data', 'Error');
+      }
     } finally {
       setLoading(false);
     }
@@ -142,6 +148,29 @@ export default function Onboarding() {
       };
     });
   };
+
+  if (accessDenied) {
+    return (
+      <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
+        <div className="max-w-7xl mx-auto">
+          <Card className="bg-red-50 border-red-200 shadow-xl">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-red-900">Access Denied</h2>
+                  <p className="text-red-700 mt-2">Only HR personnel can access the Employee Onboarding module.</p>
+                  <p className="text-red-600 text-sm mt-2">If you believe you should have access, please contact your HR administrator.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>

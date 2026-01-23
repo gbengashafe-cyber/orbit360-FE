@@ -111,11 +111,11 @@ export default function ApplicantForm({ jobId, onApplicantAdded }) {
           <UserPlus className="w-4 h-4 mr-2" /> Add Applicant
         </Button>
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add New Applicant</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+         <DialogHeader>
+           <DialogTitle>Add New Applicant</DialogTitle>
+         </DialogHeader>
+         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div>
             <Label htmlFor="applicant_name">Full Name *</Label>
             <Input id="applicant_name" value={formData.applicant_name} onChange={e => handleInputChange('applicant_name', e.target.value)} required />
@@ -139,10 +139,10 @@ export default function ApplicantForm({ jobId, onApplicantAdded }) {
               {resumeFile && <span className="text-sm text-green-600">{resumeFile.name}</span>}
             </div>
           </div>
-          <div>
+          {/* <div>
             <Label htmlFor="cover_letter">Cover Letter</Label>
-            <textarea id="cover_letter" rows="3" value={formData.cover_letter} onChange={e => handleInputChange('cover_letter', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tell us about yourself..." />
-          </div>
+            <textarea id="cover_letter" rows="4" value={formData.cover_letter} onChange={e => handleInputChange('cover_letter', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical" placeholder="Tell us about yourself..." />
+          </div> */}
           <DialogFooter>
             <DialogClose asChild>
                 <Button type="button" variant="outline">Cancel</Button>
