@@ -1,40 +1,48 @@
 import { apiClient } from './apiClient';
-import { apiRoutes } from './apiRoutes';
+import { ApiRoutes } from './apiRoutes';
 
 export const payrollService = {
   async getPayrolls(page = 1, rows = 10) {
-    return apiClient.get(`${apiRoutes.payroll.list}?page=${page}&rows=${rows}`);
+    return apiClient.get(`${ApiRoutes.payroll.list}?page=${page}&rows=${rows}`);
   },
 
   async getPayrollById(id) {
-    return apiClient.get(apiRoutes.payroll.get(id));
+    return apiClient.get(ApiRoutes.payroll.get(id));
   },
 
-  async getPayrollByEmployee(employeeId, page = 1, rows = 10) {
-    return apiClient.get(`${apiRoutes.payroll.byEmployee(employeeId)}?page=${page}&rows=${rows}`);
+  async getPayrollByEmployee({ id, page = 1, rows = 10 }) {
+    return apiClient.get(`${ApiRoutes.GetPayrollsByEmployee(id)}?page=${page}&rows=${rows}`);
   },
 
-  async getPayrollByPeriod(payPeriod, page = 1, rows = 10) {
-    return apiClient.get(`${apiRoutes.payroll.byPeriod(payPeriod)}?page=${page}&rows=${rows}`);
+  async getPayrollByPeriod({ payPeriod, page = 1, rows = 20 }) {
+    return apiClient.get(`${ApiRoutes.GetPayrollsByPeriod(payPeriod)}?page=${page}&rows=${rows}`);
   },
 
-  async createPayroll(data) {
-    return apiClient.post(apiRoutes.payroll.create, data);
+  async generatePayroll(payPeriod) {
+    return apiClient.post(ApiRoutes.GeneratePayroll, { payPeriod });
+  },
+
+  async regeneratePayroll(payPeriod) {
+    return apiClient.post(ApiRoutes.regeneratePayroll, { payPeriod });
   },
 
   async updatePayroll(id, data) {
-    return apiClient.put(apiRoutes.payroll.update(id), data);
+    return apiClient.put(ApiRoutes.payroll.update(id), data);
+  },
+
+  async updatePayrollStatus(id, data) {
+    return apiClient.put(ApiRoutes.UpdatePayrollStatus(id), data);
   },
 
   async deletePayroll(id) {
-    return apiClient.delete(apiRoutes.payroll.delete(id));
+    return apiClient.delete(ApiRoutes.payroll.delete(id));
   },
 
   async processPayroll(id) {
-    return apiClient.post(apiRoutes.payroll.process(id));
+    return apiClient.post(ApiRoutes.payroll.process(id));
   },
 
   async payPayroll(id) {
-    return apiClient.post(apiRoutes.payroll.pay(id));
+    return apiClient.post(ApiRoutes.payroll.pay(id));
   },
 };

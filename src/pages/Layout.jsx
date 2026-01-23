@@ -1,4 +1,4 @@
-import { User } from '@/api/entities';
+import { userService } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -13,23 +13,19 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from '@/components/ui/sidebar';
+import { useGlobalContext } from '@/state/context';
 import { createPageUrl } from '@/utils';
 import {
   BadgePercent,
   Banknote,
-  BarChart2, // Added BarChart2 for reports
   BookCopy,
-  BookUser,
-  Briefcase,
   Calculator,
   ChevronDown,
   ClipboardList,
-  CreditCard,
   Download,
   FileBox,
   FileText,
   FolderArchive,
-  GanttChartSquare,
   HandCoins,
   LayoutDashboard,
   LogOut,
@@ -38,39 +34,38 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   PlaneTakeoff,
-  Settings,
+  Scale,
   Shuffle,
   Star,
   UserCheck,
   UserRoundX,
   Users,
   Users2,
-  Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import EmployeeGate from '../components/EmployeeGate';
 import Logo from '../components/Logo';
-import PWAInstallPrompt from '../components/PWAInstallPrompt';
-import { userService } from '@/api';
-import { LoginUtil } from './login/local-storage.util';
+import { LocalStorageUtil } from './login/local-storage.util';
 
 const hrNav = [
-  { title: 'HR Dashboard', url: createPageUrl('HRDashboard'), icon: BookUser },
+  { title: 'Authorization Center', url: createPageUrl('AuthorizationCenter'), icon: ClipboardList },
   { title: 'Employees', url: createPageUrl('Employees'), icon: Users2 },
+  { title: 'Payroll', url: createPageUrl('Payroll'), icon: Banknote },
+  { title: 'Payslips', url: createPageUrl('payslips'), icon: FileText },
   { title: 'Cooperative & Loans', url: createPageUrl('Cooperative'), icon: HandCoins },
   { title: 'Compensation Tool', url: createPageUrl('CompensationTool'), icon: Calculator },
   { title: 'Recruitment', url: createPageUrl('Recruitment'), icon: UserCheck },
   { title: 'Onboarding', url: createPageUrl('Onboarding'), icon: ClipboardList },
   { title: 'Performance', url: createPageUrl('Performance'), icon: Star },
   { title: 'KPI Management', url: createPageUrl('KPIManagement'), icon: BadgePercent },
+  { title: 'Disciplinary Actions', url: createPageUrl('DisciplinaryActions'), icon: Scale },
   { title: 'Documents', url: createPageUrl('DocumentManagement'), icon: FolderArchive },
-  { title: 'Payroll', url: createPageUrl('Payroll'), icon: Banknote },
-  { title: 'My Payslips', url: createPageUrl('MyPayslips'), icon: FileText },
   { title: 'Tax Calculator', url: createPageUrl('TaxCalculator'), icon: Calculator },
 ];
 
 const employeePortalNav = [
+  { title: 'My Payslips', url: createPageUrl('MyPayslips'), icon: FileText },
   { title: 'Appraisals', url: createPageUrl('Appraisals'), icon: BookCopy },
   { title: 'Leave Management', url: createPageUrl('LeaveManagement'), icon: PlaneTakeoff },
   { title: 'Exit Management', url: createPageUrl('ExitManagement'), icon: UserRoundX },
@@ -79,17 +74,6 @@ const employeePortalNav = [
   { title: 'Request Training', url: createPageUrl('RequestTraining'), icon: NotebookPen },
   { title: 'Staff Movement', url: createPageUrl('StaffMovement'), icon: Shuffle },
 ];
-
-const expenseManagementNav = [
-  { title: 'Expense Settings', url: createPageUrl('ExpenseSettings'), icon: Settings },
-  { title: 'Budget Manager', url: createPageUrl('BudgetManager'), icon: Wallet },
-  { title: 'Approval Tracker', url: createPageUrl('ExpenseApprovals'), icon: GanttChartSquare },
-  { title: 'Vendor Management', url: createPageUrl('VendorManagement'), icon: Briefcase },
-  { title: 'Vendor Payment', url: createPageUrl('VendorPaymentProcessing'), icon: CreditCard },
-  { title: 'Meeting Manager', url: createPageUrl('MeetingManager'), icon: Users },
-];
-
-const reportsNav = [{ title: 'Financial Reports', url: createPageUrl('FinancialReports'), icon: BarChart2 }];
 
 const adminNav = [
   { title: 'User Management', url: createPageUrl('UserManagement'), icon: Users },
@@ -105,17 +89,15 @@ const LayoutContent = ({ children }) => {
 
   const [isHrNavOpen, setHrNavOpen] = useState(false);
   const [isEmployeePortalNavOpen, setEmployeePortalNavOpen] = useState(false);
-  const [isExpenseManagementNavOpen, setExpenseManagementNavOpen] = useState(false);
-  const [isReportsNavOpen, setReportsNavOpen] = useState(false); // New state for Reports
   const [isAdminNavOpen, setIsAdminNavOpen] = useState(false);
+
+  const { currentUser: user } = useGlobalContext();
 
   useEffect(() => {
     const path = location.pathname;
     const isDashboard = path === createPageUrl('Dashboard');
     setHrNavOpen(hrNav.some((item) => path === item.url) || isDashboard);
     setEmployeePortalNavOpen(employeePortalNav.some((item) => path === item.url));
-    setExpenseManagementNavOpen(expenseManagementNav.some((item) => path === item.url));
-    setReportsNavOpen(reportsNav.some((item) => path === item.url)); // Set state for Reports
     setIsAdminNavOpen(adminNav.some((item) => path === item.url));
   }, [location.pathname]);
 
@@ -128,23 +110,20 @@ const LayoutContent = ({ children }) => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const user = await User.me();
         setEmployeeInfo(user);
-        setIsAdmin(user.role === 'admin');
+        setIsAdmin(user?.role === 'admin');
       } catch (e) {
         console.error('Failed to fetch user:', e);
       } finally {
         setIsLoadingUser(false);
       }
     };
-    // fetchUser();
+    fetchUser();
   }, []);
 
   const handleLogout = async () => {
     await userService.logout();
-
-    LoginUtil.removeAccessToken();
-    window.location.href = '/login';
+    LocalStorageUtil.delete('orbit360-access-token');
   };
 
   const NavItem = ({ item }) => (
@@ -185,26 +164,23 @@ const LayoutContent = ({ children }) => {
     </Collapsible>
   );
 
-  // if (isLoadingUser) {
-  //    return (
-  //       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-  //          <div className="flex flex-col items-center space-y-3 text-gray-700">
-  //             <svg
-  //                className="animate-spin h-8 w-8 text-blue-500"
-  //                xmlns="http://www.w3.org/2000/svg"
-  //                fill="none"
-  //                viewBox="0 0 24 24">
-  //                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-  //                <path
-  //                   className="opacity-75"
-  //                   fill="currentColor"
-  //                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-  //             </svg>
-  //             <span className="text-lg font-medium">Loading application...</span>
-  //          </div>
-  //       </div>
-  //    );
-  // }
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="flex flex-col items-center space-y-3 text-gray-700">
+          <svg className="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <span className="text-lg font-medium">Loading application...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex w-full" style={{ backgroundColor: MATERIAL_COLORS.background }}>
@@ -244,11 +220,7 @@ const LayoutContent = ({ children }) => {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className={`transition-all duration-200 rounded-lg py-3 px-3 ${
-                location.pathname === createPageUrl('Dashboard')
-                  ? 'bg-blue-50 text-blue-700 shadow-sm border-l-4 border-blue-700'
-                  : 'hover:bg-gray-50 hover:shadow-sm text-gray-700 hover:text-gray-900'
-              }`}
+              className={`transition-all duration-200 rounded-lg py-3 px-3 ${location.pathname === createPageUrl('Dashboard') ? 'bg-blue-50 text-blue-700 shadow-sm border-l-4 border-blue-700' : 'hover:bg-gray-50 hover:shadow-sm text-gray-700 hover:text-gray-900'}`}
             >
               <Link to={createPageUrl('Dashboard')} className="flex items-center gap-3 font-medium">
                 <LayoutDashboard className="w-5 h-5" />
@@ -262,18 +234,6 @@ const LayoutContent = ({ children }) => {
             isOpen={isEmployeePortalNavOpen}
             onOpenChange={setEmployeePortalNavOpen}
             navItems={employeePortalNav}
-          />
-          <NavGroup
-            title="Finance Manager"
-            isOpen={isExpenseManagementNavOpen}
-            onOpenChange={setExpenseManagementNavOpen}
-            navItems={expenseManagementNav}
-          />
-          <NavGroup
-            title="Reports & Analytics"
-            isOpen={isReportsNavOpen}
-            onOpenChange={setReportsNavOpen}
-            navItems={reportsNav}
           />
           {isAdmin && (
             <NavGroup title="Administration" isOpen={isAdminNavOpen} onOpenChange={setIsAdminNavOpen} navItems={adminNav} />
@@ -325,26 +285,26 @@ export default function Layout({ children, currentPageName }) {
   const [installPrompt, setInstallPrompt] = useState(null);
 
   // useEffect(() => {
-  //    const handleBeforeInstallPrompt = (e) => {
-  //       e.preventDefault();
-  //       setInstallPrompt(e);
-  //    };
-  //    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+  //   const handleBeforeInstallPrompt = (e) => {
+  //     e.preventDefault();
+  //     setInstallPrompt(e);
+  //   };
+  //   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-  //    return () => {
-  //       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-  //    };
+  //   return () => {
+  //     window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  //   };
   // }, []);
 
-  if (['PublicJobView', 'ScrollBoard', 'Login'].includes(currentPageName)) {
-    return <>{children}</>;
-  }
+  // if (['PublicJobView', 'ScrollBoard'].includes(currentPageName)) {
+  //   return <>{children}</>;
+  // }
 
   return (
     <EmployeeGate>
       <SidebarProvider>
         <LayoutContent>{children}</LayoutContent>
-        {/* {currentPageName !== "InstallApp" && <PWAInstallPrompt />} */}
+        {/* {currentPageName !== 'InstallApp' && <PWAInstallPrompt />} */}
       </SidebarProvider>
     </EmployeeGate>
   );

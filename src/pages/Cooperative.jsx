@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useCurrentUser } from '@/hooks/use-current-user';
+import { useGlobalContext } from '@/state/context';
 import { Banknote, Download, Plus, RefreshCw, ThumbsDown, ThumbsUp, Trash2, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import LoanForm from '../components/cooperative/LoanForm';
@@ -92,7 +92,7 @@ export default function Cooperative() {
   const [totalLoaned, setTotalLoaned] = useState(0);
   const [activeLoans, setActiveLoaned] = useState(0);
 
-  const { currentUser } = useCurrentUser();
+  const { currentUser } = useGlobalContext();
 
   useEffect(() => {
     loadData();

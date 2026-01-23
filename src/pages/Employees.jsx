@@ -1,5 +1,4 @@
 import { employeeService, userService } from '@/api';
-import { Employee } from '@/api/entities';
 import { jobRoleService } from '@/api/job-role.service';
 import { EmployeeBioDataTable } from '@/components/employees/EmployeeBioDataTable';
 import { EmployeeUtil } from '@/components/employees/employee.utils';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAllDepartments } from '@/hooks/use-all-departments';
-import { useCurrentUser } from '@/hooks/use-current-user';
+import { useGlobalContext } from '@/state/context';
 import { AlertCircle, Check, Copy, Plus, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import EmployeeForm from '../components/employees/EmployeeForm';
@@ -26,7 +25,7 @@ export default function Employees() {
   const [copied, setCopied] = useState(false);
   const [jobRoles, setJobRoles] = useState([]);
 
-  const { currentUser } = useCurrentUser();
+  const { currentUser } = useGlobalContext();
   const { allDepartments } = useAllDepartments();
 
   useEffect(() => {
@@ -136,12 +135,11 @@ export default function Employees() {
   const handleTerminate = async (employeeId) => {
     if (window.confirm('Are you sure you want to terminate this employee? Their record will be moved to the ex-staff archive.')) {
       try {
-        await Employee.update(employeeId, { status: 'terminated' });
+        await employeeService.terminateEmployee(employeeId, { status: 'terminated' });
         loadData();
         setSuccess('Employee terminated successfully.');
         setTimeout(() => setSuccess(''), 8000);
       } catch (error) {
-        console.error('Error terminating employee:', error);
         setError(`Failed to terminate employee: ${error.message}`);
         setTimeout(() => setError(''), 8000);
       }

@@ -1,28 +1,28 @@
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Calculator, DollarSign, Receipt, FileText } from "lucide-react";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Calculator, DollarSign, FileText, Receipt } from 'lucide-react';
+import { useState } from 'react';
 
-// Nigerian PAYE Tax Brackets (2024)
+// Nigeria Tax Act 2025 - Effective January 1, 2026
 const TAX_BRACKETS = [
-  { min: 0, max: 300000, rate: 7 },
-  { min: 300000, max: 600000, rate: 11 },
-  { min: 600000, max: 1100000, rate: 15 },
-  { min: 1100000, max: 1600000, rate: 19 },
-  { min: 1600000, max: 3200000, rate: 21 },
-  { min: 3200000, max: Infinity, rate: 24 }
+  { bandSize: 800000, rate: 0, label: 'First ₦800,000' },
+  { bandSize: 2200000, rate: 15, label: 'Next ₦2,200,000 (₦800,001 - ₦3,000,000)' },
+  { bandSize: 9000000, rate: 18, label: 'Next ₦9,000,000 (₦3,000,001 - ₦12,000,000)' },
+  { bandSize: 13000000, rate: 21, label: 'Next ₦13,000,000 (₦12,000,001 - ₦25,000,000)' },
+  { bandSize: 25000000, rate: 23, label: 'Next ₦25,000,000 (₦25,000,001 - ₦50,000,000)' },
+  { bandSize: Infinity, rate: 25, label: 'Above ₦50,000,000' },
 ];
 
 export default function TaxCalculator() {
   const [formData, setFormData] = useState({
-    annualSalary: "",
-    pensionContribution: "",
-    nhfContribution: "",
-    lifeAssurance: "",
-    nhisContribution: ""
+    annualSalary: '',
+    pensionContribution: '',
+    nhfContribution: '',
+    lifeAssurance: '',
+    nhisContribution: '',
   });
 
   const [calculation, setCalculation] = useState(null);
@@ -34,58 +34,32 @@ export default function TaxCalculator() {
     const lifeAssurance = parseFloat(formData.lifeAssurance) || 0;
     const nhisContribution = parseFloat(formData.nhisContribution) || 0;
 
-    const twentyPercentOfSalary = annualSalary * 0.2;
-    const onePercentOfSalary = annualSalary * 0.01;
-    const higherAmount = Math.max(200000, onePercentOfSalary);
-    const consolidatedRelief = twentyPercentOfSalary + higherAmount;
-
-    const totalDeductions = pensionContribution + nhfContribution + lifeAssurance + nhisContribution + consolidatedRelief;
+    const totalDeductions = pensionContribution + nhfContribution + lifeAssurance + nhisContribution;
     const taxableIncome = Math.max(0, annualSalary - totalDeductions);
-    
+
+    // Progressive Tax Calculation - Nigeria Tax Act 2025
     let totalTax = 0;
     let taxBreakdown = [];
-    let incomeLeft = taxableIncome;
+    let remainingIncome = taxableIncome;
 
-    if (incomeLeft > 0) {
-        let band = Math.min(incomeLeft, 300000);
-        let bandTax = band * 0.07;
-        totalTax += bandTax;
-        taxBreakdown.push({ range: "First ₦300,000", rate: "7%", taxableAmount: band, tax: bandTax });
-        incomeLeft -= band;
-    }
-    if (incomeLeft > 0) {
-        let band = Math.min(incomeLeft, 300000);
-        let bandTax = band * 0.11;
-        totalTax += bandTax;
-        taxBreakdown.push({ range: "Next ₦300,000", rate: "11%", taxableAmount: band, tax: bandTax });
-        incomeLeft -= band;
-    }
-    if (incomeLeft > 0) {
-        let band = Math.min(incomeLeft, 500000);
-        let bandTax = band * 0.15;
-        totalTax += bandTax;
-        taxBreakdown.push({ range: "Next ₦500,000", rate: "15%", taxableAmount: band, tax: bandTax });
-        incomeLeft -= band;
-    }
-    if (incomeLeft > 0) {
-        let band = Math.min(incomeLeft, 500000);
-        let bandTax = band * 0.19;
-        totalTax += bandTax;
-        taxBreakdown.push({ range: "Next ₦500,000", rate: "19%", taxableAmount: band, tax: bandTax });
-        incomeLeft -= band;
-    }
-    if (incomeLeft > 0) {
-        let band = Math.min(incomeLeft, 1600000);
-        let bandTax = band * 0.21;
-        totalTax += bandTax;
-        taxBreakdown.push({ range: "Next ₦1,600,000", rate: "21%", taxableAmount: band, tax: bandTax });
-        incomeLeft -= band;
-    }
-    if (incomeLeft > 0) {
-        let band = incomeLeft;
-        let bandTax = band * 0.24;
-        totalTax += bandTax;
-        taxBreakdown.push({ range: "Above ₦3,200,000", rate: "24%", taxableAmount: band, tax: bandTax });
+    for (const bracket of TAX_BRACKETS) {
+      if (remainingIncome <= 0) break;
+
+      const amountInThisBand = Math.min(remainingIncome, bracket.bandSize);
+      const taxForThisBand = parseFloat(((amountInThisBand * bracket.rate) / 100).toFixed(2));
+
+      totalTax += taxForThisBand;
+
+      if (amountInThisBand > 0) {
+        taxBreakdown.push({
+          range: bracket.label,
+          rate: `${bracket.rate}%`,
+          taxableAmount: parseFloat(amountInThisBand.toFixed(2)),
+          tax: taxForThisBand,
+        });
+      }
+
+      remainingIncome -= amountInThisBand;
     }
 
     const netAnnualIncome = annualSalary - totalTax - pensionContribution - nhfContribution - lifeAssurance - nhisContribution;
@@ -101,26 +75,19 @@ export default function TaxCalculator() {
       monthlyTax,
       taxBreakdown,
       deductions: {
-        taxRelief: consolidatedRelief,
         pensionContribution,
         nhfContribution,
         lifeAssurance,
         nhisContribution,
-        total: totalDeductions
+        total: totalDeductions,
       },
-      consolidatedReliefBreakdown: {
-        twentyPercent: twentyPercentOfSalary,
-        onePercent: onePercentOfSalary,
-        higherAmount: higherAmount,
-        total: consolidatedRelief
-      }
     });
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -144,7 +111,10 @@ export default function TaxCalculator() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          <Card className="bg-white/95 backdrop-blur-sm border-gray-300 shadow-xl" style={{ boxShadow: '0 10px 30px rgba(189, 195, 199, 0.3)' }}>
+          <Card
+            className="bg-white/95 backdrop-blur-sm border-gray-300 shadow-xl"
+            style={{ boxShadow: '0 10px 30px rgba(189, 195, 199, 0.3)' }}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-700" />
@@ -158,21 +128,21 @@ export default function TaxCalculator() {
                   id="annualSalary"
                   type="number"
                   value={formData.annualSalary}
-                  onChange={(e) => handleInputChange("annualSalary", e.target.value)}
+                  onChange={(e) => handleInputChange('annualSalary', e.target.value)}
                   placeholder="5000000"
                   className="border-gray-300"
                 />
               </div>
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-800">Allowable Deductions</h3>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="pensionContribution">Pension Contribution (₦)</Label>
                   <Input
                     id="pensionContribution"
                     type="number"
                     value={formData.pensionContribution}
-                    onChange={(e) => handleInputChange("pensionContribution", e.target.value)}
+                    onChange={(e) => handleInputChange('pensionContribution', e.target.value)}
                     placeholder="400000"
                     className="border-gray-300"
                   />
@@ -185,7 +155,7 @@ export default function TaxCalculator() {
                     id="nhfContribution"
                     type="number"
                     value={formData.nhfContribution}
-                    onChange={(e) => handleInputChange("nhfContribution", e.target.value)}
+                    onChange={(e) => handleInputChange('nhfContribution', e.target.value)}
                     placeholder="25000"
                     className="border-gray-300"
                   />
@@ -198,7 +168,7 @@ export default function TaxCalculator() {
                     id="lifeAssurance"
                     type="number"
                     value={formData.lifeAssurance}
-                    onChange={(e) => handleInputChange("lifeAssurance", e.target.value)}
+                    onChange={(e) => handleInputChange('lifeAssurance', e.target.value)}
                     placeholder="50000"
                     className="border-gray-300"
                   />
@@ -210,14 +180,17 @@ export default function TaxCalculator() {
                     id="nhisContribution"
                     type="number"
                     value={formData.nhisContribution}
-                    onChange={(e) => handleInputChange("nhisContribution", e.target.value)}
+                    onChange={(e) => handleInputChange('nhisContribution', e.target.value)}
                     placeholder="15000"
                     className="border-gray-300"
                   />
                 </div>
               </div>
 
-              <Button onClick={calculateTax} className="w-full bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white">
+              <Button
+                onClick={calculateTax}
+                className="w-full bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white"
+              >
                 <Calculator className="w-4 h-4 mr-2" />
                 Calculate Tax
               </Button>
@@ -226,39 +199,10 @@ export default function TaxCalculator() {
 
           {calculation && (
             <div className="space-y-6">
-              <Card className="bg-white/95 backdrop-blur-sm border-gray-300 shadow-xl" style={{ boxShadow: '0 10px 30px rgba(189, 195, 199, 0.3)' }}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Receipt className="w-5 h-5 text-purple-600" />
-                    Consolidated Relief Allowance (CRA) Breakdown
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                      <div className="text-center">
-                        <div className="font-medium text-gray-700">Annual Salary</div>
-                        <div className="text-purple-800 font-bold">₦{formatCurrency(calculation.annualSalary)}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-gray-700">20% of Salary</div>
-                        <div className="text-purple-800 font-bold">₦{formatCurrency(calculation.consolidatedReliefBreakdown.twentyPercent)}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-gray-700">Higher Amount</div>
-                        <div className="text-purple-800 font-bold">₦{formatCurrency(calculation.consolidatedReliefBreakdown.higherAmount)}</div>
-                        <div className="text-xs text-gray-500">Max of (₦200k or 1%)</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-gray-700">Total CRA</div>
-                        <div className="text-purple-800 font-bold text-lg">₦{formatCurrency(calculation.consolidatedReliefBreakdown.total)}</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/95 backdrop-blur-sm border-gray-300 shadow-xl" style={{ boxShadow: '0 10px 30px rgba(189, 195, 199, 0.3)' }}>
+              <Card
+                className="bg-white/95 backdrop-blur-sm border-gray-300 shadow-xl"
+                style={{ boxShadow: '0 10px 30px rgba(189, 195, 199, 0.3)' }}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <DollarSign className="w-5 h-5 text-green-600" />
@@ -276,7 +220,7 @@ export default function TaxCalculator() {
                       <p className="text-xl font-bold text-blue-700">₦{formatCurrency(calculation.taxableIncome)}</p>
                     </div>
                   </div>
-                  
+
                   <div className="border-t border-gray-200 pt-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -305,7 +249,10 @@ export default function TaxCalculator() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-white/95 backdrop-blur-sm border-gray-300 shadow-xl" style={{ boxShadow: '0 10px 30px rgba(189, 195, 199, 0.3)' }}>
+              <Card
+                className="bg-white/95 backdrop-blur-sm border-gray-300 shadow-xl"
+                style={{ boxShadow: '0 10px 30px rgba(189, 195, 199, 0.3)' }}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Receipt className="w-5 h-5 text-orange-600" />
@@ -329,7 +276,7 @@ export default function TaxCalculator() {
                       </div>
                     </div>
                   ))}
-                  
+
                   <div className="border-t border-gray-300 pt-4">
                     <div className="flex justify-between items-center font-bold text-lg">
                       <span>Total PAYE Tax:</span>

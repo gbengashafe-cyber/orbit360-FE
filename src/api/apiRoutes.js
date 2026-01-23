@@ -20,6 +20,7 @@ export class ApiRoutes {
   static GetEmployeeById = (id) => `/v1/employees/${id}`;
   static CreateEmployee = '/v1/employees';
   static UpdateEmployee = (id) => `/v1/employees/${id}`;
+  static TerminateEmployee = (id) => `/v1/employees/${id}/status`;
   static DeleteEmployee = (id) => `/v1/employees/${id}`;
 
   // Departments
@@ -100,10 +101,12 @@ export class ApiRoutes {
   // Payroll
   static GetPayrolls = '/v1/payrolls';
   static GetPayrollById = (id) => `/v1/payrolls/${id}`;
-  static CreatePayroll = '/v1/payrolls';
+  static GeneratePayroll = '/v1/payrolls';
+  static regeneratePayroll = '/v1/payrolls?overwrite=true';
   static UpdatePayroll = (id) => `/v1/payrolls/${id}`;
+  static UpdatePayrollStatus = (id) => `/v1/payrolls/${id}/status`;
   static DeletePayroll = (id) => `/v1/payrolls/${id}`;
-  static GetPayrollsByEmployee = (employeeId) => `/v1/payrolls/employee/${employeeId}`;
+  static GetPayrollsByEmployee = (id) => `/v1/payrolls/employee/${id}`;
   static GetPayrollsByPeriod = (payPeriod) => `/v1/payrolls/periods/${payPeriod}`;
   static ProcessPayroll = (id) => `/v1/payrolls/${id}/process`;
   static PayPayroll = (id) => `/v1/payrolls/${id}/pay`;

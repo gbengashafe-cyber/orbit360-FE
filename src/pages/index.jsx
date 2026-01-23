@@ -87,6 +87,8 @@ const PAGES = {
 
   MyPayslips: MyPayslips,
 
+  payslips: MyPayslips,
+
   Expenses: Expenses,
 
   ExpenseDetail: ExpenseDetail,
@@ -204,6 +206,8 @@ function PagesContent() {
         <Route path="/Onboarding" element={<Onboarding />} />
 
         <Route path="/MyPayslips" element={<MyPayslips />} />
+
+        <Route path="/payslips" element={<MyPayslips />} />
 
         <Route path="/Expenses" element={<Expenses />} />
 
