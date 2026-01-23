@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { leaveService, employeeService } from '@/api';
 import { showToast } from '@/utils/toast';
@@ -10,18 +9,77 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar, Plus, FileText, Clock, CheckCircle, XCircle, Briefcase, User, Info, UserCheck, AlertCircle, Upload, Paperclip, Loader2 } from 'lucide-react';
+import PropTypes from 'prop-types';
+
+const FileUploader = ({ files, setFiles, title, description, id }) => {
+    const handleFileChange = (e) => {
+        setFiles(prev => [...prev, ...Array.from(e.target.files)]);
+    };
+
+    const removeFile = (index) => {
+        setFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const formatFileSize = (bytes) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    return (
+        <div className="space-y-2">
+            <Label htmlFor={id}>{title}</Label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                <Upload className="w-6 h-6 mx-auto text-gray-400 mb-2" />
+                <Input id={id} type="file" multiple onChange={handleFileChange} className="text-sm" />
+                {description && <p className="text-xs text-gray-500 mt-1">{description}</p>}
+            </div>
+            {files.length > 0 && (
+                <div className="space-y-2 pt-2">
+                    {files.map((file) => (
+                        <div key={file.name} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <Paperclip className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                                <div className="truncate">
+                                    <p className="text-sm font-medium truncate" title={file.name}>{file.name}</p>
+                                    <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                                </div>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeFile(file.name)} className="text-red-500 hover:text-red-700 h-6 w-6">
+                                <XCircle className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+FileUploader.propTypes = {
+    files: PropTypes.array.isRequired,
+    setFiles: PropTypes.func.isRequired,
+    title: PropTypes.string.isRequired,
+    description: PropTypes.string,
+    id: PropTypes.string.isRequired,
+};
 
 export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, leaveBalance: preLoadedBalance }) {
+
     const [leaveRequests, setLeaveRequests] = useState(preLoadedLeaves || []);
     const [employees, setEmployees] = useState([]);
     const [leaveBalance, setLeaveBalance] = useState(preLoadedBalance || 0);
     const [showForm, setShowForm] = useState(false);
     const [loading, setLoading] = useState(!preLoadedLeaves);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
+    const [isUploading] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [leaveToDelete, setLeaveToDelete] = useState(null);
 
     const [handoverFiles, setHandoverFiles] = useState([]);
     const [supportingFiles, setSupportingFiles] = useState([]);
@@ -32,7 +90,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         end_date: '',
         leave_period: 'full_day',
         reason: '',
-        emergency_contact: employee.phone || '',
+        emergency_contact: employee?.phone || '',
         alternative_email: '',
         handover_notes: '',
         covering_employee_id: '',
@@ -48,9 +106,9 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                 const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
                 return acc + days;
             }, 0);
-        const entitlement = employee.annual_leave_entitlement || 21;
+        const entitlement = employee?.annual_leave_entitlement || 21;
         setLeaveBalance(entitlement - approvedAnnualLeave);
-    }, [employee.annual_leave_entitlement]);
+    }, [employee?.annual_leave_entitlement]);
 
     const loadData = React.useCallback(async () => {
         setLoading(true);
@@ -136,7 +194,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             end_date: '',
             leave_period: 'full_day',
             reason: '',
-            emergency_contact: employee.phone || '',
+            emergency_contact: employee?.phone || '',
             alternative_email: '',
             handover_notes: '',
             covering_employee_id: '',
@@ -147,16 +205,22 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     };
 
     const handleDelete = async (requestId) => {
-        if (window.confirm('Are you sure you want to delete this leave request? This action cannot be undone.')) {
-            try {
-                await leaveService.deleteLeave(requestId);
-                showToast.success('Leave request deleted successfully', 'Success');
-                loadData();
-                if (onUpdate) onUpdate();
-            } catch (error) {
-                console.error('Error deleting leave request:', error);
-                showToast.error('Failed to delete leave request', 'Error');
-            }
+        setLeaveToDelete(requestId);
+        setDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!leaveToDelete) return;
+        try {
+            await leaveService.deleteLeave(leaveToDelete);
+            showToast.success('Leave request deleted successfully', 'Success');
+            setDeleteModalOpen(false);
+            setLeaveToDelete(null);
+            loadData();
+            if (onUpdate) onUpdate();
+        } catch (error) {
+            console.error('Error deleting leave request:', error);
+            showToast.error('Failed to delete leave request', 'Error');
         }
     };
 
@@ -184,60 +248,6 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         return icons[status] || <Clock className="w-4 h-4" />;
     };
 
-    const FileUploader = ({ files, setFiles, title, description, id }) => {
-        const handleFileChange = (e) => {
-            setFiles(prev => [...prev, ...Array.from(e.target.files)]);
-        };
-
-        const removeFile = (index) => {
-            setFiles(prev => prev.filter((_, i) => i !== index));
-        };
-
-        const formatFileSize = (bytes) => {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        };
-
-        return (
-            <div className="space-y-2">
-                <Label htmlFor={id}>{title}</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <Upload className="w-6 h-6 mx-auto text-gray-400 mb-2" />
-                    <Input id={id} type="file" multiple onChange={handleFileChange} className="text-sm" />
-                    {description && <p className="text-xs text-gray-500 mt-1">{description}</p>}
-                </div>
-                {files.length > 0 && (
-                    <div className="space-y-2 pt-2">
-                        {files.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                                <div className="flex items-center gap-2 overflow-hidden">
-                                    <Paperclip className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                    <div className="truncate">
-                                        <p className="text-sm font-medium truncate" title={file.name}>{file.name}</p>
-                                        <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                                    </div>
-                                </div>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeFile(index)} className="text-red-500 hover:text-red-700 h-6 w-6">
-                                    <XCircle className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    const handleEmployeeChange = (employeeId) => {
-        const selected = employees.find(e => String(e.id) === String(employeeId));
-        if (selected) {
-            const filteredLeaves = leaveRequests.filter(leave => leave.employeeId === selected.id);
-            calculateLeaveBalance(filteredLeaves);
-        }
-    };
 
     return (
         <div className="space-y-6">
@@ -306,9 +316,10 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                     <CardTitle>My Leave</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {loading ? (
+                    {loading && (
                         <div className="text-center p-8">Loading leave requests...</div>
-                    ) : leaveRequests.length > 0 ? (
+                    )}
+                    {!loading && leaveRequests.length > 0 && (
                         <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
@@ -328,14 +339,14 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                         const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
                                         return (
                                             <TableRow key={request.id}>
-                                                <TableCell className="capitalize">{(request.type || request.leave_type).replace('_', ' ')}</TableCell>
+                                                <TableCell className="capitalize">{(request.type || request.leave_type).replaceAll('_', ' ')}</TableCell>
                                                 <TableCell>{startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}</TableCell>
                                                 <TableCell>{days}</TableCell>
                                                 <TableCell>
                                                     <Badge className={getStatusColor(request.status)}>
                                                         <span className="flex items-center gap-1">
                                                             {getStatusIcon(request.status)}
-                                                            {request.status.replace(/_/g, ' ').toUpperCase()}
+                                                            {request.status.replaceAll('_', ' ').toUpperCase()}
                                                         </span>
                                                     </Badge>
                                                 </TableCell>
@@ -359,7 +370,8 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                 </TableBody>
                             </Table>
                         </div>
-                    ) : (
+                    )}
+                    {!loading && leaveRequests.length === 0 && (
                         <div className="text-center p-12 text-gray-500">
                             <Briefcase className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                             <h3 className="text-lg font-semibold mb-2">No Leave History</h3>
@@ -390,10 +402,10 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                <div><span className="font-medium">Full Name:</span><p>{employee.firstName || employee.first_name} {employee.lastName || employee.last_name}</p></div>
-                                <div><span className="font-medium">Employee ID:</span><p>{employee.id || employee.employee_id}</p></div>
-                                <div><span className="font-medium">Department:</span><p className="capitalize">{employee.department || 'N/A'}</p></div>
-                                <div><span className="font-medium">Supervisor:</span><p>{employee.supervisor_name || 'N/A'}</p></div>
+                                <div><span className="font-medium">Full Name:</span><p>{employee?.firstName || employee?.first_name} {employee?.lastName || employee?.last_name}</p></div>
+                                <div><span className="font-medium">Employee ID:</span><p>{employee?.id || employee?.employee_id}</p></div>
+                                <div><span className="font-medium">Department:</span><p className="capitalize">{employee?.department || 'N/A'}</p></div>
+                                <div><span className="font-medium">Supervisor:</span><p>{employee?.supervisor_name || 'N/A'}</p></div>
                             </CardContent>
                         </Card>
 
@@ -539,6 +551,42 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Confirmation Modal */}
+            <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Leave Request</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this leave request? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
+                        <Button variant="destructive" onClick={handleConfirmDelete}>Delete</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+
+LeaveManagement.propTypes = {
+    employee: PropTypes.shape({
+        id: PropTypes.number,
+        firstName: PropTypes.string,
+        first_name: PropTypes.string,
+        lastName: PropTypes.string,
+        last_name: PropTypes.string,
+        email: PropTypes.string,
+        phone: PropTypes.string,
+        departmentName: PropTypes.string,
+        department: PropTypes.string,
+        annual_leave_entitlement: PropTypes.number,
+        supervisor_name: PropTypes.string,
+        employee_id: PropTypes.number,
+    }),
+    onUpdate: PropTypes.func,
+    preLoadedLeaves: PropTypes.array,
+    leaveBalance: PropTypes.number,
+};
