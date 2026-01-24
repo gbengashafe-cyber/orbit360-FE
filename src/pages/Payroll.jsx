@@ -1,5 +1,5 @@
-import { payrollService } from '@/api';
-import { base44 } from '@/api/base44Client';
+import { employeeService, payrollService } from '@/api';
+import { DeleteUploadedPayrollAlert } from '@/components/payroll/DeleteUploadedPayrollAlert';
 import { PayrollOverwriteAlert } from '@/components/payroll/OverwriteAlert';
 import { generatePayrollCSV } from '@/components/payroll/payroll-csv';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calculator, Calendar, CreditCard, Download, FileText, FolderOpen, Printer, Trash2, Upload, Users } from 'lucide-react';
+import {
+  Calculator,
+  Calendar,
+  CreditCard,
+  DollarSign,
+  Download,
+  FileText,
+  FolderOpen,
+  Printer,
+  Receipt,
+  Trash2,
+  Upload,
+  Users,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import Payslip from '../components/payroll/Payslip';
@@ -25,16 +38,21 @@ const getStatusColor = (status) => {
 };
 
 export default function Payroll() {
-  const [payrollRecords, setPayrollRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentPeriod, setCurrentPeriod] = useState(new Date().toISOString().slice(0, 7));
   const [generatingPayroll, setGeneratingPayroll] = useState(false);
-  const [viewingPayslip, setViewingPayslip] = useState(null);
+  const [payrollRecords, setPayrollRecords] = useState([]);
   const [uploadedReports, setUploadedReports] = useState([]);
+  const [currentPeriod, setCurrentPeriod] = useState(new Date().toISOString().slice(0, 7));
+  const [viewingPayslip, setViewingPayslip] = useState(null);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
-  const [uploadForm, setUploadForm] = useState({ reportName: '', file: null, payPeriod: '' });
+  const [uploadForm, setUploadForm] = useState({ name: '', file: null, payPeriod: '' });
+  const [uploadFromError, setUploadFormError] = useState(undefined);
   const [isUploading, setIsUploading] = useState(false);
   const [showPayrollOverwriteAlert, setShowPayrollOverwriteAlert] = useState(false);
+  const [showDeleteUploadAlert, setShowDeleteUploadAlert] = useState(false);
+  const [currentUploadedReport, setCurrentUploadedReport] = useState(null);
+  const [summaryCards, setSummaryCards] = useState([]);
+  const [periodPayrollMeta, setPeriodPayrollMeta] = useState({ count: 0, totalNet: 0, totalGross: 0 });
 
   useEffect(() => {
     loadPeriodPayroll();
@@ -42,21 +60,21 @@ export default function Payroll() {
 
   useEffect(() => {
     loadData();
-  }, [currentPeriod]);
+  }, [periodPayrollMeta]);
 
   const loadPeriodPayroll = async () => {
+    setLoading(true);
     try {
       const payrollData = await payrollService.getPayrollByPeriod({ payPeriod: currentPeriod });
       setPayrollRecords(payrollData.data);
-
-      toast.success('Payroll for period loaded successfully');
+      setPeriodPayrollMeta({
+        count: payrollData?.pagination?.total,
+        totalGross: payrollData?.meta?.totalGrossPay,
+        totalNet: payrollData?.meta?.totalNetPay,
+      });
     } catch (error) {
-      console.error('Error loading payroll data:', error);
       toast.error('Error loading payroll data', {
-        description: error.message || 'Kindly contact the system administrator',
-        action: {
-          label: 'Close',
-        },
+        description: `${error.message ? error.message : ''}`,
       });
     } finally {
       setLoading(false);
@@ -65,14 +83,46 @@ export default function Payroll() {
 
   const loadData = async () => {
     try {
-      const [reportsData] = await Promise.all([
-        // PayrollReport.list('-created_date'),
-        // TODO: Past report upload
-        { data: [{}] },
+      const [reportsData, employeesData] = await Promise.all([
+        payrollService.getUploadedPayrolls(),
+        employeeService.getEmployees({ rows: 1 }),
       ]);
       setUploadedReports(reportsData.data);
+
+      setSummaryCards([
+        {
+          title: 'Active Employees',
+          value: employeesData?.pagination?.total,
+          icon: Users,
+          color: 'text-blue-600',
+        },
+        {
+          title: 'Generated This Month',
+          value: periodPayrollMeta.count,
+          icon: Receipt,
+          color: 'text-green-600',
+        },
+        {
+          title: 'Total Gross Pay (Monthly)',
+          value: `₦${periodPayrollMeta.totalGross.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`,
+          icon: DollarSign,
+          color: 'text-purple-600',
+        },
+        {
+          title: 'Total Net Pay (Monthly)',
+          value: `₦${periodPayrollMeta.totalNet.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`,
+          icon: CreditCard,
+          color: 'text-orange-600',
+        },
+      ]);
     } catch (error) {
-      toast.error('Error loading payroll data:', {
+      toast.error('Error loading uploaded payroll reports:', {
         description: `${error.message ? error.message : 'Kindly contact the system administrator'}`,
       });
     } finally {
@@ -160,40 +210,38 @@ export default function Payroll() {
   };
 
   const handleUploadReport = async () => {
-    if (!uploadForm.reportName || !uploadForm.file || !uploadForm.payPeriod) {
-      alert('Please fill in all fields');
+    setUploadFormError('');
+    if (!uploadForm.name || !uploadForm.file || !uploadForm.payPeriod) {
+      setUploadFormError('Please fill in all fields');
       return;
     }
     setIsUploading(true);
     try {
-      const user = await base44.auth.me();
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: uploadForm.file });
-      await PayrollReport.create({
-        report_name: uploadForm.reportName,
-        file_url: file_url,
-        pay_period: uploadForm.payPeriod,
-        uploaded_by: user.email,
-      });
+      const formData = new FormData();
+
+      formData.append('reportFile', uploadForm.file);
+      formData.append('name', uploadForm.name);
+      formData.append('payPeriod', uploadForm.payPeriod);
+
+      await payrollService.uploadReport(formData);
       await loadData();
-      setUploadForm({ reportName: '', file: null, payPeriod: '' });
+      setUploadForm({ name: '', file: null, payPeriod: '' });
       setShowUploadDialog(false);
-      alert('Report uploaded successfully!');
+      toast.success('Report uploaded successfully!');
     } catch (error) {
-      console.error('Error uploading report:', error);
-      alert('Failed to upload report');
+      toast.error('Failed to upload report', { description: `${error.message ? error.message : ''}` });
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleDeleteReport = async (reportId) => {
-    if (!window.confirm('Are you sure you want to delete this report?')) return;
     try {
-      await PayrollReport.delete(reportId);
+      await payrollService.deleteUploadedPayroll(reportId);
       await loadData();
+      toast.success('Payroll report deleted successfully.');
     } catch (error) {
-      console.error('Error deleting report:', error);
-      alert('Failed to delete report');
+      toast.error('Failed to delete report', { description: `${error.message ? error.message : ''}` });
     }
   };
 
@@ -201,26 +249,7 @@ export default function Payroll() {
     return <div className="p-8 text-center">Loading payroll data...</div>;
   }
 
-  const summaryCards = [
-    {
-      title: 'Active Employees',
-      value: 5,
-      icon: Users,
-      color: 'text-blue-600',
-    },
-    // {
-    // {
-    //   title: 'Active Employees',
-    //   value: employees.filter((e) => e.employment_status === 'active').length,
-    //   icon: Users,
-    //   color: 'text-blue-600',
-    // },
-    // {
-    //   title: 'Generated This Month',
-    //   value: payrollRecords.filter((r) => r.pay_period === currentPeriod).length,
-    //   icon: Receipt,
-    //   color: 'text-green-600',
-    // },
+  const summaryCardss = [
     // {
     //   title: 'Total Gross Pay (Monthly)',
     //   value: `₦${payrollRecords
@@ -308,14 +337,14 @@ export default function Payroll() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {summaryCards.map((card, index) => (
             <Card key={index} className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                    <p className={`text-2xl font-bold text-gray-900`}>{card.value}</p>
+                    <p className={`text-xl font-bold text-gray-900`}>{card.value}</p>
                   </div>
                   <card.icon className={`w-8 h-8 ${card.color}`} />
                 </div>
@@ -371,7 +400,7 @@ export default function Payroll() {
                               <div className="text-green-600 mb-1 font-medium">
                                 <div>
                                   <span className="inline-block min-w-[45%]">Gross:</span>₦{' '}
-                                  {Number(record.grossSalary)?.toLocaleString(undefined, {
+                                  {record.grossSalary?.toLocaleString(undefined, {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
                                   })}
@@ -380,14 +409,14 @@ export default function Payroll() {
                               <div className="text-red-600">
                                 <div>
                                   <span className="inline-block min-w-[45%]">Pension ({taxBreakdown.pensionRate || 8}%):</span>₦{' '}
-                                  {Number(record.pensionDeduction)?.toLocaleString(undefined, {
+                                  {record.pensionDeduction?.toLocaleString(undefined, {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
                                   })}
                                 </div>
                                 <div>
                                   <span className="inline-block min-w-[45%]">NHF ({taxBreakdown.nhfRate || 2.5}%):</span>₦{' '}
-                                  {Number(record.nhfDeduction)?.toLocaleString(undefined, {
+                                  {record.nhfDeduction?.toLocaleString(undefined, {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
                                   })}
@@ -395,18 +424,18 @@ export default function Payroll() {
 
                                 <div>
                                   <span className="inline-block min-w-[45%]">Loan Deduction:</span>
-                                  {`₦ ${Number(record.loanDeduction)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                  {`₦ ${record.loanDeduction?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                 </div>
                                 <div>
                                   <span className="inline-block min-w-[45%]">Tax:</span>₦ {''}
-                                  {Number(record.payeDeduction)?.toLocaleString(undefined, {
+                                  {record.payeDeduction?.toLocaleString(undefined, {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
                                   })}
                                 </div>
                                 <div className="font-semibold border-t mt-1 pt-1">
                                   <span className="inline-block min-w-[45%]">Total Deductions:</span>₦ {''}
-                                  {Number(record.totalDeductions)?.toLocaleString(undefined, {
+                                  {record.totalDeductions?.toLocaleString(undefined, {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
                                   })}
@@ -502,21 +531,28 @@ export default function Payroll() {
                 <TableBody>
                   {uploadedReports.map((report) => (
                     <TableRow key={report.id}>
-                      <TableCell className="font-medium">{report.report_name}</TableCell>
+                      <TableCell className="font-medium">{report.name}</TableCell>
                       <TableCell>
-                        {new Date(report.pay_period).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                        {new Date(report.payPeriod).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
                       </TableCell>
-                      <TableCell>{report.uploaded_by}</TableCell>
-                      <TableCell>{new Date(report.created_date).toLocaleDateString()}</TableCell>
+                      <TableCell>{report.uploader?.email}</TableCell>
+                      <TableCell>{new Date(report.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <a href={report.file_url} target="_blank" rel="noopener noreferrer" download>
+                          <a href={report.fileUrl} target="_blank" rel="noopener noreferrer" download>
                             <Button size="sm" variant="outline">
                               <Download className="w-4 h-4 mr-1" />
                               Download
                             </Button>
                           </a>
-                          <Button size="sm" variant="destructive" onClick={() => handleDeleteReport(report.id)}>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setCurrentUploadedReport(report.id);
+                              setShowDeleteUploadAlert(true);
+                            }}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -528,6 +564,11 @@ export default function Payroll() {
             )}
           </CardContent>
         </Card>
+        <DeleteUploadedPayrollAlert
+          isOpen={showDeleteUploadAlert}
+          setIsOpen={setShowDeleteUploadAlert}
+          handleDelete={() => handleDeleteReport(currentUploadedReport)}
+        />
         <PayrollOverwriteAlert
           isOpen={showPayrollOverwriteAlert}
           setIsOpen={setShowPayrollOverwriteAlert}
@@ -546,8 +587,8 @@ export default function Payroll() {
               <label className="text-sm font-medium">Report Name</label>
               <Input
                 placeholder="e.g., December 2025 Payroll"
-                value={uploadForm.reportName}
-                onChange={(e) => setUploadForm({ ...uploadForm, reportName: e.target.value })}
+                value={uploadForm.name}
+                onChange={(e) => setUploadForm({ ...uploadForm, name: e.target.value })}
               />
             </div>
             <div>
@@ -557,7 +598,7 @@ export default function Payroll() {
                   <SelectValue placeholder="Select period" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 24 }, (_, i) => {
+                  {Array.from({ length: 48 }, (_, i) => {
                     const date = new Date();
                     date.setMonth(date.getMonth() - i);
                     const period = date.toISOString().slice(0, 7);
@@ -578,6 +619,7 @@ export default function Payroll() {
                 onChange={(e) => setUploadForm({ ...uploadForm, file: e.target.files[0] })}
               />
             </div>
+            <div className="text-red-700">{uploadFromError}</div>
             <Button onClick={handleUploadReport} disabled={isUploading} className="w-full">
               {isUploading ? <Upload className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
               Upload Report

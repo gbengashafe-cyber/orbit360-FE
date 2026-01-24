@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useGlobalContext } from '@/state/context';
 import { Loader2, Printer, Receipt } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import Payslip from '../components/payroll/Payslip';
 
 export default function MyPayslips() {
@@ -22,20 +23,20 @@ export default function MyPayslips() {
   useEffect(() => {
     const loadAllData = async () => {
       try {
-        let employeesData;
+        let employeesDataResponse;
         if (canViewAllPayslips) {
-          employeesData = await employeeService.getEmployees({ rows: 1000 });
-          setAllEmployees(employeesData.data);
-          if (employeesData.length > 0) {
-            const emp = employeesData[0];
-            setEmployeeData(emp.data);
+          employeesDataResponse = await employeeService.getEmployees({ rows: 1000 });
+          setAllEmployees(employeesDataResponse.data);
+          if (employeesDataResponse.data.length > 0) {
+            const emp = employeesDataResponse.data?.[0];
+            setEmployeeData(emp);
             const records = await payrollService.getPayrollByEmployee({ id: emp.id });
             setPayrollRecords(records.data);
           }
         } else {
-          employeesData = await employeeService.getEmployees({ options: { search: currentUser.email } });
-          if (employeesData.data.length > 0) {
-            const emp = employeesData.data?.[0];
+          employeesDataResponse = await employeeService.getEmployees({ options: { search: currentUser.email } });
+          if (employeesDataResponse.data.length > 0) {
+            const emp = employeesDataResponse.data?.[0];
             setEmployeeData(emp);
             const records = await payrollService.getPayrollByEmployee({ id: emp.id });
             setPayrollRecords(records.data);
@@ -44,7 +45,7 @@ export default function MyPayslips() {
           }
         }
       } catch (error) {
-        console.error('Error loading payslip data:', error);
+        toast.error('Error loading payslip data', { description: `${error.message ? error.message : ''}` });
       } finally {
         setLoading(false);
       }

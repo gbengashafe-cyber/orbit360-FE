@@ -107,7 +107,7 @@ export default function Cooperative() {
         employeeService.getEmployees(),
       ]);
 
-      setTotalLoaned(loanDashboard.data.totalActiveLoanAmount || 0);
+      setTotalLoaned(loanDashboard.data.activeLoanSum || 0);
       setActiveLoaned(loanDashboard.data.activeLoans || 0);
 
       const enrichedLoans = loansData.data.map((loan) => {
@@ -381,7 +381,7 @@ export default function Cooperative() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{Number(totalLoaned).toLocaleString()}</div>
+              <div className="text-2xl font-bold">₦{totalLoaned.toLocaleString()}</div>
             </CardContent>
           </Card>
           <Card>

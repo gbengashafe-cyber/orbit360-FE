@@ -45,4 +45,16 @@ export const payrollService = {
   async payPayroll(id) {
     return apiClient.post(ApiRoutes.payroll.pay(id));
   },
+
+  async uploadReport(report) {
+    return apiClient.post(ApiRoutes.UploadPayrollReport, report);
+  },
+
+  async getUploadedPayrolls({ rows = 20, page = 1 } = { rows: 20, page: 1 }) {
+    return apiClient.get(`${ApiRoutes.GetUploadedPayrollReports}?page=${page}&rows=${rows}`);
+  },
+
+  async deleteUploadedPayroll(id) {
+    return apiClient.delete(ApiRoutes.DeleteUploadedPayrollReport(id));
+  },
 };

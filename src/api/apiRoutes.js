@@ -110,6 +110,9 @@ export class ApiRoutes {
   static GetPayrollsByPeriod = (payPeriod) => `/v1/payrolls/periods/${payPeriod}`;
   static ProcessPayroll = (id) => `/v1/payrolls/${id}/process`;
   static PayPayroll = (id) => `/v1/payrolls/${id}/pay`;
+  static UploadPayrollReport = `/v1/payrolls/uploads`;
+  static GetUploadedPayrollReports = `/v1/payrolls/uploads`;
+  static DeleteUploadedPayrollReport = (id) => `/v1/payrolls/uploads/${id}`;
 
   // Deductions
   static GetDeductions = '/v1/deductions';

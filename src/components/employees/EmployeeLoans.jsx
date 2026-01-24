@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { EmployeeUtil } from './employee.utils';
 import { LoanUtil } from '../cooperative/loan.utils';
+import { EmployeeUtil } from './employee.utils';
 
 const EmployeeLoans = ({ employeeLoans, totalAnnualLoanDeduction, totalMonthlyLoanDeduction }) => {
   return (
@@ -25,7 +25,7 @@ const EmployeeLoans = ({ employeeLoans, totalAnnualLoanDeduction, totalMonthlyLo
               {employeeLoans.map((loan) => (
                 <TableRow key={loan.id}>
                   <TableCell className="text-xs capitalize">{loan.loanType?.replace('_', ' ')}</TableCell>
-                  <TableCell className="text-xs">₦{EmployeeUtil.formatCurrency(Number(loan.principalAmount))}</TableCell>
+                  <TableCell className="text-xs">₦{EmployeeUtil.formatCurrency(loan.principalAmount)}</TableCell>
                   <TableCell className="text-xs font-semibold text-red-600">
                     ₦{EmployeeUtil.formatCurrency(LoanUtil.calculations(loan).monthlyDeduction)}
                   </TableCell>

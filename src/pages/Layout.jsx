@@ -54,7 +54,7 @@ const hrNav = [
   { title: 'Payroll', url: createPageUrl('Payroll'), icon: Banknote },
   { title: 'Payslips', url: createPageUrl('payslips'), icon: FileText },
   { title: 'Cooperative & Loans', url: createPageUrl('Cooperative'), icon: HandCoins },
-  { title: 'Compensation Tool', url: createPageUrl('CompensationTool'), icon: Calculator },
+  // { title: 'Compensation Tool', url: createPageUrl('CompensationTool'), icon: Calculator },
   { title: 'Recruitment', url: createPageUrl('Recruitment'), icon: UserCheck },
   { title: 'Onboarding', url: createPageUrl('Onboarding'), icon: ClipboardList },
   { title: 'Performance', url: createPageUrl('Performance'), icon: Star },
@@ -250,7 +250,7 @@ const LayoutContent = ({ children }) => {
             </div>
             <div className={`flex-1 min-w-0 ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
               <p className="font-medium text-gray-900 text-sm truncate">
-                {employeeInfo?.full_name || 'Sales Agent'}
+                {employeeInfo?.firstName}
                 {isAdmin && (
                   <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                     Admin

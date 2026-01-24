@@ -1,14 +1,12 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { User, Employee } from '@/api/entities';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Employee } from '@/api/entities';
+import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, Users } from 'lucide-react';
+import { useGlobalContext } from '@/state/context';
+import { Loader2, Star } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import AppraisalsComponent from '../components/selfservice/Appraisals';
-import { Loader2 } from 'lucide-react';
 
 export default function AppraisalsPage() {
-  const [currentUser, setCurrentUser] = useState(null);
   const [currentEmployeeData, setCurrentEmployeeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isHrAdmin, setIsHrAdmin] = useState(false);
@@ -18,6 +16,8 @@ export default function AppraisalsPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('self');
   const [selfEmployeeRecord, setSelfEmployeeRecord] = useState(null);
   const [activeTab, setActiveTab] = useState('my_appraisal');
+
+  const { currentUser } = useGlobalContext();
 
   const loadDataForEmployee = useCallback(async (employee) => {
     if (!employee) {
@@ -30,25 +30,24 @@ export default function AppraisalsPage() {
   const loadBaseData = useCallback(async () => {
     setLoading(true);
     try {
-      const user = await User.me();
-      setCurrentUser(user);
+      const user = currentUser;
 
       const userIsHrAdmin = user.role && ['admin', 'human_resources_manager', 'managing_director'].includes(user.role);
       setIsHrAdmin(userIsHrAdmin);
 
       const allEmps = await Employee.list();
 
-      const userEmployeeRecord = allEmps.find(e => e.email === user.email);
+      const userEmployeeRecord = allEmps.find((e) => e.email === user.email);
 
       if (userIsHrAdmin) {
         setAllEmployees(allEmps);
       }
-      
+
       if (userEmployeeRecord) {
-        const reports = allEmps.filter(e => e.supervisor_id === userEmployeeRecord.id);
+        const reports = allEmps.filter((e) => e.supervisor_id === userEmployeeRecord.id);
         if (reports.length > 0) {
-            setIsSupervisor(true);
-            setDirectReports(reports);
+          setIsSupervisor(true);
+          setDirectReports(reports);
         }
       }
 
@@ -57,11 +56,19 @@ export default function AppraisalsPage() {
         if (selectedEmployeeId === 'self') {
           await loadDataForEmployee(userEmployeeRecord);
         } else {
-          const targetEmployee = allEmps.find(e => e.id === selectedEmployeeId);
+          const targetEmployee = allEmps.find((e) => e.id === selectedEmployeeId);
           await loadDataForEmployee(targetEmployee);
         }
       } else {
-        const basicEmployeeData = { id: user.id, first_name: user.full_name?.split(' ')[0] || 'User', last_name: user.full_name?.split(' ').slice(1).join(' ') || '', email: user.email, department: user.department || 'general', position: 'Employee', employment_status: 'active' };
+        const basicEmployeeData = {
+          id: user.id,
+          first_name: user.full_name?.split(' ')[0] || 'User',
+          last_name: user.full_name?.split(' ').slice(1).join(' ') || '',
+          email: user.email,
+          department: user.department || 'general',
+          position: 'Employee',
+          employment_status: 'active',
+        };
         setSelfEmployeeRecord(basicEmployeeData);
         if (selectedEmployeeId === 'self') {
           setCurrentEmployeeData(basicEmployeeData);
@@ -84,14 +91,18 @@ export default function AppraisalsPage() {
     if (employeeId === 'self') {
       await loadDataForEmployee(selfEmployeeRecord);
     } else {
-      const targetEmployee = allEmployees.find(e => e.id === employeeId);
+      const targetEmployee = allEmployees.find((e) => e.id === employeeId);
       await loadDataForEmployee(targetEmployee);
     }
     setLoading(false);
   };
-  
+
   if (loading) {
-    return <div className="p-8 text-center flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-700" /></div>;
+    return (
+      <div className="p-8 text-center flex items-center justify-center h-full">
+        <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-700" />
+      </div>
+    );
   }
 
   if (!currentEmployeeData) {
@@ -113,30 +124,40 @@ export default function AppraisalsPage() {
 
         {isHrAdmin && (
           <div className="flex flex-col md:flex-row items-center justify-between bg-blue-50 border border-blue-200 p-4 rounded-xl gap-4">
-             <p className="text-sm font-medium text-blue-800">Admin View: Select an employee to view their portal.</p>
+            <p className="text-sm font-medium text-blue-800">Admin View: Select an employee to view their portal.</p>
             <div className="w-full md:w-72">
-                <Select value={selectedEmployeeId} onValueChange={handleEmployeeSwitch}>
-                    <SelectTrigger className="bg-white"><SelectValue placeholder="View as..." /></SelectTrigger>
-                    <SelectContent>
-                        {selfEmployeeRecord && <SelectItem value="self">My Portal ({selfEmployeeRecord.first_name} {selfEmployeeRecord.last_name})</SelectItem>}
-                        {allEmployees.map(emp => (<SelectItem key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} ({emp.employee_id})</SelectItem>))}
-                    </SelectContent>
-                </Select>
+              <Select value={selectedEmployeeId} onValueChange={handleEmployeeSwitch}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="View as..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {selfEmployeeRecord && (
+                    <SelectItem value="self">
+                      My Portal ({selfEmployeeRecord.first_name} {selfEmployeeRecord.last_name})
+                    </SelectItem>
+                  )}
+                  {allEmployees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.first_name} {emp.last_name} ({emp.employee_id})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )}
 
         <Card className="shadow-xl">
-            <CardContent className="p-6">
-                <AppraisalsComponent 
-                    employee={currentEmployeeData}
-                    currentUser={currentUser}
-                    isSupervisor={isSupervisor}
-                    isHrAdmin={isHrAdmin} // Added isHrAdmin prop
-                    directReports={directReports}
-                    onUpdate={loadBaseData} 
-                />
-            </CardContent>
+          <CardContent className="p-6">
+            <AppraisalsComponent
+              employee={currentEmployeeData}
+              currentUser={currentUser}
+              isSupervisor={isSupervisor}
+              isHrAdmin={isHrAdmin} // Added isHrAdmin prop
+              directReports={directReports}
+              onUpdate={loadBaseData}
+            />
+          </CardContent>
         </Card>
       </div>
     </div>
