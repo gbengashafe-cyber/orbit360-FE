@@ -1,5 +1,5 @@
 export class ApiRoutes {
-  static BASE_URL = process.env.REACT_APP_API_URL;
+  static BASE_URL = import.meta.env.VITE_REACT_APP_API_URL;
 
   // Authentication
   static Login = '/auth/login';
