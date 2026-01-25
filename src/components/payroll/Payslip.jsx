@@ -147,7 +147,7 @@ const Payslip = ({ payrollRecord, employee }) => {
         <p className="text-3xl font-bold text-gray-900">{formatCurrency(payrollRecord.netSalary)}</p>
       </div>
 
-      <Separator className="my-6" />
+      {/* <Separator className="my-6" /> */}
 
       {/* Tax Calculation Summary */}
       {/* {taxBreakdown && (

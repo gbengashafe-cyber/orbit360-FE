@@ -15,7 +15,7 @@ export class LoginUtil {
 }
 
 export class LocalStorageUtil {
-  static keys = ['orbit360-current-user'];
+  static keys = ['orbit360-current-user', 'orbit360-access-token'];
 
   static validateKey = (key) => {
     if (!this.keys.includes(key)) {

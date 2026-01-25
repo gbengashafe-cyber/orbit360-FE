@@ -1,6 +1,5 @@
-// API Routes configuration
 export class ApiRoutes {
-  static BASE_URL = 'http://localhost:3000/api';
+  static BASE_URL = process.env.REACT_APP_API_URL;
 
   // Authentication
   static Login = '/auth/login';

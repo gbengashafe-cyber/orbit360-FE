@@ -82,16 +82,12 @@ const adminNav = [
 
 const LayoutContent = ({ children }) => {
   const location = useLocation();
-  const [employeeInfo, setEmployeeInfo] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
   const [isHrNavOpen, setHrNavOpen] = useState(false);
   const [isEmployeePortalNavOpen, setEmployeePortalNavOpen] = useState(false);
   const [isAdminNavOpen, setIsAdminNavOpen] = useState(false);
 
-  const { currentUser: user } = useGlobalContext();
+  const { currentUser, isAdmin, isLoadingUser } = useGlobalContext();
 
   useEffect(() => {
     const path = location.pathname;
@@ -107,23 +103,10 @@ const LayoutContent = ({ children }) => {
     background: '#FAFAFA',
   };
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        setEmployeeInfo(user);
-        setIsAdmin(user?.role === 'admin');
-      } catch (e) {
-        console.error('Failed to fetch user:', e);
-      } finally {
-        setIsLoadingUser(false);
-      }
-    };
-    fetchUser();
-  }, []);
-
   const handleLogout = async () => {
     await userService.logout();
     LocalStorageUtil.delete('orbit360-access-token');
+    window.location.href = '/login';
   };
 
   const NavItem = ({ item }) => (
@@ -250,14 +233,14 @@ const LayoutContent = ({ children }) => {
             </div>
             <div className={`flex-1 min-w-0 ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
               <p className="font-medium text-gray-900 text-sm truncate">
-                {employeeInfo?.firstName}
+                {currentUser?.firstName}
                 {isAdmin && (
                   <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                     Admin
                   </span>
                 )}
               </p>
-              <p className="text-xs text-gray-600 truncate">{employeeInfo?.email || 'agent@orbit360.com'}</p>
+              <p className="text-xs text-gray-600 truncate">{currentUser?.email}</p>
             </div>
             <Button
               variant="ghost"
@@ -296,9 +279,9 @@ export default function Layout({ children, currentPageName }) {
   //   };
   // }, []);
 
-  // if (['PublicJobView', 'ScrollBoard'].includes(currentPageName)) {
-  //   return <>{children}</>;
-  // }
+  if (['PublicJobView', 'ScrollBoard', 'login'].includes(currentPageName?.toLowerCase())) {
+    return <>{children}</>;
+  }
 
   return (
     <EmployeeGate>
