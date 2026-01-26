@@ -11,6 +11,7 @@ import { useAllDepartments } from '@/hooks/use-all-departments';
 import { useGlobalContext } from '@/state/context';
 import { AlertCircle, Check, Copy, Plus, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import EmployeeForm from '../components/employees/EmployeeForm';
 
 export default function Employees() {
@@ -29,22 +30,30 @@ export default function Employees() {
   const { allDepartments } = useAllDepartments();
 
   useEffect(() => {
-    loadData();
+    loadEmployees();
   }, []);
 
-  const loadData = async () => {
+  useEffect(() => {
+    loadJobRoles();
+  }, []);
+
+  const loadEmployees = async () => {
     setLoading(true);
     try {
-      const [employeesData, jobRolesData] = await Promise.all([
-        employeeService.getEmployees(),
-        jobRoleService.getJobRoles({ rows: 1000 }),
-      ]);
+      const employeesData = await employeeService.getEmployees();
       setEmployees(employeesData.data);
-      setJobRoles(jobRolesData.data);
     } catch (error) {
-      console.error('Error loading data:', error);
+      toast.error('Error', { description: `${error.message ? error.message : 'Unable to load employees data.'}` });
     } finally {
       setLoading(false);
+    }
+  };
+  const loadJobRoles = async () => {
+    try {
+      const jobRolesData = await jobRoleService.getJobRoles({ rows: 1000 });
+      setJobRoles(jobRolesData.data);
+    } catch (error) {
+      toast.error('Error', { description: `${error.message ? error.message : 'Unable to load job roles data.'}` });
     }
   };
 
@@ -99,7 +108,7 @@ export default function Employees() {
       }
       setShowForm(false);
       setEditingEmployee(null);
-      loadData();
+      loadEmployees();
       setTimeout(() => {
         setSuccess('');
         setError('');
@@ -136,7 +145,7 @@ export default function Employees() {
     if (window.confirm('Are you sure you want to terminate this employee? Their record will be moved to the ex-staff archive.')) {
       try {
         await employeeService.terminateEmployee(employeeId, { status: 'terminated' });
-        loadData();
+        loadEmployees();
         setSuccess('Employee terminated successfully.');
         setTimeout(() => setSuccess(''), 8000);
       } catch (error) {
