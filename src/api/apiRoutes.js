@@ -3,6 +3,7 @@ export class ApiRoutes {
 
   // Authentication
   static Login = '/auth/login';
+  static RefreshToken = '/auth/refresh';
   static Logout = '/auth/logout';
   static GetCurrentUser = '/auth/me';
   static GoogleCallback = '/auth/google/callback';
@@ -25,6 +26,7 @@ export class ApiRoutes {
   // Departments
   static GetDepartments = '/v1/departments';
   static GetDepartmentById = (id) => `/v1/departments/${id}`;
+  static GetDepartmentEmployees = (id) => `/v1/departments/${id}/employees`;
   static CreateDepartment = '/v1/departments';
   static UpdateDepartment = (id) => `/v1/departments/${id}`;
   static DeleteDepartment = (id) => `/v1/departments/${id}`;

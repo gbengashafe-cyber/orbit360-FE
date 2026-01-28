@@ -1,6 +1,6 @@
 import { userService } from '@/api';
 import { Input } from '@/components/ui/input';
-import { LoginUtil } from '@/pages/login/local-storage.util';
+import { LocalStorageUtil } from '@/pages/login/local-storage.util';
 import { useState } from 'react';
 
 const LoginPage = () => {
@@ -15,7 +15,7 @@ const LoginPage = () => {
       const password = e.target.password.value;
 
       const response = await userService.login(email, password);
-      LoginUtil.storeAccessToken(response.data.accessToken);
+      LocalStorageUtil.save(response.data.accessToken, 'orbit360-access-token');
 
       window.location.href = '/dashboard';
     } catch (error) {

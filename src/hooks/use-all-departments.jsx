@@ -1,5 +1,6 @@
 import { departmentService } from '@/api/department.service';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export const useAllDepartments = () => {
   const [allDepartments, setAllDepartments] = useState([]);
@@ -9,7 +10,7 @@ export const useAllDepartments = () => {
       const allDepartments = await departmentService.getDepartments({ rows: 1000 });
       setAllDepartments(allDepartments.data);
     } catch (error) {
-      console.error('Error loading departments:', error);
+      toast.error('Error', { description: `${error.message ? error.message : 'Error loading departments'}` });
     }
   };
 

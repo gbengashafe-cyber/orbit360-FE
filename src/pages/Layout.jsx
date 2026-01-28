@@ -265,7 +265,7 @@ const LayoutContent = ({ children }) => {
 };
 
 export default function Layout({ children, currentPageName }) {
-  const [installPrompt, setInstallPrompt] = useState(null);
+  // const [installPrompt, setInstallPrompt] = useState(null);
 
   // useEffect(() => {
   //   const handleBeforeInstallPrompt = (e) => {

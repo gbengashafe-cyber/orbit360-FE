@@ -1,22 +1,34 @@
 import { employeeService } from '@/api';
+import { useDebounce } from '@/api/apiClient';
+import { departmentService } from '@/api/department.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { CanceledError } from 'axios';
+import { Command } from 'cmdk';
 import { format, parseISO } from 'date-fns';
-import { HelpCircle, UserPlus } from 'lucide-react';
+import { Check, ChevronsUpDown, HelpCircle, Loader2, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { LoanUtil } from '../cooperative/loan.utils';
 import { EmployeeUtil } from './employee.utils';
 import EmployeeLoans from './EmployeeLoans';
 
 export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartments = [], jobRoles = [] }) {
-  const [allEmployees, setAllEmployees] = useState([]);
   const [employeeLoans, setEmployeeLoans] = useState([]);
+  const [query, setQuery] = useState('');
+  const [departmentEmployees, setDepartmentEmployees] = useState([]);
+  const [createUserAccount, setCreateUserAccount] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState(
     employee
       ? {
@@ -65,21 +77,58 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
           leaveEntitlement: 22,
         },
   );
-  const [createUserAccount, setCreateUserAccount] = useState(true);
+  const debouncedQuery = useDebounce(query, 600);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadDepartmentEmployees = async (signal) => {
+      setIsLoading(true);
+      try {
+        const currentDepartment = allDepartments.find((_department) => _department.name === formData.departmentName);
+
+        if (!currentDepartment) {
+          return;
+        }
+
+        const employees = await departmentService.getDepartmentEmployees(
+          {
+            id: currentDepartment.id,
+            rows: 500,
+            options: { search: debouncedQuery },
+          },
+          { signal },
+        );
+
+        setDepartmentEmployees(employees.data.employees);
+      } catch (error) {
+        if (error instanceof CanceledError) {
+          return;
+        }
+        toast.error('Error:', {
+          description: `${error.message ? error.message : 'Could not load employees in this department.'}`,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadDepartmentEmployees(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [debouncedQuery, formData.departmentName]);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const employees = await employeeService.getEmployees({ rows: 1000 });
-        setAllEmployees(employees.data);
-
         if (employee?.id) {
           const employeeData = await employeeService.getEmployeeById(employee.id);
           const activeLoans = employeeData.data.loans.filter((l) => l.status === 'active');
           setEmployeeLoans(activeLoans);
         }
       } catch (error) {
-        console.log(error);
+        toast.log('Error', { description: `${error.message ? error.message : 'Unable to load employee loan data'}` });
       }
     }
     loadData();
@@ -117,13 +166,13 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
   };
 
   const handleSupervisorChange = (supervisorId) => {
-    const selectedSupervisor = allEmployees.find((emp) => emp.employeeId === supervisorId);
+    const selectedSupervisor = departmentEmployees.find((emp) => emp.id === supervisorId);
     if (selectedSupervisor) {
       setFormData((prev) => ({
         ...prev,
-        supervisorId: selectedSupervisor.employeeId,
+        supervisorId: selectedSupervisor.id,
         supervisorName: `${selectedSupervisor.firstName} ${selectedSupervisor.lastName}`,
-        supervisorRole: selectedSupervisor.position,
+        supervisorRole: selectedSupervisor.jobRole,
         supervisorDepartment: selectedSupervisor.departmentName,
       }));
     } else {
@@ -219,7 +268,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
             </div>
             {/* Gender */}
             <div className="space-y-2">
-              <Label htmlFor="gender">Gender</Label>
+              <Label htmlFor="gender">Gender *</Label>
               <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
                 <SelectTrigger id="gender">
                   <SelectValue />
@@ -314,20 +363,79 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
           {/* Reporting Line Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="supervisorId">Supervisor</Label>
-              <Select value={formData.supervisorId} onValueChange={handleSupervisorChange}>
-                <SelectTrigger id="supervisorId">
-                  <SelectValue placeholder="Select a supervisor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>Select supervisor</SelectItem>
-                  {allEmployees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.employeeId}>
-                      {emp.firstName} {emp.lastName} ({emp.employeeId} - {emp.departmentName})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/*  */}
+
+              {/* Supervisor Search Field */}
+              <div className="space-y-2 flex flex-col">
+                <Label htmlFor="supervisor">Supervisor</Label>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="supervisor"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="w-full justify-between font-normal border-slate-200"
+                    >
+                      {formData.supervisorId ? formData.supervisorName : 'Select supervisor...'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput placeholder="Search by name, email..." value={query} onValueChange={setQuery} />
+                      <CommandList className="max-h-[300px] overflow-y-auto">
+                        {isLoading ? (
+                          <div className="flex items-center justify-center py-6">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
+                          </div>
+                        ) : (
+                          <>
+                            {departmentEmployees.length === 0 && query.length > 0 ? (
+                              <CommandEmpty>No supervisor found.</CommandEmpty>
+                            ) : departmentEmployees.length === 0 ? (
+                              <div className="py-6 text-center text-sm text-muted-foreground">Start typing to search...</div>
+                            ) : (
+                              <CommandGroup>
+                                {departmentEmployees.map((emp) => (
+                                  <CommandItem
+                                    key={emp.id}
+                                    value={emp.id}
+                                    onSelect={() => {
+                                      handleSupervisorChange(emp.id);
+                                      setOpen(false);
+                                      setQuery('');
+                                    }}
+                                    className="flex flex-col items-start py-2"
+                                  >
+                                    <div className="flex items-center w-full">
+                                      <Check
+                                        className={cn(
+                                          'mr-2 h-4 w-4',
+                                          formData.supervisorId === emp.id ? 'opacity-100' : 'opacity-0',
+                                        )}
+                                      />
+                                      <span className="font-medium">
+                                        {emp.firstName} {emp.lastName}
+                                      </span>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground ml-6">
+                                      {emp.jobRole} • {emp.departmentName}
+                                    </span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            )}
+                          </>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/*  */}
             </div>
           </div>
 

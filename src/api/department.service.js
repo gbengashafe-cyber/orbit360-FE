@@ -1,12 +1,25 @@
-import { apiClient } from './apiClient';
+import { apiClient, makeQueryParams } from './apiClient';
 import { ApiRoutes } from './apiRoutes';
 
 export const departmentService = {
   async getDepartments({ page = 1, rows = 10, options }) {
-    if (options && options.search) {
-      return apiClient.get(`${ApiRoutes.GetDepartments}?page=${page}&rows=${rows}&search=${options.search}`);
+    if (options) {
+      const queryParams = makeQueryParams(options);
+      return apiClient.get(`${ApiRoutes.GetDepartments}?page=${page}&rows=${rows}&${queryParams}`);
     }
+
     return apiClient.get(`${ApiRoutes.GetDepartments}?page=${page}&rows=${rows}`);
+  },
+
+  async getDepartmentEmployees({ id, page = 1, rows = 10, options }, { signal }) {
+    let endpoint = `${ApiRoutes.GetDepartmentEmployees(id)}?page=${page}&rows=${rows}`;
+
+    if (options) {
+      const queryParams = makeQueryParams(options);
+      endpoint = `${endpoint}&${queryParams}`;
+    }
+
+    return apiClient.get(endpoint, { signal });
   },
 
   async getDepartmentById(id) {

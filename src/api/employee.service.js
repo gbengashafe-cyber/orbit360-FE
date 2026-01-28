@@ -1,10 +1,11 @@
-import { apiClient } from './apiClient';
+import { apiClient, makeQueryParams } from './apiClient';
 import { ApiRoutes } from './apiRoutes';
 
 export const employeeService = {
   async getEmployees({ page = 1, rows = 10, options } = { page: 1, rows: 10 }) {
-    if (options && options.search) {
-      return apiClient.get(`${ApiRoutes.GetEmployees}?page=${page}&rows=${rows}&search=${options.search}`);
+    if (options) {
+      const queryParams = makeQueryParams(options);
+      return apiClient.get(`${ApiRoutes.GetEmployees}?page=${page}&rows=${rows}&${queryParams}`);
     }
     return apiClient.get(`${ApiRoutes.GetEmployees}?page=${page}&rows=${rows}`);
   },
