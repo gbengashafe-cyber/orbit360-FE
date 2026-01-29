@@ -54,14 +54,6 @@ export default function Payroll() {
   const [summaryCards, setSummaryCards] = useState([]);
   const [periodPayrollMeta, setPeriodPayrollMeta] = useState({ count: 0, totalNet: 0, totalGross: 0 });
 
-  useEffect(() => {
-    loadPeriodPayroll();
-  }, [currentPeriod, loadPeriodPayroll]);
-
-  useEffect(() => {
-    loadData();
-  }, [periodPayrollMeta]);
-
   const loadPeriodPayroll = useCallback(async () => {
     setLoading(true);
     try {
@@ -129,6 +121,14 @@ export default function Payroll() {
       setLoading(false);
     }
   }, [periodPayrollMeta.count, periodPayrollMeta.totalGross, periodPayrollMeta.totalNet]);
+
+  useEffect(() => {
+    loadPeriodPayroll();
+  }, [currentPeriod, loadPeriodPayroll]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData, periodPayrollMeta]);
 
   const generateMonthlyPayrollWithOverwrite = async (selectedPeriod) => {
     setGeneratingPayroll(true);
