@@ -23,7 +23,7 @@ import {
   Upload,
   Users,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import Payslip from '../components/payroll/Payslip';
 
@@ -56,13 +56,13 @@ export default function Payroll() {
 
   useEffect(() => {
     loadPeriodPayroll();
-  }, [currentPeriod]);
+  }, [currentPeriod, loadPeriodPayroll]);
 
   useEffect(() => {
     loadData();
   }, [periodPayrollMeta]);
 
-  const loadPeriodPayroll = async () => {
+  const loadPeriodPayroll = useCallback(async () => {
     setLoading(true);
     try {
       const payrollData = await payrollService.getPayrollByPeriod({ payPeriod: currentPeriod });
@@ -79,9 +79,9 @@ export default function Payroll() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPeriod]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [reportsData, employeesData] = await Promise.all([
         payrollService.getUploadedPayrolls(),
@@ -128,7 +128,7 @@ export default function Payroll() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [periodPayrollMeta.count, periodPayrollMeta.totalGross, periodPayrollMeta.totalNet]);
 
   const generateMonthlyPayrollWithOverwrite = async (selectedPeriod) => {
     setGeneratingPayroll(true);
@@ -166,6 +166,7 @@ export default function Payroll() {
       });
 
       await loadData();
+      await loadPeriodPayroll();
     } catch (error) {
       toast.error('Error generating payroll', {
         description: `Please try again.  ${error.message ? 'Error: ' + error.message : ''}`,
@@ -248,27 +249,6 @@ export default function Payroll() {
   if (loading) {
     return <div className="p-8 text-center">Loading payroll data...</div>;
   }
-
-  const summaryCardss = [
-    // {
-    //   title: 'Total Gross Pay (Monthly)',
-    //   value: `₦${payrollRecords
-    //     .filter((r) => r.pay_period === currentPeriod)
-    //     .reduce((sum, r) => sum + (r.gross_salary || 0), 0)
-    //     .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    //   icon: DollarSign,
-    //   color: 'text-purple-600',
-    // },
-    // {
-    //   title: 'Total Net Pay (Monthly)',
-    //   value: `₦${payrollRecords
-    //     .filter((r) => r.pay_period === currentPeriod)
-    //     .reduce((sum, r) => sum + (r.net_salary || 0), 0)
-    //     .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    //   icon: CreditCard,
-    //   color: 'text-orange-600',
-    // },
-  ];
 
   return (
     <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>

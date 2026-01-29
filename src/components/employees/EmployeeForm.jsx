@@ -117,7 +117,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
     return () => {
       controller.abort();
     };
-  }, [debouncedQuery, formData.departmentName]);
+  }, [allDepartments, debouncedQuery, formData.departmentName]);
 
   useEffect(() => {
     async function loadData() {
