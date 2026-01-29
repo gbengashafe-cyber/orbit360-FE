@@ -1,4 +1,5 @@
 import { LocalStorageUtil, LoginUtil } from '@/pages/login/local-storage.util';
+import { logger } from '@/utils';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { apiRoutes } from './apiRoutes';
@@ -37,7 +38,7 @@ let failedQueue = [];
 const processQueue = (error, token = null) => {
   failedQueue.forEach(({ resolve, reject, config }) => {
     if (error) {
-      reject(error);
+      reject(error.response?.data);
     } else {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
@@ -57,7 +58,8 @@ API.interceptors.response.use(
     const isRefreshTokenCall = originalConfig?.url?.includes(apiRoutes.RefreshToken);
 
     if (attemptedRefreshToken || isRefreshTokenCall || !unauthorized) {
-      return Promise.reject(error);
+      logger.error(error);
+      return Promise.reject(error.response?.data);
     }
 
     if (isRefreshing) {
@@ -83,10 +85,11 @@ API.interceptors.response.use(
 
       return API(originalConfig);
     } catch (refreshError) {
-      processQueue(refreshError);
+      logger.error(refreshError);
+      processQueue(error);
       LoginUtil.removeAccessToken();
       window.location.href = '/login';
-      return Promise.reject(refreshError);
+      return Promise.reject(error.response?.data);
     } finally {
       isRefreshing = false;
     }

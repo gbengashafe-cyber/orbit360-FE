@@ -30,7 +30,7 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, getStatus
                 </div>
               </TableCell>
               <TableCell className="capitalize">{employee.departmentName}</TableCell>
-              <TableCell>{employee.jobRole.replace('_', ' ')}</TableCell>
+              <TableCell>{employee?.jobRole.replace('_', ' ')}</TableCell>
               <TableCell>
                 <Badge className={getStatusColor(employee.status)}>{employee.status.replace('_', ' ')}</Badge>
               </TableCell>

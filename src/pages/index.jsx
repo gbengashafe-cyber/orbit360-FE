@@ -2,7 +2,7 @@ import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-route
 import AgileDesk from './AgileDesk';
 import AgileDeskBoard from './AgileDeskBoard';
 import AgileDeskReports from './AgileDeskReports';
-import Analytics from './Analytics';
+import Analytics from './Analytics Dashboard/Analytics';
 import Appraisals from './Appraisals';
 import BudgetManager from './BudgetManager';
 import ClientAuth from './ClientAuth';

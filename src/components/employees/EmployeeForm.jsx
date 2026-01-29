@@ -258,7 +258,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
             </div>
             {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Phone *</Label>
               <Input id="phone" value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} />
             </div>
             {/* Date of Birth */}

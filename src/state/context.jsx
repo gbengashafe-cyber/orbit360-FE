@@ -13,10 +13,8 @@ const LOCAL_STORAGE_CURRENT_USER_KEY = 'orbit360-current-user';
 export const GlobalContextProvider = ({ children }) => {
   const [isMD, setIsMD] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentEmployee, setCurrentEmployee] = useState({});
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-
-  const location = window.location.pathname;
-
   const [currentUser, setCurrentUser] = useState(() => {
     let savedUserStr = LocalStorageUtil.get(LOCAL_STORAGE_CURRENT_USER_KEY);
 
@@ -34,12 +32,9 @@ export const GlobalContextProvider = ({ children }) => {
 
     return savedUser;
   });
+  const location = window.location.pathname;
 
   const loadCurrentUser = async () => {
-    if (['/login'].includes(location)) {
-      return;
-    }
-
     try {
       setIsLoadingUser(true);
       const userResponse = await userService.getCurrentUser();
@@ -63,6 +58,10 @@ export const GlobalContextProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    if (['/login'].includes(location)) {
+      return;
+    }
+
     loadCurrentUser();
 
     return () => {
@@ -71,6 +70,40 @@ export const GlobalContextProvider = ({ children }) => {
       setIsAdmin(false);
     };
   }, []);
+
+  useEffect(() => {
+    if (['/login'].includes(location)) {
+      return;
+    }
+
+    loadCurrentEmployee();
+
+    return () => {
+      setCurrentEmployee({});
+    };
+  }, []);
+
+  const loadCurrentEmployee = async () => {
+    try {
+      const userResponse = await userService.getCurrentUser();
+
+      storeCurrentUser(userResponse?.data);
+
+      const userEmployeeData = await employeeService.getEmployees(1, 100, { search: userResponse.data?.email });
+
+      const isMDUser = userEmployeeData?.data?.[0].jobRole === 'Managing Director';
+      const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
+
+      setIsAdmin(isAdmin);
+      setIsMD(isMDUser);
+    } catch (error) {
+      toast.error('Error loading current user', {
+        description: `${error.message ? error.message : 'Failed to load user profile.'}`,
+      });
+    } finally {
+      setIsLoadingUser(false);
+    }
+  };
 
   const storeCurrentUser = (user) => {
     user.lastUpdated = new Date();
