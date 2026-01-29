@@ -1,4 +1,4 @@
-import { employeeService, userService } from '@/api';
+import { employeeService } from '@/api';
 import { jobRoleService } from '@/api/job-role.service';
 import { EmployeeBioDataTable } from '@/components/employees/EmployeeBioDataTable';
 import { EmployeeUtil } from '@/components/employees/employee.utils';
@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAllDepartments } from '@/hooks/use-all-departments';
-import { useGlobalContext } from '@/state/context';
 import { AlertCircle, Check, Copy, Plus, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -26,7 +25,6 @@ export default function Employees() {
   const [copied, setCopied] = useState(false);
   const [jobRoles, setJobRoles] = useState([]);
 
-  const { currentUser } = useGlobalContext();
   const { allDepartments } = useAllDepartments();
 
   useEffect(() => {
@@ -66,23 +64,11 @@ export default function Employees() {
         await employeeService.updateEmployee(editingEmployee.id, employeeData);
         setSuccess('Employee details updated successfully.');
       } else {
-        const newEmployee = await employeeService.createEmployee(employeeData);
+        const newEmployee = await employeeService.createEmployee({ ...employeeData, createUser });
         let successMsg = 'New employee created successfully.';
 
         if (createUser && newEmployee) {
           try {
-            const user = {
-              firstName: employeeData.firstName,
-              lastName: employeeData.lastName,
-              email: employeeData.email,
-              role: 'user',
-              jobRole: employeeData.jobRole,
-              department: employeeData.department,
-              createdBy: currentUser?.id,
-            };
-
-            await userService.createUser(user);
-
             const instructions = `
               <h3>Welcome aboard!</h3>
               <p>An employee account has been created for you on the Orbit360 platform.</p>
