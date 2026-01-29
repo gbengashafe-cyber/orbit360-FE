@@ -149,6 +149,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
       nhfRate: 2.5,
       nhfApplicable: Boolean(formData.nhfApplicable),
       totalAnnualGrossPay: parseFloat(totalGrossPay.toFixed(2)),
+      supervisorId: String(formData.supervisorId),
     };
     onSubmit({ employeeData: submissionData, createUser: !employee && createUserAccount });
   };

@@ -169,6 +169,7 @@ export const apiClient = {
 
 export const makeQueryParams = (options = {}) =>
   Object.entries(options)
+    // eslint-disable-next-line no-unused-vars
     .filter(([_, value]) => value !== undefined && value !== null && value !== '')
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .join('&');
