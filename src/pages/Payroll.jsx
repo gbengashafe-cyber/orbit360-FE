@@ -140,6 +140,7 @@ export default function Payroll() {
       });
 
       await loadData();
+      await loadPeriodPayroll();
     } catch (error) {
       toast.error('Error generating payroll', {
         description: `Please try again.  ${error.message ? 'Error: ' + error.message : ''}`,
