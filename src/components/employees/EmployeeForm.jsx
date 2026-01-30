@@ -54,11 +54,11 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
           supervisorName: '',
           supervisorRole: '',
           supervisorDepartment: '',
-          annualBasicSalary: 0,
-          annualHousingAllowance: 0,
-          annualTransportAllowance: 0,
-          annualLeaveAllowance: 0,
-          annualOtherAllowances: 0,
+          annualBasicSalary: null,
+          annualHousingAllowance: null,
+          annualTransportAllowance: null,
+          annualLeaveAllowance: null,
+          annualOtherAllowances: null,
           pensionApplicable: true,
           pensionRate: 8,
           nhfApplicable: true,
@@ -149,7 +149,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
       nhfRate: 2.5,
       nhfApplicable: Boolean(formData.nhfApplicable),
       totalAnnualGrossPay: parseFloat(totalGrossPay.toFixed(2)),
-      supervisorId: String(formData.supervisorId),
+      supervisorId: String(formData.supervisorId || ''),
     };
     onSubmit({ employeeData: submissionData, createUser: !employee && createUserAccount });
   };

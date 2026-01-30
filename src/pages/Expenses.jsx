@@ -1,16 +1,15 @@
-
-import React, { useState, useEffect } from 'react';
 import { ExpenseRequest, User } from '@/api/entities';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Plus, Wallet, Filter, Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Plus, Wallet } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 
 const getStatusBadge = (status) => {
   const colors = {
@@ -47,17 +46,20 @@ export default function Expenses() {
 
   const filteredRequests = () => {
     if (!currentUser) return [];
-    
+
     let baseRequests = [];
     switch (activeTab) {
       case 'my_requests':
-        baseRequests = requests.filter(r => r.requester_id === currentUser.id);
+        baseRequests = requests.filter((r) => r.requester_id === currentUser.id);
         break;
       case 'pending_approval':
-        baseRequests = requests.filter(r => r.current_approver_role === currentUser.role);
+        baseRequests = requests.filter((r) => r.current_approver_role === currentUser.role);
         break;
       case 'pending_payment':
-        baseRequests = requests.filter(r => (r.status === 'final_approved' || r.status === 'settled') && ['finance_officer', 'admin'].includes(currentUser.role));
+        baseRequests = requests.filter(
+          (r) =>
+            (r.status === 'final_approved' || r.status === 'settled') && ['finance_officer', 'admin'].includes(currentUser.role),
+        );
         break;
       case 'all_requests':
         baseRequests = requests;
@@ -66,16 +68,16 @@ export default function Expenses() {
         return [];
     }
 
-    if(dateRange.from && dateRange.to) {
-        return baseRequests.filter(r => {
-            const requestDate = new Date(r.created_date);
-            const fromDate = new Date(dateRange.from);
-            fromDate.setHours(0, 0, 0, 0); // Set to start of the 'from' day
-            const toDate = new Date(dateRange.to);
-            toDate.setHours(23, 59, 59, 999); // Set to end of the 'to' day
+    if (dateRange.from && dateRange.to) {
+      return baseRequests.filter((r) => {
+        const requestDate = new Date(r.created_date);
+        const fromDate = new Date(dateRange.from);
+        fromDate.setHours(0, 0, 0, 0); // Set to start of the 'from' day
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999); // Set to end of the 'to' day
 
-            return requestDate >= fromDate && requestDate <= toDate;
-        });
+        return requestDate >= fromDate && requestDate <= toDate;
+      });
     }
 
     return baseRequests;
@@ -83,14 +85,20 @@ export default function Expenses() {
 
   const tabs = [
     { key: 'my_requests', label: 'My Requests' },
-    { key: 'pending_approval', label: 'Pending My Approval', roles: ['head_of_operations', 'internal_control', 'managing_director'] },
+    {
+      key: 'pending_approval',
+      label: 'Pending My Approval',
+      roles: ['head_of_operations', 'internal_control', 'managing_director'],
+    },
     { key: 'pending_payment', label: 'Pending Payment', roles: ['finance_officer', 'admin'] },
     { key: 'all_requests', label: 'All Requests', roles: ['admin', 'managing_director', 'finance_officer'] },
   ];
 
-  const availableTabs = tabs.filter(tab => !tab.roles || tab.roles.includes(currentUser?.role));
+  const availableTabs = tabs.filter((tab) => !tab.roles || tab.roles.includes(currentUser?.role));
 
-  const canFilterByDate = ['all_requests', 'pending_payment'].includes(activeTab) && ['admin', 'managing_director', 'finance_officer'].includes(currentUser?.role);
+  const canFilterByDate =
+    ['all_requests', 'pending_payment'].includes(activeTab) &&
+    ['admin', 'managing_director', 'finance_officer'].includes(currentUser?.role);
 
   // Allow admin managers and admin officers to create expense requests
   const canCreateExpense = currentUser?.role === 'admin_officer' || currentUser?.role === 'admin';
@@ -109,7 +117,7 @@ export default function Expenses() {
             </div>
           </div>
           {canCreateExpense && (
-            <Link to={createPageUrl("ExpenseDetail", { id: 'new' })}>
+            <Link to={createPageUrl('ExpenseDetail', { id: 'new' })}>
               <Button className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25">
                 <Plus className="w-4 h-4 mr-2" />
                 New Expense Request
@@ -138,50 +146,49 @@ export default function Expenses() {
 
         <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
           <CardHeader className="flex flex-row justify-between items-center">
-            <CardTitle>{availableTabs.find(t => t.key === activeTab)?.label}</CardTitle>
+            <CardTitle>{availableTabs.find((t) => t.key === activeTab)?.label}</CardTitle>
             {canFilterByDate && (
               <div className="flex items-center gap-2">
-                 <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="date"
-                        variant={"outline"}
-                        className="w-[300px] justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, "LLL dd, y")} -{" "}
-                              {format(dateRange.to, "LLL dd, y")}
-                            </>
-                          ) : (
-                            format(dateRange.from, "LLL dd, y")
-                          )
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button id="date" variant={'outline'} className="w-[300px] justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, 'LLL dd, y')} - {format(dateRange.to, 'LLL dd, y')}
+                          </>
                         ) : (
-                          <span>Pick a date range</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={2}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <Button variant="secondary" onClick={() => setDateRange({ from: null, to: null })}>Clear</Button>
+                          format(dateRange.from, 'LLL dd, y')
+                        )
+                      ) : (
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Button variant="secondary" onClick={() => setDateRange({ from: null, to: null })}>
+                  Clear
+                </Button>
               </div>
             )}
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               {loading ? (
-                <div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-700" /></div>
+                <div className="p-8 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-700" />
+                </div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -195,7 +202,7 @@ export default function Expenses() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRequests().map(req => (
+                    {filteredRequests().map((req) => (
                       <TableRow key={req.id}>
                         <TableCell>
                           <p className="font-semibold">{req.title}</p>
@@ -206,8 +213,10 @@ export default function Expenses() {
                         <TableCell>{new Date(req.date_incurred).toLocaleDateString()}</TableCell>
                         <TableCell>{getStatusBadge(req.status)}</TableCell>
                         <TableCell>
-                          <Link to={createPageUrl("ExpenseDetail", { id: req.id })}>
-                            <Button variant="outline" size="sm">View Details</Button>
+                          <Link to={createPageUrl('ExpenseDetail', { id: req.id })}>
+                            <Button variant="outline" size="sm">
+                              View Details
+                            </Button>
                           </Link>
                         </TableCell>
                       </TableRow>
@@ -217,7 +226,7 @@ export default function Expenses() {
               )}
             </div>
             {!loading && filteredRequests().length === 0 && (
-                <div className="text-center p-12 text-gray-500">No requests found.</div>
+              <div className="text-center p-12 text-gray-500">No requests found.</div>
             )}
           </CardContent>
         </Card>

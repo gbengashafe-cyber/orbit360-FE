@@ -43,7 +43,7 @@ import {
   Users2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 import EmployeeGate from '../components/EmployeeGate';
 import Logo from '../components/Logo';
 import { LocalStorageUtil } from './login/local-storage.util';

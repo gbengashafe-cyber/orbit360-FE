@@ -1,38 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { Project, Issue, Sprint } from "@/api/entities";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { 
-  FolderOpen, 
-  Plus, 
-  Settings, 
-  MoreHorizontal,
-  Users,
-  Calendar,
-  Target,
-  BarChart3,
-  Search
-} from "lucide-react";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { Issue, Project, Sprint } from '@/api/entities';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { createPageUrl } from '@/utils';
+import { BarChart3, FolderOpen, MoreHorizontal, Plus, Search, Settings, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 
-import ProjectForm from "../components/projects/ProjectForm";
+import ProjectForm from '../components/projects/ProjectForm';
 
 export default function Projects() {
   const [projects, setProjects] = useState([]);
@@ -40,7 +17,7 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     loadProjects();
@@ -51,20 +28,20 @@ export default function Projects() {
       const [projectsData, issuesData, sprintsData] = await Promise.all([
         Project.list('-created_date'),
         Issue.list(),
-        Sprint.list()
+        Sprint.list(),
       ]);
 
       // Calculate stats for each project
       const stats = {};
-      projectsData.forEach(project => {
-        const projectIssues = issuesData.filter(issue => issue.project_id === project.id);
-        const projectSprints = sprintsData.filter(sprint => sprint.project_id === project.id);
-        
+      projectsData.forEach((project) => {
+        const projectIssues = issuesData.filter((issue) => issue.project_id === project.id);
+        const projectSprints = sprintsData.filter((sprint) => sprint.project_id === project.id);
+
         stats[project.id] = {
           totalIssues: projectIssues.length,
-          completedIssues: projectIssues.filter(issue => issue.status === 'done').length,
-          activeSprints: projectSprints.filter(sprint => sprint.status === 'active').length,
-          totalSprints: projectSprints.length
+          completedIssues: projectIssues.filter((issue) => issue.status === 'done').length,
+          activeSprints: projectSprints.filter((sprint) => sprint.status === 'active').length,
+          totalSprints: projectSprints.length,
         };
       });
 
@@ -99,26 +76,27 @@ export default function Projects() {
 
   const getStatusColor = (status) => {
     const colors = {
-      active: "bg-green-100 text-green-700",
-      archived: "bg-gray-100 text-gray-700",
-      on_hold: "bg-yellow-100 text-yellow-700"
+      active: 'bg-green-100 text-green-700',
+      archived: 'bg-gray-100 text-gray-700',
+      on_hold: 'bg-yellow-100 text-yellow-700',
     };
-    return colors[status] || "bg-gray-100 text-gray-700";
+    return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
   const getMethodologyColor = (methodology) => {
     const colors = {
-      scrum: "bg-blue-100 text-blue-700",
-      kanban: "bg-purple-100 text-purple-700",
-      waterfall: "bg-orange-100 text-orange-700",
-      hybrid: "bg-indigo-100 text-indigo-700"
+      scrum: 'bg-blue-100 text-blue-700',
+      kanban: 'bg-purple-100 text-purple-700',
+      waterfall: 'bg-orange-100 text-orange-700',
+      hybrid: 'bg-indigo-100 text-indigo-700',
     };
-    return colors[methodology] || "bg-gray-100 text-gray-700";
+    return colors[methodology] || 'bg-gray-100 text-gray-700';
   };
 
-  const filteredProjects = projects.filter(project =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    project.key.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProjects = projects.filter(
+    (project) =>
+      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.key.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   if (loading) {
@@ -184,12 +162,13 @@ export default function Projects() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project) => {
             const stats = projectStats[project.id] || {};
-            const completionRate = stats.totalIssues > 0 
-              ? Math.round((stats.completedIssues / stats.totalIssues) * 100) 
-              : 0;
+            const completionRate = stats.totalIssues > 0 ? Math.round((stats.completedIssues / stats.totalIssues) * 100) : 0;
 
             return (
-              <Card key={project.id} className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50 hover:shadow-2xl transition-shadow">
+              <Card
+                key={project.id}
+                className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50 hover:shadow-2xl transition-shadow"
+              >
                 <CardHeader className="border-b border-gray-200">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -198,7 +177,7 @@ export default function Projects() {
                       </div>
                       <div>
                         <CardTitle className="text-lg font-bold text-gray-900">
-                          <Link 
+                          <Link
                             to={createPageUrl(`ProjectBoard?project=${project.id}`)}
                             className="hover:text-blue-700 transition-colors"
                           >
@@ -233,17 +212,11 @@ export default function Projects() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {project.description || "No description provided"}
-                    </p>
-                    
+                    <p className="text-sm text-gray-600 line-clamp-2">{project.description || 'No description provided'}</p>
+
                     <div className="flex gap-2">
-                      <Badge className={getStatusColor(project.status)}>
-                        {project.status.replace('_', ' ')}
-                      </Badge>
-                      <Badge className={getMethodologyColor(project.methodology)}>
-                        {project.methodology}
-                      </Badge>
+                      <Badge className={getStatusColor(project.status)}>{project.status.replace('_', ' ')}</Badge>
+                      <Badge className={getMethodologyColor(project.methodology)}>{project.methodology}</Badge>
                     </div>
 
                     <div className="space-y-3">
@@ -252,7 +225,7 @@ export default function Projects() {
                         <span className="font-semibold">{completionRate}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${completionRate}%` }}
                         ></div>
@@ -279,14 +252,11 @@ export default function Projects() {
         {filteredProjects.length === 0 && !loading && (
           <div className="text-center py-12">
             <FolderOpen className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-semibold mb-2 text-gray-700">
-              {searchTerm ? "No projects found" : "No projects yet"}
-            </h3>
+            <h3 className="text-lg font-semibold mb-2 text-gray-700">{searchTerm ? 'No projects found' : 'No projects yet'}</h3>
             <p className="text-gray-500 mb-6">
-              {searchTerm 
-                ? "Try adjusting your search criteria" 
-                : "Create your first project to get started with issue tracking and sprint management"
-              }
+              {searchTerm
+                ? 'Try adjusting your search criteria'
+                : 'Create your first project to get started with issue tracking and sprint management'}
             </p>
             {!searchTerm && (
               <Button

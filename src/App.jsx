@@ -1,5 +1,5 @@
 import Pages from '@/pages/index.jsx';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router';
 import { Toaster } from 'sonner';
 import './App.css';
 import LoginPage from './pages/login/Login';

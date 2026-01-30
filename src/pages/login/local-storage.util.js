@@ -1,21 +1,11 @@
-export class LoginUtil {
-  static key = 'orbit360-access-token';
-
-  static storeAccessToken = (token) => {
-    localStorage.setItem(this.key, token);
-  };
-
-  static removeAccessToken = () => {
-    localStorage.removeItem(this.key);
-  };
-
-  static getAccessToken = () => {
-    return localStorage.getItem(this.key);
-  };
-}
+export const localStorageKeys = Object.freeze({
+  CURRENT_USER: 'orbit360-current-user',
+  CURRENT_EMPLOYEE: 'orbit360-current-employee',
+  ACCESS_TOKEN: 'orbit360-access-token',
+});
 
 export class LocalStorageUtil {
-  static keys = ['orbit360-current-user', 'orbit360-access-token'];
+  static keys = [...Object.values(localStorageKeys)];
 
   static validateKey = (key) => {
     if (!this.keys.includes(key)) {

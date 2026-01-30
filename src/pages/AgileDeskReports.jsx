@@ -1,21 +1,28 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Project, Issue, Sprint } from '@/api/entities';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Issue, Project, Sprint } from '@/api/entities';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { createPageUrl } from '@/utils';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { GitBranch, Zap, Target, CheckCircle, XCircle, ChevronLeft, Loader2, ArrowDown, ArrowUp } from 'lucide-react';
 import { format } from 'date-fns';
+import { ArrowDown, CheckCircle, ChevronLeft, GitBranch, Loader2, Target, XCircle, Zap } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 const PIE_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -57,30 +64,30 @@ export default function AgileDeskReports() {
 
   const getVelocityData = () => {
     return sprints
-      .filter(s => s.status === 'closed')
-      .map(s => ({
+      .filter((s) => s.status === 'closed')
+      .map((s) => ({
         name: s.name,
         Committed: s.committed_points || 0,
         Completed: s.completed_points || 0,
       }));
   };
-  
+
   const getStatusDistributionData = () => {
     const statusCounts = issues.reduce((acc, issue) => {
-      const status = issue.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      const status = issue.status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});
     return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
   };
-  
+
   const getBurndownData = () => {
-    const activeSprint = sprints.find(s => s.status === 'active');
+    const activeSprint = sprints.find((s) => s.status === 'active');
     if (!activeSprint) return [];
-    
-    const sprintIssues = issues.filter(i => i.sprint_id === activeSprint.id);
+
+    const sprintIssues = issues.filter((i) => i.sprint_id === activeSprint.id);
     let remainingPoints = sprintIssues.reduce((sum, i) => sum + (i.story_points || 0), 0);
-    
+
     const startDate = new Date(activeSprint.start_date);
     const endDate = new Date(activeSprint.end_date);
     // const today = new Date(); // This variable was declared but not used.
@@ -89,16 +96,18 @@ export default function AgileDeskReports() {
     let burndown = [{ day: format(startDate, 'MMM d'), remaining: remainingPoints }];
 
     // Aggregate points removed by resolved issues
-    sprintIssues.filter(i => i.resolution_date).forEach(i => {
+    sprintIssues
+      .filter((i) => i.resolution_date)
+      .forEach((i) => {
         const resolutionDate = new Date(i.resolution_date);
         // Only consider issues resolved within the sprint timeframe
-        if(resolutionDate >= startDate && resolutionDate <= endDate) {
-            // Subtract points for each resolved issue
-            remainingPoints -= (i.story_points || 0);
-            // Add a data point for each resolution, ensuring order
-            burndown.push({ day: format(resolutionDate, 'MMM d'), remaining: remainingPoints });
+        if (resolutionDate >= startDate && resolutionDate <= endDate) {
+          // Subtract points for each resolved issue
+          remainingPoints -= i.story_points || 0;
+          // Add a data point for each resolution, ensuring order
+          burndown.push({ day: format(resolutionDate, 'MMM d'), remaining: remainingPoints });
         }
-    });
+      });
 
     // Sort burndown data by day to ensure correct charting order
     burndown.sort((a, b) => new Date(a.day) - new Date(b.day));
@@ -110,17 +119,16 @@ export default function AgileDeskReports() {
     }
 
     // Add a theoretical ideal burndown line later if needed. For now, just actual.
-    
+
     return burndown;
   };
 
-
   const getLastClosedSprint = () => {
-    return sprints.filter(s => s.status === 'closed').sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
+    return sprints.filter((s) => s.status === 'closed').sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
   };
-  
+
   const lastSprint = getLastClosedSprint();
-  const lastSprintIssues = lastSprint ? issues.filter(i => i.sprint_id === lastSprint.id) : [];
+  const lastSprintIssues = lastSprint ? issues.filter((i) => i.sprint_id === lastSprint.id) : [];
 
   if (loading) {
     return (
@@ -182,7 +190,15 @@ export default function AgileDeskReports() {
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
-                  <Pie data={getStatusDistributionData()} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                  <Pie
+                    data={getStatusDistributionData()}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
                     {getStatusDistributionData().map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
@@ -193,7 +209,7 @@ export default function AgileDeskReports() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-lg col-span-1 lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -203,14 +219,14 @@ export default function AgileDeskReports() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                 <LineChart data={getBurndownData()}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis label={{ value: 'Story Points', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="remaining" stroke="#8884d8" name="Remaining SP" strokeWidth={2} />
-                 </LineChart>
+                <LineChart data={getBurndownData()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" />
+                  <YAxis label={{ value: 'Story Points', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="remaining" stroke="#8884d8" name="Remaining SP" strokeWidth={2} />
+                </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -237,14 +253,21 @@ export default function AgileDeskReports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {lastSprintIssues.map(issue => (
+                    {lastSprintIssues.map((issue) => (
                       <TableRow key={issue.id}>
                         <TableCell>{issue.issue_key}</TableCell>
                         <TableCell>{issue.summary}</TableCell>
                         <TableCell>{issue.story_points || '—'}</TableCell>
                         <TableCell>
-                          <Badge variant={issue.status === 'done' ? 'default' : 'destructive'} className={issue.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
-                            {issue.status === 'done' ? <CheckCircle className="w-4 h-4 mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
+                          <Badge
+                            variant={issue.status === 'done' ? 'default' : 'destructive'}
+                            className={issue.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}
+                          >
+                            {issue.status === 'done' ? (
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                            ) : (
+                              <XCircle className="w-4 h-4 mr-2" />
+                            )}
                             {issue.status === 'done' ? 'Completed' : 'Not Completed'}
                           </Badge>
                         </TableCell>
