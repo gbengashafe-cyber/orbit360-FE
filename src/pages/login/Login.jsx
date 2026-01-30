@@ -1,6 +1,7 @@
-import { userService } from '@/api';
+import { refreshAPI } from '@/api/apiClient';
+import { ApiRoutes } from '@/api/apiRoutes';
 import { Input } from '@/components/ui/input';
-import { LocalStorageUtil } from '@/pages/login/local-storage.util';
+import { LocalStorageUtil } from '@/utils/local-storage.util';
 import { useState } from 'react';
 
 const LoginPage = () => {
@@ -14,12 +15,12 @@ const LoginPage = () => {
       const email = e.target.email.value;
       const password = e.target.password.value;
 
-      const response = await userService.login(email, password);
+      const response = await refreshAPI.post(ApiRoutes.Login, { email, password });
       LocalStorageUtil.save(response.data.accessToken, 'orbit360-access-token');
 
       window.location.href = '/dashboard';
     } catch (error) {
-      setError(error?.response?.data?.message || 'Login failed. kindly contact the administrator for support');
+      setError(error?.message || 'Login failed. kindly contact the administrator for support');
     }
   };
   return (

@@ -1,5 +1,5 @@
-import { localStorageKeys, LocalStorageUtil } from '@/pages/login/local-storage.util';
 import { logger } from '@/utils';
+import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { apiRoutes } from './apiRoutes';
@@ -27,7 +27,7 @@ API.interceptors.request.use(
   },
 );
 
-const refreshAPI = axios.create({
+export const refreshAPI = axios.create({
   baseURL: apiRoutes.BASE_URL,
   withCredentials: true,
 });

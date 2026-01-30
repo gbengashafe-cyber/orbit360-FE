@@ -1,5 +1,6 @@
 import { employeeService, userService } from '@/api';
-import { localStorageKeys, LocalStorageUtil } from '@/pages/login/local-storage.util';
+import { logger } from '@/utils';
+import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -53,13 +54,16 @@ export const GlobalContextProvider = ({ children }) => {
 
         const userEmployeeData = await employeeService.getEmployees({ rows: 1, options: { search: userResponse.data?.email } });
 
-        storeCurrentEmployee(userEmployeeData?.data?.[0]);
-        const isMDUser = userEmployeeData?.data?.[0].jobRole === 'Managing Director';
-        const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
+        if (userEmployeeData?.data?.[0]) {
+          storeCurrentEmployee(userEmployeeData?.data?.[0]);
+          const isMDUser = userEmployeeData?.data?.[0].jobRole === 'Managing Director';
+          const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
 
-        setIsAdmin(isAdmin);
-        setIsMD(isMDUser);
+          setIsAdmin(isAdmin);
+          setIsMD(isMDUser);
+        }
       } catch (error) {
+        logger.error(error);
         toast.error('Error loading current user', {
           description: `${error.message ? error.message : 'Failed to load user profile.'}`,
         });
