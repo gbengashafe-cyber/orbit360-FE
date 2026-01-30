@@ -94,7 +94,8 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         alternative_email: '',
         handover_notes: '',
         covering_employee_id: '',
-        selected_supervisor_id: ''
+        selected_supervisor_id: '',
+        supervisor_department: ''
     });
 
     const calculateLeaveBalance = React.useCallback((requests) => {
@@ -198,10 +199,44 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             alternative_email: '',
             handover_notes: '',
             covering_employee_id: '',
-            selected_supervisor_id: ''
+            selected_supervisor_id: '',
+            supervisor_department: ''
         });
         setHandoverFiles([]);
         setSupportingFiles([]);
+    };
+
+    const handleFormOpen = (isOpen) => {
+        setShowForm(isOpen);
+        if (isOpen && employee?.supervisor_id) {
+            // Pre-populate supervisor field when form opens
+            setFormData(prev => ({
+                ...prev,
+                selected_supervisor_id: employee.supervisor_id.toString()
+            }));
+        } else if (!isOpen) {
+            resetForm();
+        }
+    };
+
+    const getSupervisorName = () => {
+        if (employee?.supervisor_name) return employee.supervisor_name;
+        if (employee?.supervisor_id && employees.length > 0) {
+            const supervisor = employees.find(e => e.id === employee.supervisor_id);
+            if (supervisor) return `${supervisor.first_name} ${supervisor.last_name}`;
+        }
+        return 'N/A';
+    };
+
+    const handleSupervisorChange = (supervisorId) => {
+        setFormData(prev => {
+            const selectedSupervisor = employees.find(e => e.id.toString() === supervisorId);
+            return {
+                ...prev,
+                selected_supervisor_id: supervisorId,
+                supervisor_department: selectedSupervisor?.department || ''
+            };
+        });
     };
 
     const handleDelete = async (requestId) => {
@@ -381,7 +416,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                 </CardContent>
             </Card>
 
-            <Dialog open={showForm} onOpenChange={setShowForm}>
+            <Dialog open={showForm} onOpenChange={handleFormOpen}>
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Submit Leave Request</DialogTitle>
@@ -405,7 +440,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                 <div><span className="font-medium">Full Name:</span><p>{employee?.firstName || employee?.first_name} {employee?.lastName || employee?.last_name}</p></div>
                                 <div><span className="font-medium">Employee ID:</span><p>{employee?.id || employee?.employee_id}</p></div>
                                 <div><span className="font-medium">Department:</span><p className="capitalize">{employee?.department || 'N/A'}</p></div>
-                                <div><span className="font-medium">Supervisor:</span><p>{employee?.supervisor_name || 'N/A'}</p></div>
+                                <div><span className="font-medium">Supervisor:</span><p>{getSupervisorName()}</p></div>
                             </CardContent>
                         </Card>
 
@@ -481,16 +516,26 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                             <h3 className="font-semibold text-lg border-b pb-2">Handover & Backup</h3>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="selected_supervisor_id">Approving Supervisor</Label>
-                            <Select value={formData.selected_supervisor_id} onValueChange={(value) => setFormData({ ...formData, selected_supervisor_id: value })}>
-                                <SelectTrigger id="selected_supervisor_id"><SelectValue placeholder="Select your direct supervisor" /></SelectTrigger>
-                                <SelectContent>
-                                    {employees.map(emp => (
-                                        <SelectItem key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} - {emp.position}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="selected_supervisor_id">Approving Supervisor</Label>
+                                <Select value={formData.selected_supervisor_id} onValueChange={handleSupervisorChange}>
+                                    <SelectTrigger id="selected_supervisor_id"><SelectValue placeholder="Select your direct supervisor" /></SelectTrigger>
+                                    <SelectContent>
+                                        {employees.map(emp => (
+                                            <SelectItem key={emp.id} value={String(emp.id)}>
+                                                {(emp.firstName || emp.first_name)} {(emp.lastName || emp.last_name)} - {(emp.jobRole || emp.position || emp.departmentName || 'N/A')}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {/* 
+                            <div className="space-y-2">
+                                <Label htmlFor="supervisor_department">Supervisor Department</Label>
+                                <Input id="supervisor_department" value={formData.supervisor_department} readOnly className="bg-gray-100" placeholder="Department will auto-populate" />
+                            </div>
+                            */}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -510,7 +555,9 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                 <SelectTrigger id="covering_employee_id"><SelectValue placeholder="Select employee to cover your duties" /></SelectTrigger>
                                 <SelectContent>
                                     {employees.map(emp => (
-                                        <SelectItem key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} - {emp.department}</SelectItem>
+                                        <SelectItem key={emp.id} value={String(emp.id)}>
+                                            {(emp.firstName || emp.first_name)} {(emp.lastName || emp.last_name)} - {(emp.departmentName || emp.department || 'N/A')}
+                                        </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -584,6 +631,7 @@ LeaveManagement.propTypes = {
         department: PropTypes.string,
         annual_leave_entitlement: PropTypes.number,
         supervisor_name: PropTypes.string,
+        supervisor_id: PropTypes.number,
         employee_id: PropTypes.number,
     }),
     onUpdate: PropTypes.func,

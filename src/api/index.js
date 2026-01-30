@@ -7,3 +7,4 @@ export { leaveService } from './leave.service';
 export { payrollService } from './payroll.service';
 export { recruitmentService } from './recruitment.service';
 export { onboardingService } from './onboarding.service';
+export { appraisalService } from './appraisal.service';
