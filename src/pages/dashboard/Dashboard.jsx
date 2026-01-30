@@ -1,12 +1,11 @@
-import { base44 } from '@/api/base44Client';
+import { dashboardService } from '@/api/dashboard-service';
+import { departmentService } from '@/api/department.service';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useGlobalContext } from '@/state/context';
 import { addDays, endOfMonth, format, startOfMonth, subMonths } from 'date-fns';
-import { Briefcase, Calendar as CalendarIcon, Filter, Target, UserMinus, Users } from 'lucide-react';
+import { Briefcase, Calendar as CalendarIcon, Filter, UserMinus, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Bar,
@@ -23,6 +22,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { MetricCard } from './metric-card';
 
 // Material Design Color Palette
 const MATERIAL_COLORS = {
@@ -79,28 +79,6 @@ const MaterialTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// Material Design Metric Card Component
-const MetricCard = ({ title, value, icon: Icon, color, trend }) => (
-  <div
-    className={`bg-white rounded-lg p-6 ${ELEVATION[4]} hover:${ELEVATION[8]} transition-all duration-200 cursor-pointer transform hover:scale-105`}
-  >
-    <div className="flex items-center justify-between">
-      <div className="flex-1">
-        <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">{title}</p>
-        <p className="text-3xl font-semibold text-gray-900 mt-2">{value}</p>
-        {trend && (
-          <p className={`text-sm mt-2 ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {trend > 0 ? '↗' : '↘'} {Math.abs(trend)}% from last month
-          </p>
-        )}
-      </div>
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center`} style={{ backgroundColor: color + '20' }}>
-        <Icon className="w-6 h-6" style={{ color }} />
-      </div>
-    </div>
-  </div>
-);
-
 // Material Design Chart Card Component
 const ChartCard = ({ title, subtitle, children, actions }) => (
   <div className={`bg-white rounded-lg ${ELEVATION[2]} hover:${ELEVATION[4]} transition-all duration-200`}>
@@ -120,8 +98,7 @@ const ChartCard = ({ title, subtitle, children, actions }) => (
 // Main Dashboard Component
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ employees: [], leaves: [], expenses: [], budgets: [], kpis: [] });
-  const [currentEmployee, setCurrentEmployee] = useState(null);
+  const [data, setData] = useState({ employees: [], leaves: [], expenses: [], budgets: [] });
   const [analytics, setAnalytics] = useState({
     genderDistribution: [],
     leaveByDept: [],
@@ -139,76 +116,66 @@ export default function Dashboard() {
       to: new Date(),
     },
   });
-
-  const { currentUser } = useGlobalContext();
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [employees, leaves, expenses, budgets, kpis] = await Promise.all([
-        base44.entities.Employee.list(),
-        base44.entities.LeaveRequest.list(),
-        base44.entities.ExpenseRequest.list(),
-        base44.entities.Budget.list(),
-        base44.entities.KPI.list(),
-      ]);
-
-      const employeeRecord = employees.find((e) => e.email === user.email);
-      setCurrentEmployee(employeeRecord);
-
-      setData({ employees, leaves, expenses, budgets, kpis });
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      // Set data to empty arrays on error so the dashboard doesn't crash
-      setData({ employees: [], leaves: [], expenses: [], budgets: [] });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [departments, setDepartments] = useState([]);
+  const [metrics, setMetrics] = useState({
+    genderDistribution: [
+      {
+        gender: 'M',
+        count: 0,
+      },
+      {
+        gender: 'F',
+        count: 0,
+      },
+    ],
+  });
 
   useEffect(() => {
-    loadData();
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Reverted to fetching data from the built-in entities to fix the error.
+        const [departmentsData, employees, leaves, budgets] = await Promise.all([
+          departmentService.getDepartments({ rows: 1000 }),
+          //   base44.entities.Employee.list(),
+          //   base44.entities.LeaveRequest.list(),
+          //   base44.entities.ExpenseRequest.list(),
+          //   base44.entities.Budget.list(),
+        ]);
 
-    const handleFocus = () => {
-      console.log('Dashboard focused, reloading data...');
-      loadData();
+        const analytics = await dashboardService.getDashboard({
+          department: filters.department,
+          startDate: filters.dateRange.from,
+          endDate: filters.dateRange.to,
+        });
+
+        setDepartments(departmentsData.data);
+        setMetrics((prev) => ({ ...prev, ...analytics.data }));
+        setData({ employees, leaves, budgets });
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        // Set data to empty arrays on error so the dashboard doesn't crash
+        setData({ employees: [], leaves: [], budgets: [] });
+      } finally {
+        setLoading(false);
+      }
     };
 
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
-
-  // Reload data when filters change
-  useEffect(() => {
     loadData();
   }, [filters]);
 
   const processData = useCallback(() => {
     if (loading) return;
 
-    const { employees, leaves, expenses, budgets } = data;
+    const { employees, leaves, budgets } = data;
     const { department, dateRange } = filters;
 
     // Filter data based on selections
     const filteredEmployees = department === 'all' ? employees : employees.filter((e) => e.department === department);
-    const filteredExpenses = expenses.filter((e) => {
-      const expenseDate = new Date(e.date_incurred);
-      const deptMatch = department === 'all' || e.department === department;
-      return deptMatch && expenseDate >= dateRange.from && expenseDate <= dateRange.to;
-    });
-    const filteredLeaves = leaves.filter((l) => {
-      const requestDate = new Date(l.created_date);
-      const deptMatch = department === 'all' || l.employee_department === department;
-      return deptMatch && requestDate >= dateRange.from && requestDate <= dateRange.to;
-    });
 
     // Calculate metrics
     const headcount = filteredEmployees.filter((e) => e.employment_status === 'active').length;
     const leaveRequests = filteredLeaves.length;
-    const totalSpent = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
 
     // Gender Distribution
     const genderCounts = filteredEmployees.reduce((acc, emp) => {
@@ -275,13 +242,6 @@ export default function Dashboard() {
     });
   }, [data, filters, loading]);
 
-  useEffect(() => {
-    processData();
-  }, [data, filters, processData]);
-
-  // The department options will now be derived from the data fetched from the external DB
-  const departmentOptions = ['all', ...new Set(data.employees.map((e) => e.department).filter(Boolean))];
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: MATERIAL_COLORS.background }}>
@@ -315,11 +275,14 @@ export default function Dashboard() {
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
                 <SelectContent>
-                  {departmentOptions.map((dept) => (
-                    <SelectItem key={dept} value={dept} className="capitalize">
-                      {dept === 'all' ? 'All Departments' : dept}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.length
+                    ? departments.map((department) => (
+                        <SelectItem key={department.id} value={department.name} className="capitalize">
+                          {department.name}
+                        </SelectItem>
+                      ))
+                    : null}
                 </SelectContent>
               </Select>
             </div>
@@ -352,67 +315,37 @@ export default function Dashboard() {
         </div>
 
         {/* Material Design KPI Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <MetricCard title="Active Headcount" value={analytics.headcount} icon={Users} color={MATERIAL_COLORS.primary} />
-          <MetricCard title="Leave Requests" value={analytics.leaveRequests} icon={Briefcase} color={MATERIAL_COLORS.warning} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <MetricCard
+            title="Active Headcount"
+            value={metrics?.overview?.totalHeadcount || 0}
+            icon={Users}
+            color={MATERIAL_COLORS.primary}
+          />
+          <MetricCard
+            title="Leave Requests"
+            value={metrics?.overview?.pendingLeaveRequests || 0}
+            icon={Briefcase}
+            color={MATERIAL_COLORS.warning}
+          />
 
           <MetricCard
             title="Attrition Rate"
-            value={`${analytics.attritionRate.slice(-1)[0]?.['Attrition Rate']?.toFixed(2) || 0}%`}
+            value={`${metrics?.overview?.attritionRate || '0%'}`}
             icon={UserMinus}
             color={MATERIAL_COLORS.error}
           />
         </div>
 
-        {/* My KPIs Section */}
-        {currentEmployee &&
-          data.kpis.filter((k) => k.job_role === currentEmployee.position && k.status === 'active').length > 0 && (
-            <ChartCard title="My Key Performance Indicators" subtitle={`KPIs for ${currentEmployee.position}`}>
-              <div className="space-y-4">
-                {data.kpis
-                  .filter((k) => k.job_role === currentEmployee.position && k.status === 'active')
-                  .map((kpi, idx) => (
-                    <div
-                      key={kpi.id}
-                      className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-5 border border-blue-100 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Target className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <h4 className="font-semibold text-gray-900 text-lg">{kpi.title}</h4>
-                              <p className="text-sm text-gray-600 mt-1">{kpi.description}</p>
-                            </div>
-                            <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                              {kpi.weight}%
-                            </div>
-                          </div>
-                          {kpi.measure_of_success && (
-                            <div className="mt-3 bg-white rounded-lg p-3 border border-blue-100">
-                              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-1">Measure of Success</p>
-                              <p className="text-sm text-gray-800">{kpi.measure_of_success}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </ChartCard>
-          )}
-
         {/* Material Design Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
           {/* Gender Distribution */}
           <ChartCard title="Gender Distribution" subtitle="Workforce demographics overview">
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={analytics.genderDistribution}
+                    data={metrics.genderDistribution}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -440,7 +373,7 @@ export default function Dashboard() {
                       );
                     }}
                   >
-                    {analytics.genderDistribution.map((entry, index) => (
+                    {metrics.genderDistribution.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS.gender[index % CHART_COLORS.gender.length]} />
                     ))}
                   </Pie>
@@ -452,7 +385,7 @@ export default function Dashboard() {
           </ChartCard>
 
           {/* Leave Requests */}
-          <ChartCard title="Leave Requests" subtitle="By department for selected period">
+          {/* <ChartCard title="Leave Requests" subtitle="By department for selected period">
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={analytics.leaveByDept} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
@@ -472,10 +405,10 @@ export default function Dashboard() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </ChartCard>
+          </ChartCard> */}
 
           {/* Budget Progress */}
-          <ChartCard title="Budget Utilization" subtitle={`${format(filters.dateRange.from, 'MMM yyyy')} performance`}>
+          {/* <ChartCard title="Budget Utilization" subtitle={`${format(filters.dateRange.from, 'MMM yyyy')} performance`}>
             <div className="space-y-6">
               <div className="text-center">
                 <div className="text-4xl font-bold text-gray-900 mb-2">{analytics.budgetVsActual.progress.toFixed(1)}%</div>
@@ -504,29 +437,31 @@ export default function Dashboard() {
 
                 <div className={`p-3 rounded-lg ${analytics.budgetVsActual.progress > 90 ? 'bg-red-50' : 'bg-green-50'}`}>
                   <p
-                    className={`text-sm font-medium ${analytics.budgetVsActual.progress > 90 ? 'text-red-700' : 'text-green-700'}`}
+                    className={`text-sm font-medium ${
+                      analytics.budgetVsActual.progress > 90 ? 'text-red-700' : 'text-green-700'
+                    }`}
                   >
                     {analytics.budgetVsActual.progress > 90 ? '⚠️ Approaching budget limit' : '✅ Budget on track'}
                   </p>
                 </div>
               </div>
             </div>
-          </ChartCard>
+          </ChartCard> */}
         </div>
 
         {/* Attrition Rate Chart */}
         <ChartCard title="Employee Attrition Trend" subtitle="Monthly turnover rate over the last 6 months">
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={analytics.attritionRate} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <LineChart data={metrics.attritionTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                 <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} unit="%" />
+                <YAxis fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip content={<MaterialTooltip />} />
                 <Legend iconType="circle" />
                 <Line
                   type="monotone"
-                  dataKey="Attrition Rate"
+                  dataKey="count"
                   stroke={CHART_COLORS.attrition}
                   strokeWidth={3}
                   dot={{ r: 6, fill: CHART_COLORS.attrition }}

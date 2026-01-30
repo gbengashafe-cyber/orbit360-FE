@@ -1,20 +1,16 @@
-import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom';
-import AgileDesk from './AgileDesk';
-import AgileDeskBoard from './AgileDeskBoard';
-import AgileDeskReports from './AgileDeskReports';
-import Analytics from './Analytics Dashboard/Analytics';
+import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
+import Analytics from './Analytics';
 import Appraisals from './Appraisals';
-import BudgetManager from './BudgetManager';
 import ClientAuth from './ClientAuth';
 import CompanyDocuments from './CompanyDocuments';
 import CompensationTool from './CompensationTool';
 import Contacts from './Contacts';
 import Cooperative from './Cooperative';
-import Dashboard from './Dashboard';
+import Dashboard from './dashboard/Dashboard';
 import Deals from './Deals';
 import DocumentManagement from './DocumentManagement';
 import EmailCenter from './EmailCenter';
-import Employees from './Employees';
+import Employees from './employees/Employees';
 import ExitManagement from './ExitManagement';
 import ExpenseApprovals from './ExpenseApprovals';
 import ExpenseDetail from './ExpenseDetail';
@@ -45,8 +41,6 @@ import StaffComplaints from './StaffComplaints';
 import StaffMovement from './StaffMovement';
 import TaxCalculator from './TaxCalculator';
 import UserManagement from './UserManagement';
-import VendorManagement from './VendorManagement';
-import VendorPaymentProcessing from './VendorPaymentProcessing';
 
 const PAGES = {
   Dashboard: Dashboard,
@@ -70,12 +64,6 @@ const PAGES = {
   Projects: Projects,
 
   ProjectBoard: ProjectBoard,
-
-  AgileDesk: AgileDesk,
-
-  AgileDeskBoard: AgileDeskBoard,
-
-  AgileDeskReports: AgileDeskReports,
 
   HRDashboard: HRDashboard,
 
@@ -115,15 +103,9 @@ const PAGES = {
 
   RequestTraining: RequestTraining,
 
-  VendorManagement: VendorManagement,
-
   StaffMovement: StaffMovement,
 
-  BudgetManager: BudgetManager,
-
   SmartContentEngine: SmartContentEngine,
-
-  VendorPaymentProcessing: VendorPaymentProcessing,
 
   PublicJobView: PublicJobView,
 
@@ -190,12 +172,6 @@ function PagesContent() {
 
         <Route path="/ProjectBoard" element={<ProjectBoard />} />
 
-        <Route path="/AgileDesk" element={<AgileDesk />} />
-
-        <Route path="/AgileDeskBoard" element={<AgileDeskBoard />} />
-
-        <Route path="/AgileDeskReports" element={<AgileDeskReports />} />
-
         <Route path="/HRDashboard" element={<HRDashboard />} />
 
         <Route path="/DocumentManagement" element={<DocumentManagement />} />
@@ -234,15 +210,9 @@ function PagesContent() {
 
         <Route path="/RequestTraining" element={<RequestTraining />} />
 
-        <Route path="/VendorManagement" element={<VendorManagement />} />
-
         <Route path="/StaffMovement" element={<StaffMovement />} />
 
-        <Route path="/BudgetManager" element={<BudgetManager />} />
-
         <Route path="/SmartContentEngine" element={<SmartContentEngine />} />
-
-        <Route path="/VendorPaymentProcessing" element={<VendorPaymentProcessing />} />
 
         <Route path="/PublicJobView" element={<PublicJobView />} />
 

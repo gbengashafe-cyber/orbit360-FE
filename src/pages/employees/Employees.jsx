@@ -2,16 +2,17 @@ import { employeeService } from '@/api';
 import { jobRoleService } from '@/api/job-role.service';
 import { EmployeeBioDataTable } from '@/components/employees/EmployeeBioDataTable';
 import { EmployeeUtil } from '@/components/employees/employee.utils';
+import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAllDepartments } from '@/hooks/use-all-departments';
-import { AlertCircle, Check, Copy, Plus, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { AlertCircle, Plus, Users } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import EmployeeForm from '../components/employees/EmployeeForm';
+import EmployeeForm from '../../components/employees/EmployeeForm';
+import { WelcomeDialog } from './welcome-dialog';
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -22,30 +23,39 @@ export default function Employees() {
   const [success, setSuccess] = useState('');
   const [showWelcomeInfoDialog, setShowWelcomeInfoDialog] = useState(false);
   const [welcomeInfo, setWelcomeInfo] = useState({ email: '', instructions: '' });
-  const [copied, setCopied] = useState(false);
   const [jobRoles, setJobRoles] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rows, setRows] = useState(25);
+  const [pages, setPages] = useState(1);
+  const [currentStatus, setCurrentStatus] = useState('active');
 
   const { allDepartments } = useAllDepartments();
 
-  useEffect(() => {
-    loadEmployees();
-  }, []);
-
-  useEffect(() => {
-    loadJobRoles();
-  }, []);
-
-  const loadEmployees = async () => {
+  const loadEmployees = useCallback(async () => {
     setLoading(true);
     try {
-      const employeesData = await employeeService.getEmployees();
+      const employeesData = await employeeService.getEmployees({
+        page: currentPage,
+        rows,
+        options: { status: currentStatus === 'active' ? '' : currentStatus },
+      });
       setEmployees(employeesData.data);
+      setPages(employeesData?.pagination?.pages || 1);
     } catch (error) {
       toast.error('Error', { description: `${error.message ? error.message : 'Unable to load employees data.'}` });
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, currentStatus, rows]);
+
+  useEffect(() => {
+    loadEmployees();
+  }, [loadEmployees]);
+
+  useEffect(() => {
+    loadJobRoles();
+  }, []);
+
   const loadJobRoles = async () => {
     try {
       const jobRolesData = await jobRoleService.getJobRoles({ rows: 1000 });
@@ -130,7 +140,7 @@ export default function Employees() {
   const handleTerminate = async (employeeId) => {
     if (window.confirm('Are you sure you want to terminate this employee? Their record will be moved to the ex-staff archive.')) {
       try {
-        await employeeService.terminateEmployee(employeeId, { status: 'terminated' });
+        await employeeService.updateEmployee(employeeId, { status: 'terminated' });
         loadEmployees();
         setSuccess('Employee terminated successfully.');
         setTimeout(() => setSuccess(''), 8000);
@@ -139,29 +149,6 @@ export default function Employees() {
         setTimeout(() => setError(''), 8000);
       }
     }
-  };
-
-  const activeEmployees = employees.filter((e) => e.status === 'active' || e.status === 'on_leave' || e.status === 'inactive');
-  const terminatedEmployees = employees.filter((e) => e.status === 'terminated');
-
-  if (loading) {
-    return <div className="p-8 text-center">Loading employee directory...</div>;
-  }
-
-  const handleCopy = () => {
-    // Remove HTML tags and convert to plain text for clipboard
-    const plainTextInstructions = welcomeInfo.instructions
-      .replace(/<br\s*\/?>/gi, '\n') // Replace <br> with newlines
-      .replace(/<\/?(h[1-6]|p|div|ul|ol|li)[^>]*>/gi, '\n') // Replace block tags with newlines
-      .replace(/<[^>]+>/g, '') // Remove any remaining HTML tags
-      .replace(/\n\s*\n/g, '\n\n') // Consolidate multiple newlines
-      .trim();
-
-    navigator.clipboard.writeText(
-      `To: ${welcomeInfo.email}\nSubject: Welcome to Orbit360 - Your Employee Portal Account\n\n${plainTextInstructions}`,
-    );
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -216,69 +203,62 @@ export default function Employees() {
         )}
 
         <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
-          <Tabs defaultValue="active" className="w-full">
+          <Tabs
+            defaultValue="active"
+            className="w-full"
+            onValueChange={(val) => {
+              setCurrentStatus(val);
+              setCurrentPage(1);
+            }}
+          >
             <CardHeader>
               <TabsList className="grid w-full grid-cols-2 max-w-md">
-                <TabsTrigger value="active">Active Employees ({activeEmployees.length})</TabsTrigger>
-                <TabsTrigger value="terminated">Ex-Staff Archive ({terminatedEmployees.length})</TabsTrigger>
+                <TabsTrigger value="active">All Employees</TabsTrigger>
+                <TabsTrigger value="terminated">Ex-Staff Archive</TabsTrigger>
               </TabsList>
             </CardHeader>
-            <CardContent className="p-0">
-              <TabsContent value="active">
-                <EmployeeBioDataTable
-                  employees={activeEmployees}
-                  onEdit={handleEdit}
-                  onTerminate={handleTerminate}
-                  getStatusColor={EmployeeUtil.getStatusColor}
-                  onResendInstructions={handleResendInstructions}
-                />
-              </TabsContent>
-              <TabsContent value="terminated">
-                <EmployeeBioDataTable
-                  employees={terminatedEmployees}
-                  onEdit={handleEdit}
-                  onTerminate={handleTerminate}
-                  getStatusColor={EmployeeUtil.getStatusColor}
-                  onResendInstructions={handleResendInstructions}
-                />
-              </TabsContent>
+            <CardContent className="p-0 min-h-[400px] relative">
+              {loading ? (
+                <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                  <div className="flex items-center gap-2 text-blue-700 font-medium">
+                    <div className="animate-spin h-5 w-5 border-2 border-blue-700 border-t-transparent rounded-full" />
+                    Loading ...
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <TabsContent value="active">
+                    <EmployeeBioDataTable
+                      employees={employees}
+                      onEdit={handleEdit}
+                      onTerminate={handleTerminate}
+                      getStatusColor={EmployeeUtil.getStatusColor}
+                      onResendInstructions={handleResendInstructions}
+                    />
+                  </TabsContent>
+                  <TabsContent value="terminated">
+                    <EmployeeBioDataTable
+                      employees={employees}
+                      onEdit={handleEdit}
+                      onTerminate={handleTerminate}
+                      getStatusColor={EmployeeUtil.getStatusColor}
+                      onResendInstructions={handleResendInstructions}
+                    />
+                  </TabsContent>
+                </>
+              )}
             </CardContent>
+            <CardFooter className="my-8 grid gap-y-4 text-center justify-center items-center">
+              <p className="text-sm">
+                Showing Page {currentPage} of {pages}
+              </p>
+              <PaginationIconsOnly pages={pages} setRows={setRows} setCurrentPage={setCurrentPage} rows={rows} />
+            </CardFooter>
           </Tabs>
         </Card>
       </div>
 
-      <Dialog open={showWelcomeInfoDialog} onOpenChange={setShowWelcomeInfoDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>User Account Created Successfully!</DialogTitle>
-            <DialogDescription>
-              A user account has been created for the new employee. Please copy the instructions below and send them to the
-              employee using your own email client. This ensures personalized communication.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 my-4">
-            <div className="text-sm">
-              <strong>To:</strong> {welcomeInfo.email}
-            </div>
-            <div className="text-sm">
-              <strong>Subject:</strong> Welcome to Orbit360 - Your Employee Portal Account
-            </div>
-            <div
-              className="p-4 bg-gray-100 rounded-lg border text-sm max-h-60 overflow-y-auto"
-              dangerouslySetInnerHTML={{ __html: welcomeInfo.instructions }}
-            />
-          </div>
-          <DialogFooter className="sm:justify-start">
-            <Button onClick={handleCopy}>
-              {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-              {copied ? 'Copied!' : 'Copy Email Content'}
-            </Button>
-            <Button variant="secondary" onClick={() => setShowWelcomeInfoDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <WelcomeDialog shouldOpen={showWelcomeInfoDialog} setShouldOpen={setShowWelcomeInfoDialog} welcomeInfo={welcomeInfo} />
     </div>
   );
 }

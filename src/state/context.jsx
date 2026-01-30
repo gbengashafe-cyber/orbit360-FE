@@ -1,5 +1,6 @@
 import { employeeService, userService } from '@/api';
-import { LocalStorageUtil } from '@/pages/login/local-storage.util';
+import { logger } from '@/utils';
+import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -7,60 +8,69 @@ const GlobalContext = createContext({});
 
 export const useGlobalContext = () => useContext(GlobalContext);
 
-const SAVED_USER_EXPIRY_IN_SECONDS = 60 * 5;
-const LOCAL_STORAGE_CURRENT_USER_KEY = 'orbit360-current-user';
+const SAVED_DATA_EXPIRY_IN_SECONDS = 60 * 5;
+
+const loadDataFromLocalStorage = (key) => {
+  let savedDataStr = LocalStorageUtil.get(key);
+
+  if (!savedDataStr) return {};
+
+  const savedData = JSON.parse(savedDataStr);
+  const lastFetched = new Date(savedData.lastFetched).getTime();
+  const now = new Date().getTime();
+
+  const isExpired = (now - lastFetched) / 1000 > SAVED_DATA_EXPIRY_IN_SECONDS;
+
+  if (isExpired) {
+    return {};
+  }
+
+  return savedData;
+};
 
 export const GlobalContextProvider = ({ children }) => {
   const [isMD, setIsMD] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [currentEmployee, setCurrentEmployee] = useState({});
+  const [currentEmployee, setCurrentEmployee] = useState(() => {
+    return loadDataFromLocalStorage(localStorageKeys.CURRENT_EMPLOYEE);
+  });
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [currentUser, setCurrentUser] = useState(() => {
-    let savedUserStr = LocalStorageUtil.get(LOCAL_STORAGE_CURRENT_USER_KEY);
-
-    if (!savedUserStr) return {};
-
-    const savedUser = JSON.parse(savedUserStr);
-    const lastUpdated = new Date(savedUser.lastUpdated).getTime();
-    const now = new Date().getTime();
-
-    const isExpired = (now - lastUpdated) / 1000 > SAVED_USER_EXPIRY_IN_SECONDS;
-
-    if (isExpired) {
-      return {};
-    }
-
-    return savedUser;
+    return loadDataFromLocalStorage(localStorageKeys.CURRENT_USER);
   });
-  const location = window.location.pathname;
-
-  const loadCurrentUser = async () => {
-    try {
-      setIsLoadingUser(true);
-      const userResponse = await userService.getCurrentUser();
-
-      storeCurrentUser(userResponse?.data);
-
-      const userEmployeeData = await employeeService.getEmployees(1, 100, { search: userResponse.data?.email });
-
-      const isMDUser = userEmployeeData?.data?.[0].jobRole === 'Managing Director';
-      const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
-
-      setIsAdmin(isAdmin);
-      setIsMD(isMDUser);
-    } catch (error) {
-      toast.error('Error loading current user', {
-        description: `${error.message ? error.message : 'Failed to load user profile.'}`,
-      });
-    } finally {
-      setIsLoadingUser(false);
-    }
-  };
 
   useEffect(() => {
+    const location = window.location.pathname;
     if (['/login'].includes(location)) {
       return;
     }
+
+    const loadCurrentUser = async () => {
+      try {
+        setIsLoadingUser(true);
+        const userResponse = await userService.getCurrentUser();
+
+        storeCurrentUser(userResponse?.data);
+
+        const userEmployeeData = await employeeService.getEmployees({ rows: 1, options: { search: userResponse.data?.email } });
+
+        if (userEmployeeData?.data?.[0]) {
+          storeCurrentEmployee(userEmployeeData?.data?.[0]);
+          const isMDUser = userEmployeeData?.data?.[0].jobRole === 'Managing Director';
+          const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
+
+          setIsAdmin(isAdmin);
+          setIsMD(isMDUser);
+        }
+      } catch (error) {
+        logger.error(error);
+        toast.error('Error loading current user', {
+          description: `${error.message ? error.message : 'Failed to load user profile.'}`,
+        });
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
 
     loadCurrentUser();
 
@@ -71,49 +81,23 @@ export const GlobalContextProvider = ({ children }) => {
     };
   }, []);
 
-  useEffect(() => {
-    if (['/login'].includes(location)) {
-      return;
-    }
+  const storeCurrentUser = (user) => {
+    user.lastFetched = new Date();
 
-    loadCurrentEmployee();
-
-    return () => {
-      setCurrentEmployee({});
-    };
-  }, []);
-
-  const loadCurrentEmployee = async () => {
-    try {
-      const userResponse = await userService.getCurrentUser();
-
-      storeCurrentUser(userResponse?.data);
-
-      const userEmployeeData = await employeeService.getEmployees(1, 100, { search: userResponse.data?.email });
-
-      const isMDUser = userEmployeeData?.data?.[0].jobRole === 'Managing Director';
-      const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
-
-      setIsAdmin(isAdmin);
-      setIsMD(isMDUser);
-    } catch (error) {
-      toast.error('Error loading current user', {
-        description: `${error.message ? error.message : 'Failed to load user profile.'}`,
-      });
-    } finally {
-      setIsLoadingUser(false);
-    }
+    LocalStorageUtil.save(user, localStorageKeys.CURRENT_USER);
+    setCurrentUser(user);
   };
 
-  const storeCurrentUser = (user) => {
-    user.lastUpdated = new Date();
+  const storeCurrentEmployee = (employee) => {
+    employee.lastFetched = new Date();
 
-    LocalStorageUtil.save(user, LOCAL_STORAGE_CURRENT_USER_KEY);
-    setCurrentUser(user);
+    LocalStorageUtil.save(employee, localStorageKeys.CURRENT_EMPLOYEE);
+    setCurrentEmployee(employee);
   };
 
   const value = {
     currentUser,
+    currentEmployee,
     isMD,
     isAdmin,
     isLoadingUser,

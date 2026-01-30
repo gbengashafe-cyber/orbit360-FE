@@ -22,10 +22,6 @@ export const employeeService = {
     return apiClient.put(ApiRoutes.UpdateEmployee(id), data);
   },
 
-  async terminateEmployee(id, data) {
-    return apiClient.put(ApiRoutes.UpdateEmployee(id), data);
-  },
-
   async deleteEmployee(id) {
     return apiClient.delete(ApiRoutes.DeleteEmployee(id));
   },

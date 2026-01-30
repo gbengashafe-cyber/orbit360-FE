@@ -1,5 +1,5 @@
-import { LocalStorageUtil, LoginUtil } from '@/pages/login/local-storage.util';
 import { logger } from '@/utils';
+import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { apiRoutes } from './apiRoutes';
@@ -16,7 +16,7 @@ export const API = axios.create({
 // Add request interceptor to include auth token
 API.interceptors.request.use(
   (config) => {
-    const token = LoginUtil.getAccessToken();
+    const token = LocalStorageUtil.get(localStorageKeys.ACCESS_TOKEN);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -27,7 +27,7 @@ API.interceptors.request.use(
   },
 );
 
-const refreshAPI = axios.create({
+export const refreshAPI = axios.create({
   baseURL: apiRoutes.BASE_URL,
   withCredentials: true,
 });
@@ -87,7 +87,7 @@ API.interceptors.response.use(
     } catch (refreshError) {
       logger.error(refreshError);
       processQueue(error);
-      LoginUtil.removeAccessToken();
+      LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
       window.location.href = '/login';
       return Promise.reject(error.response?.data);
     } finally {

@@ -1,6 +1,8 @@
 export class ApiRoutes {
   static BASE_URL = import.meta.env.VITE_REACT_APP_API_URL;
 
+  static GetDashboard = '/v1/dashboard';
+
   // Authentication
   static Login = '/auth/login';
   static RefreshToken = '/auth/refresh';
@@ -20,7 +22,6 @@ export class ApiRoutes {
   static GetEmployeeById = (id) => `/v1/employees/${id}`;
   static CreateEmployee = '/v1/employees';
   static UpdateEmployee = (id) => `/v1/employees/${id}`;
-  static TerminateEmployee = (id) => `/v1/employees/${id}/status`;
   static DeleteEmployee = (id) => `/v1/employees/${id}`;
 
   // Departments

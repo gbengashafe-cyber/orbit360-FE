@@ -1,49 +1,38 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  Layers3,
-  MoreHorizontal,
-  Settings,
-  Target,
-  BarChart3,
-  Archive,
-  PlayCircle
-} from "lucide-react";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Progress } from '@/components/ui/progress';
+import { createPageUrl } from '@/utils';
+import { Archive, BarChart3, Layers3, MoreHorizontal, PlayCircle, Settings } from 'lucide-react';
+import { Link } from 'react-router';
 
 export default function ProjectCard({ project, stats, onEdit, onArchive }) {
   const getStatusColor = (status) => {
     const colors = {
-      active: "bg-green-100 text-green-700",
-      archived: "bg-gray-100 text-gray-700",
-      on_hold: "bg-yellow-100 text-yellow-700"
+      active: 'bg-green-100 text-green-700',
+      archived: 'bg-gray-100 text-gray-700',
+      on_hold: 'bg-yellow-100 text-yellow-700',
     };
-    return colors[status] || "bg-gray-100 text-gray-700";
+    return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
   const getMethodologyColor = (methodology) => {
     const colors = {
-      scrum: "bg-blue-100 text-blue-700",
-      kanban: "bg-purple-100 text-purple-700",
-      hybrid: "bg-indigo-100 text-indigo-700"
+      scrum: 'bg-blue-100 text-blue-700',
+      kanban: 'bg-purple-100 text-purple-700',
+      hybrid: 'bg-indigo-100 text-indigo-700',
     };
-    return colors[methodology] || "bg-gray-100 text-gray-700";
+    return colors[methodology] || 'bg-gray-100 text-gray-700';
   };
 
-  const completionRate = stats.totalIssues > 0 
-    ? Math.round((stats.completedIssues / stats.totalIssues) * 100) 
-    : 0;
+  const completionRate = stats.totalIssues > 0 ? Math.round((stats.completedIssues / stats.totalIssues) * 100) : 0;
 
   return (
     <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 group flex flex-col">
@@ -55,7 +44,7 @@ export default function ProjectCard({ project, stats, onEdit, onArchive }) {
             </div>
             <div>
               <CardTitle className="text-lg font-bold text-gray-900">
-                <Link 
+                <Link
                   to={createPageUrl(`AgileDeskBoard?project=${project.id}`)}
                   className="hover:text-blue-700 transition-colors"
                 >
@@ -66,9 +55,7 @@ export default function ProjectCard({ project, stats, onEdit, onArchive }) {
                 <Badge variant="outline" className="text-xs">
                   {project.key}
                 </Badge>
-                <Badge className={getMethodologyColor(project.methodology)}>
-                  {project.methodology}
-                </Badge>
+                <Badge className={getMethodologyColor(project.methodology)}>{project.methodology}</Badge>
               </div>
             </div>
           </div>
@@ -80,13 +67,19 @@ export default function ProjectCard({ project, stats, onEdit, onArchive }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link to={createPageUrl(`AgileDeskBoard?project=${project.id}`)} className="flex items-center w-full cursor-pointer">
+                <Link
+                  to={createPageUrl(`AgileDeskBoard?project=${project.id}`)}
+                  className="flex items-center w-full cursor-pointer"
+                >
                   <PlayCircle className="w-4 h-4 mr-2" />
                   Go to Board
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to={createPageUrl(`AgileDeskReports?project=${project.id}`)} className="flex items-center w-full cursor-pointer">
+                <Link
+                  to={createPageUrl(`AgileDeskReports?project=${project.id}`)}
+                  className="flex items-center w-full cursor-pointer"
+                >
                   <BarChart3 className="w-4 h-4 mr-2" />
                   View Reports
                 </Link>
@@ -106,10 +99,8 @@ export default function ProjectCard({ project, stats, onEdit, onArchive }) {
       </CardHeader>
       <CardContent className="p-6 flex-1 flex flex-col justify-between">
         <div className="space-y-4">
-          <p className="text-sm text-gray-600 line-clamp-2 h-10">
-            {project.description || "No description provided."}
-          </p>
-          
+          <p className="text-sm text-gray-600 line-clamp-2 h-10">{project.description || 'No description provided.'}</p>
+
           <div>
             <div className="flex items-center justify-between text-sm mb-1">
               <span className="text-gray-600 font-medium">Progress</span>
@@ -117,24 +108,26 @@ export default function ProjectCard({ project, stats, onEdit, onArchive }) {
             </div>
             <Progress value={completionRate} className="h-2" />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>{stats.completedIssues} of {stats.totalIssues} issues</span>
+              <span>
+                {stats.completedIssues} of {stats.totalIssues} issues
+              </span>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4 pt-4 mt-4 border-t border-gray-200 text-center">
-            <div>
-              <div className="text-lg font-bold text-gray-900">{stats.totalIssues || 0}</div>
-              <div className="text-xs text-gray-500">Total Issues</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-blue-600">{stats.inProgressIssues || 0}</div>
-              <div className="text-xs text-gray-500">In Progress</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-red-600">{stats.bugs || 0}</div>
-              <div className="text-xs text-gray-500">Open Bugs</div>
-            </div>
+          <div>
+            <div className="text-lg font-bold text-gray-900">{stats.totalIssues || 0}</div>
+            <div className="text-xs text-gray-500">Total Issues</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-blue-600">{stats.inProgressIssues || 0}</div>
+            <div className="text-xs text-gray-500">In Progress</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-red-600">{stats.bugs || 0}</div>
+            <div className="text-xs text-gray-500">Open Bugs</div>
+          </div>
         </div>
       </CardContent>
     </Card>

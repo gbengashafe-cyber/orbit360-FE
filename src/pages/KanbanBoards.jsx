@@ -1,30 +1,31 @@
-import React, { useState, useEffect } from "react";
-import { Project } from "@/api/entities";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { Layers3, Loader2, KanbanSquare, Timer } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Project } from '@/api/entities';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { createPageUrl } from '@/utils';
+import { KanbanSquare, Layers3, Loader2, Timer } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 
 const BoardCard = ({ project }) => {
-    return (
-        <Link to={createPageUrl(`AgileDeskBoard?project=${project.id}`)}>
-            <Card className="hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-white">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg font-bold text-gray-900">{project.name}</CardTitle>
-                        <Badge variant="outline" className="capitalize">{project.status}</Badge>
-                    </div>
-                    <CardDescription>{project.key}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-gray-600 line-clamp-2 min-h-[40px]">{project.description}</p>
-                </CardContent>
-            </Card>
-        </Link>
-    )
-}
+  return (
+    <Link to={createPageUrl(`AgileDeskBoard?project=${project.id}`)}>
+      <Card className="hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-white">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold text-gray-900">{project.name}</CardTitle>
+            <Badge variant="outline" className="capitalize">
+              {project.status}
+            </Badge>
+          </div>
+          <CardDescription>{project.key}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600 line-clamp-2 min-h-[40px]">{project.description}</p>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+};
 
 export default function KanbanBoards() {
   const [scrumProjects, setScrumProjects] = useState([]);
@@ -36,10 +37,10 @@ export default function KanbanBoards() {
       setLoading(true);
       try {
         const allProjects = await Project.list('-created_date');
-        setScrumProjects(allProjects.filter(p => p.methodology === 'scrum'));
-        setKanbanProjects(allProjects.filter(p => p.methodology === 'kanban' || p.methodology === 'hybrid'));
+        setScrumProjects(allProjects.filter((p) => p.methodology === 'scrum'));
+        setKanbanProjects(allProjects.filter((p) => p.methodology === 'kanban' || p.methodology === 'hybrid'));
       } catch (error) {
-        console.error("Failed to load projects", error);
+        console.error('Failed to load projects', error);
       } finally {
         setLoading(false);
       }
@@ -69,35 +70,39 @@ export default function KanbanBoards() {
         </div>
 
         <div className="space-y-12">
-            {/* Scrum Boards */}
-            <section>
-                <div className="flex items-center gap-3 mb-6">
-                    <Timer className="w-6 h-6 text-blue-700" />
-                    <h2 className="text-2xl font-semibold text-gray-800">Scrum Boards</h2>
-                </div>
-                {scrumProjects.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {scrumProjects.map(project => <BoardCard key={project.id} project={project} />)}
-                    </div>
-                ) : (
-                    <p className="text-gray-500">No active Scrum projects found.</p>
-                )}
-            </section>
+          {/* Scrum Boards */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <Timer className="w-6 h-6 text-blue-700" />
+              <h2 className="text-2xl font-semibold text-gray-800">Scrum Boards</h2>
+            </div>
+            {scrumProjects.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {scrumProjects.map((project) => (
+                  <BoardCard key={project.id} project={project} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No active Scrum projects found.</p>
+            )}
+          </section>
 
-            {/* Kanban Boards */}
-            <section>
-                <div className="flex items-center gap-3 mb-6">
-                    <KanbanSquare className="w-6 h-6 text-purple-700" />
-                    <h2 className="text-2xl font-semibold text-gray-800">Kanban Boards</h2>
-                </div>
-                 {kanbanProjects.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {kanbanProjects.map(project => <BoardCard key={project.id} project={project} />)}
-                    </div>
-                 ) : (
-                    <p className="text-gray-500">No active Kanban or Hybrid projects found.</p>
-                 )}
-            </section>
+          {/* Kanban Boards */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <KanbanSquare className="w-6 h-6 text-purple-700" />
+              <h2 className="text-2xl font-semibold text-gray-800">Kanban Boards</h2>
+            </div>
+            {kanbanProjects.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {kanbanProjects.map((project) => (
+                  <BoardCard key={project.id} project={project} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No active Kanban or Hybrid projects found.</p>
+            )}
+          </section>
         </div>
       </div>
     </div>
