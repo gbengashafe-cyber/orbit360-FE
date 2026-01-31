@@ -24,7 +24,7 @@ export function TransactionsTable({ moduleName, transactions, setViewingItem, is
           </TableRow>
         </TableHeader>
         <TableBody>
-          {transactions.length > 0 ? (
+          {transactions?.length > 0 ? (
             transactions.map((transaction) => {
               const { type, description, initiator, createdAt } = getTransactionProps(transaction, moduleName);
               return (
