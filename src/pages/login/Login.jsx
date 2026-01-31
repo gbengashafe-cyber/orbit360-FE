@@ -20,7 +20,7 @@ const LoginPage = () => {
 
       window.location.href = '/dashboard';
     } catch (error) {
-      setError(error?.message || 'Login failed. kindly contact the administrator for support');
+      setError(error.response.data?.message || 'Login failed. kindly contact the administrator for support');
     }
   };
   return (
