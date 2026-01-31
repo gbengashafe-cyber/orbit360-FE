@@ -79,70 +79,45 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
   );
   const debouncedQuery = useDebounce(query, 600);
 
-  // Map job roles to departments
-  const getExpectedDepartmentForJobRole = (jobRole) => {
-    if (!jobRole) return null;
-    const lowerJobRole = jobRole.toLowerCase();
-    
-    if (lowerJobRole.includes('hr') || lowerJobRole.includes('human')) return 'HR';
-    if (lowerJobRole.includes('engineer')) return 'Engineering';
-    if (lowerJobRole.includes('sales')) return 'Sales';
-    if (lowerJobRole.includes('operation')) return 'Operations';
-    if (lowerJobRole.includes('finance') || lowerJobRole.includes('accounting')) return 'Finance';
-    if (lowerJobRole.includes('market')) return 'Marketing';
-    return null;
-  };
-
   useEffect(() => {
     const controller = new AbortController();
 
-    const loadSupervisors = async (signal) => {
+    const loadDepartmentEmployees = async (signal) => {
       setIsLoading(true);
       try {
-        // Load all employees to use as potential supervisors
-        const allEmpsResponse = await employeeService.getEmployees(
+        const currentDepartment = allDepartments.find((_department) => _department.name === formData.departmentName);
+
+        if (!currentDepartment) {
+          return;
+        }
+
+        const employees = await departmentService.getDepartmentEmployees(
           {
-            page: 1,
+            id: currentDepartment.id,
             rows: 500,
+            options: { search: debouncedQuery },
           },
           { signal },
         );
 
-        // Filter out the current employee being edited
-        let supervisors = allEmpsResponse.data || [];
-        if (employee?.id) {
-          supervisors = supervisors.filter(emp => emp.id !== employee.id);
-        }
-
-        // Filter by search query on client side (name, email, phone)
-        if (debouncedQuery) {
-          const query = debouncedQuery.toLowerCase();
-          supervisors = supervisors.filter(emp => 
-            (emp.firstName && emp.firstName.toLowerCase().includes(query)) ||
-            (emp.lastName && emp.lastName.toLowerCase().includes(query)) ||
-            (emp.email && emp.email.toLowerCase().includes(query)) ||
-            (emp.phone && emp.phone.includes(query))
-          );
-        }
-
-        setDepartmentEmployees(supervisors);
+        setDepartmentEmployees(employees.data.employees);
       } catch (error) {
         if (error instanceof CanceledError) {
           return;
         }
         toast.error('Error:', {
-          description: `${error.message ? error.message : 'Could not load supervisors.'}`,
+          description: `${error.message ? error.message : 'Could not load employees in this department.'}`,
         });
       } finally {
         setIsLoading(false);
       }
     };
-    loadSupervisors(controller.signal);
+    loadDepartmentEmployees(controller.signal);
 
     return () => {
       controller.abort();
     };
-  }, [debouncedQuery, employee?.id]);
+  }, [allDepartments, debouncedQuery, formData.departmentName]);
 
   useEffect(() => {
     async function loadData() {
@@ -200,15 +175,11 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
         supervisorName: `${selectedSupervisor.firstName} ${selectedSupervisor.lastName}`,
         supervisorRole: selectedSupervisor.jobRole,
         supervisorDepartment: selectedSupervisor.departmentName,
-        // Don't auto-populate the employee's department - let it stay as selected
       }));
     } else {
       setFormData((prev) => ({
         ...prev,
         supervisorId: null,
-        supervisorName: '',
-        supervisorRole: '',
-        supervisorDepartment: '',
       }));
     }
   };
@@ -391,10 +362,12 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
 
           <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Reporting Line</h3>
           {/* Reporting Line Fields */}
-          <div className="flex gap-4">
-            <div className="flex-1 space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              {/*  */}
+
               {/* Supervisor Search Field */}
-              <div className="space-y-2">
+              <div className="space-y-2 flex flex-col">
                 <Label htmlFor="supervisor">Supervisor</Label>
                 <Popover open={open} onOpenChange={setOpen}>
                   <PopoverTrigger asChild>
@@ -461,21 +434,13 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
                     </Command>
                   </PopoverContent>
                 </Popover>
-                </div>
-                </div>
-                <div className="flex-1 space-y-2">
-                <Label htmlFor="supervisor_department">Supervisor Department</Label>
-                <Input 
-                id="supervisor_department" 
-                value={formData.supervisorDepartment} 
-                readOnly 
-                className="bg-gray-100" 
-                placeholder="Department will auto-populate"
-                />
-                </div>
-                </div>
+              </div>
 
-              <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Compensation & Benefits (Annual)</h3>
+              {/*  */}
+            </div>
+          </div>
+
+          <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Compensation & Benefits (Annual)</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="annualBasicSalary">Annual Basic Salary (₦) *</Label>
