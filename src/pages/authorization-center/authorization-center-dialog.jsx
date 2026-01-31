@@ -2,18 +2,27 @@ import RequestDetailsView from '@/components/authorization/RequestDetailsView';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PENDING_STATES } from '@/constants/pendingState';
+import { DialogDescription } from '@radix-ui/react-dialog';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 
-export const AuthorizationViewDialog = ({ onOpenChange, viewingItem, canAuthorize, handleAuthorize, authorizing }) => {
+export const AuthorizationViewDialog = ({
+  moduleName,
+  onOpenChange,
+  viewingItem,
+  canAuthorize,
+  handleAuthorize,
+  authorizing,
+}) => {
   return (
     <Dialog open={!!viewingItem} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh]">
+      <DialogContent className="max-w-3xl max-h-[90vh]" Description={'A'}>
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">{viewingItem?.type} - Full Details</DialogTitle>
+          <DialogTitle className="text-xl font-bold capitalize">{moduleName} - Full Details</DialogTitle>
+          <DialogDescription className="sr-only">Viewing full details for the selected {moduleName}</DialogDescription>
         </DialogHeader>
         {viewingItem && (
           <div className="space-y-6">
-            <RequestDetailsView item={viewingItem} />
+            <RequestDetailsView item={viewingItem} moduleName={moduleName} />
 
             <div className="pt-4 border-t space-y-3 bg-gray-50 p-4 rounded-lg -mx-6">
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -47,7 +56,7 @@ export const AuthorizationViewDialog = ({ onOpenChange, viewingItem, canAuthoriz
             {canAuthorize && PENDING_STATES.includes(viewingItem.status?.toLowerCase()) && (
               <div className="flex gap-3 pt-4 border-t">
                 <Button
-                  onClick={() => handleAuthorize(viewingItem, 'approve')}
+                  onClick={() => handleAuthorize(viewingItem, 'approve', moduleName)}
                   disabled={authorizing}
                   className="flex-1 bg-green-600 hover:bg-green-700"
                 >
@@ -55,7 +64,7 @@ export const AuthorizationViewDialog = ({ onOpenChange, viewingItem, canAuthoriz
                   Authorize
                 </Button>
                 <Button
-                  onClick={() => handleAuthorize(viewingItem, 'reject')}
+                  onClick={() => handleAuthorize(viewingItem, 'reject', moduleName)}
                   disabled={authorizing}
                   variant="destructive"
                   className="flex-1"

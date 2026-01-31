@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+
 export const getStatusColor = (status) => {
   const colors = {
     pending: 'bg-yellow-100 text-yellow-700',
@@ -17,4 +19,24 @@ export const getStatusColor = (status) => {
     closed: 'bg-gray-100 text-gray-700',
   };
   return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-700';
+};
+
+export const getTransactionProps = (transaction, moduleName) => {
+  let type = '_',
+    description = '_',
+    initiator = '_',
+    createdAt = '';
+
+  switch (moduleName) {
+    case 'loans':
+      type = transaction.loanType;
+      description = `${transaction.employee.firstName} - ${transaction.principalAmount}`;
+      initiator = transaction?.initiator?.firstName;
+      createdAt = format(new Date(transaction.createdAt), 'dd-MMM-yyyy');
+      break;
+
+    default:
+      break;
+  }
+  return { type, description, initiator, createdAt };
 };

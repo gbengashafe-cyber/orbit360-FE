@@ -1,23 +1,25 @@
+import { employeeService } from '@/api';
+import { useDebounce } from '@/api/apiClient';
 import { LoanUtil } from '@/components/cooperative/loan.utils';
+import Combobox from '@/components/shared/combobox';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
-import { Command } from 'cmdk';
+import { CanceledError } from 'axios';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Check, ChevronsUpDown, Loader2, Save } from 'lucide-react';
+import { Calendar as CalendarIcon, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
-export const LoanForm = ({ showForm, setShowForm, editingLoan, onSubmit, loan, employees = [] }) => {
-  const [open, setOpen] = useState(false);
+export const LoanForm = ({ showForm, onCancel, onSubmit, loan }) => {
   const [query, setQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
   const [formData, setFormData] = useState({
     employeeId: loan?.employeeId || '',
     loanType: loan?.loanType || 'personal',
@@ -30,11 +32,46 @@ export const LoanForm = ({ showForm, setShowForm, editingLoan, onSubmit, loan, e
     notes: loan?.notes || '',
   });
 
+  const debouncedQuery = useDebounce(query, 600);
+
   const [calculations, setCalculations] = useState({
     monthlyDeduction: loan?.monthlyDeduction || 0,
     totalRepayment: loan?.totalRepayment || 0,
     endDate: loan?.endDate ? new Date(loan.endDate) : null,
   });
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadEmployees = async (signal) => {
+      setIsLoadingEmployees(true);
+      try {
+        const result = await employeeService.getEmployees(
+          {
+            rows: 25,
+            options: { search: debouncedQuery },
+          },
+          { signal },
+        );
+
+        setEmployees(result.data);
+      } catch (error) {
+        if (error instanceof CanceledError) {
+          return;
+        }
+        toast.error('Error:', {
+          description: error.message || 'Could not load employees.',
+        });
+      } finally {
+        setIsLoadingEmployees(false);
+      }
+    };
+    loadEmployees(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [debouncedQuery]);
 
   useEffect(() => {
     const { principalAmount, interestRate, tenureMonths } = formData;
@@ -67,119 +104,30 @@ export const LoanForm = ({ showForm, setShowForm, editingLoan, onSubmit, loan, e
     onSubmit(submissionData);
   };
 
-  const handleEmployeeChange = (value) => {
-    console.log('🚀 ~ handleEmployeeChange ~ value:', value);
-    const selectedEmployee = employees.find((emp) => emp.id === value);
-    if (selectedEmployee) {
-      setFormData((prev) => ({
-        ...prev,
-        supervisorId: selectedEmployee.id,
-        supervisorName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`,
-        supervisorRole: selectedEmployee.jobRole,
-        supervisorDepartment: selectedEmployee.departmentName,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        supervisorId: null,
-      }));
-    }
-  };
-
   return (
-    <Dialog open={showForm} onOpenChange={setShowForm}>
-      <DialogContent className="max-w-lg max-h-[90%] overflow-y-auto">
+    <Dialog open={showForm} onOpenChange={onCancel}>
+      <DialogContent className="max-w-lg max-h-[90%] overflow-y-auto overscroll-contain">
         <DialogHeader>
-          <DialogTitle>{editingLoan ? 'Edit Loan' : 'Create New Loan'}</DialogTitle>
+          <DialogTitle>{loan ? 'Edit Loan' : 'Create New Loan'}</DialogTitle>
+          <DialogDescription className="sr-only">View or create loan record</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="employeeId">Employee *</Label>
-            <Select
-              value={String(formData.employeeId)}
-              onValueChange={(value) => handleInputChange('employeeId', value)}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Employee" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((emp) => (
-                  <SelectItem key={emp.id} value={String(emp.id)}>
-                    {emp.firstName} {emp.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Employee */}
           <div className="space-y-2 flex flex-col">
             <Label htmlFor="employeeId">Employee *</Label>
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  id="employee"
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className="w-full justify-between font-normal border-slate-200"
-                >
-                  {formData.employeeId & employees.length
-                    ? employees.find((_emp) => _emp.id === formData.employeeId).firstName
-                    : 'Select supervisor...'}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                <Command shouldFilter={false}>
-                  <CommandInput placeholder="Search by name, email..." value={query} onValueChange={setQuery} />
-                  <CommandList className="max-h-[300px] overflow-y-auto">
-                    {isLoading ? (
-                      <div className="flex items-center justify-center py-6">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
-                      </div>
-                    ) : (
-                      <>
-                        {employees.length === 0 && query.length > 0 ? (
-                          <CommandEmpty>No employee found.</CommandEmpty>
-                        ) : employees.length === 0 ? (
-                          <div className="py-6 text-center text-sm text-muted-foreground">Start typing to search...</div>
-                        ) : (
-                          <CommandGroup>
-                            {employees.map((emp) => (
-                              <CommandItem
-                                key={emp.id}
-                                value={emp.id}
-                                onSelect={() => {
-                                  handleEmployeeChange(emp.id);
-                                  setOpen(false);
-                                  setQuery('');
-                                }}
-                                className="flex flex-col items-start py-2"
-                              >
-                                <div className="flex items-center w-full">
-                                  <Check
-                                    className={cn('mr-2 h-4 w-4', formData.supervisorId === emp.id ? 'opacity-100' : 'opacity-0')}
-                                  />
-                                  <span className="font-medium">
-                                    {emp.firstName} {emp.lastName}
-                                  </span>
-                                </div>
-                                <span className="text-xs text-muted-foreground ml-6">
-                                  {emp.jobRole} • {emp.departmentName}
-                                </span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        )}
-                      </>
-                    )}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <Combobox
+              value={formData.employeeId}
+              items={employees}
+              placeholder="Select employee"
+              searchPlaceholder="Search by name or email"
+              isLoading={isLoadingEmployees}
+              getValue={(_emp) => _emp.id}
+              getLabel={(_emp) => `${_emp.firstName} ${_emp.lastName}`}
+              getDescription={(_emp) => _emp.staffId}
+              onSearchChange={setQuery}
+              onSelect={(_emp) => handleInputChange('employeeId', _emp.id)}
+              emptyText="No employee found"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -197,23 +145,23 @@ export const LoanForm = ({ showForm, setShowForm, editingLoan, onSubmit, loan, e
               </Select>
             </div>
 
-            {loan?.id ? (
+            {/* {loan?.id ? (
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                <Select value={formData.status?.toUpperCase()} onValueChange={(value) => handleInputChange('status', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending_approval">Pending Approval</SelectItem>
-                    <SelectItem value="pending_disbursement">Pending Disbursement</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="paid_off">Paid Off</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectItem value="PENDING_APPROVAL">Pending Approval</SelectItem>
+                    <SelectItem value="PENDING_DISBURSEMENT">Pending Disbursement</SelectItem>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="PAID_OFF">Paid Off</SelectItem>
+                    <SelectItem value="REJECTED">Rejected</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            ) : null}
+            ) : null} */}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -302,7 +250,7 @@ export const LoanForm = ({ showForm, setShowForm, editingLoan, onSubmit, loan, e
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">End Date:</span>{' '}
-              <strong>{calculations.endDate ? format(calculations.endDate, 'yyyy-mm-dd') : 'N/A'}</strong>
+              <strong>{calculations.endDate ? format(calculations.endDate, 'yyyy-MM-dd') : 'N/A'}</strong>
             </div>
           </div>
 
@@ -312,7 +260,7 @@ export const LoanForm = ({ showForm, setShowForm, editingLoan, onSubmit, loan, e
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+            <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
             <Button type="submit">

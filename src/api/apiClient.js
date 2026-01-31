@@ -27,7 +27,7 @@ API.interceptors.request.use(
   },
 );
 
-export const refreshAPI = axios.create({
+export const APIWithoutAuth = axios.create({
   baseURL: apiRoutes.BASE_URL,
   withCredentials: true,
 });
@@ -58,7 +58,7 @@ API.interceptors.response.use(
     const isRefreshTokenCall = originalConfig?.url?.includes(apiRoutes.RefreshToken);
 
     if (attemptedRefreshToken || isRefreshTokenCall || !unauthorized) {
-      logger.error(error);
+      logger.error({ caller: 'API call: ' + originalConfig.url, payload: error });
       return Promise.reject(error.response?.data);
     }
 
@@ -72,7 +72,7 @@ API.interceptors.response.use(
     originalConfig._retry = true;
 
     try {
-      const rs = await refreshAPI.post(apiRoutes.RefreshToken);
+      const rs = await APIWithoutAuth.post(apiRoutes.RefreshToken);
       const newAccessToken = rs.data.data?.accessToken;
       if (!newAccessToken) throw new Error('Session expired');
 
@@ -85,7 +85,7 @@ API.interceptors.response.use(
 
       return API(originalConfig);
     } catch (refreshError) {
-      logger.error(refreshError);
+      logger.error({ caller: originalConfig, error: refreshError });
       processQueue(error);
       LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
       window.location.href = '/login';

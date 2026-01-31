@@ -6,22 +6,16 @@ import { LoanUtil } from '@/components/cooperative/loan.utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useGlobalContext } from '@/state/context';
 import { Banknote, Download, Plus, RefreshCw, ThumbsDown, ThumbsUp, Trash2, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import LoanForm from '../components/cooperative/LoanForm';
+import { LoanForm } from './loans/loan-form';
+import { logger } from '@/utils';
+import { toast } from 'sonner';
 
 const LoanApprovalCard = ({ loans, onApprove, onReject, loading }) => {
   if (loans.length === 0) return null;
@@ -238,12 +232,18 @@ export default function Cooperative() {
       setEditingLoan(null);
       loadData();
     } catch (error) {
-      console.error('Error saving loan:', error);
+      logger.error({ caller: 'Error saving loan:', payload: error });
+      toast.error('Error', { description: error.message || 'Unable to complete your request. Kindly contact the system admin' });
     }
   };
 
   const handleEdit = (loan) => {
     setEditingLoan(loan);
+    setShowLoanForm(true);
+  };
+
+  const handleCreate = () => {
+    setEditingLoan(null);
     setShowLoanForm(true);
   };
 
@@ -342,28 +342,13 @@ export default function Cooperative() {
             <Button variant="outline" size="icon" onClick={loadData}>
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-            <Dialog open={showLoanForm} onOpenChange={setShowLoanForm}>
-              <DialogTrigger asChild>
-                <Button
-                  className="bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-lg shadow-blue-700/25"
-                  onClick={() => setEditingLoan(null)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Loan
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>{editingLoan ? 'Edit Loan' : 'Create New Loan'}</DialogTitle>
-                </DialogHeader>
-                <LoanForm
-                  loan={editingLoan}
-                  employees={employees}
-                  onSubmit={handleLoanSubmit}
-                  onCancel={() => setShowLoanForm(false)}
-                />
-              </DialogContent>
-            </Dialog>
+            <Button
+              className="bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-lg shadow-blue-700/25"
+              onClick={handleCreate}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Loan
+            </Button>
           </div>
         </div>
 
@@ -372,6 +357,15 @@ export default function Cooperative() {
           onApprove={handleApproveLoan}
           onReject={setLoanToReject}
           loading={actionLoading}
+        />
+
+        <LoanForm
+          key={editingLoan?.id ?? 'new'}
+          loan={editingLoan}
+          showForm={showLoanForm}
+          employees={employees}
+          onSubmit={handleLoanSubmit}
+          onCancel={() => setShowLoanForm(false)}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -473,7 +467,7 @@ export default function Cooperative() {
         open={!!loanToReject}
         onOpenChange={() => {
           setLoanToReject(null);
-          setRejectionReason(''); // Clear reason on dialog close
+          setRejectionReason('');
         }}
       >
         <DialogContent>
