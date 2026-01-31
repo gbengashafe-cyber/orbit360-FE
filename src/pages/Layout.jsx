@@ -50,6 +50,7 @@ import { LocalStorageUtil } from '../utils/local-storage.util';
 
 const hrNav = [
   { title: 'Authorization Center', url: createPageUrl('AuthorizationCenter'), icon: ClipboardList },
+  { title: 'Authorization Center (wip)', url: createPageUrl('authorization-center-wip'), icon: ClipboardList },
   { title: 'Employees', url: createPageUrl('Employees'), icon: Users2 },
   { title: 'Payroll', url: createPageUrl('Payroll'), icon: Banknote },
   { title: 'Payslips', url: createPageUrl('payslips'), icon: FileText },

@@ -11,7 +11,7 @@ const FieldDisplay = ({ label, value, fullWidth = false }) => (
   </div>
 );
 
-export default function RequestDetailsView({ item }) {
+export default function RequestDetailsView({ item, moduleName }) {
   const formatDate = (date) => {
     if (!date) return 'N/A';
     try {
@@ -256,7 +256,7 @@ export default function RequestDetailsView({ item }) {
     <div className="max-h-[70vh] overflow-y-auto px-1">
       {item.type === 'Job Posting' && renderJobPosting()}
       {item.type === 'Leave Request' && renderLeaveRequest()}
-      {item.type === 'Loan' && renderLoan()}
+      {moduleName === 'loans' && renderLoan()}
       {item.type === 'Resignation' && renderResignation()}
       {item.type === 'Redeployment' && renderRedeployment()}
       {item.type === 'New Staff Request' && renderNewStaffRequest()}

@@ -25,4 +25,12 @@ export const loanService = {
   async deleteLoan(id) {
     return apiClient.delete(ApiRoutes.DeleteLoan(id));
   },
+
+  async approveLoan(id) {
+    return apiClient.patch(ApiRoutes.loan.approve(id));
+  },
+
+  async rejectLoan(id) {
+    return apiClient.patch(ApiRoutes.loan.reject(id));
+  },
 };

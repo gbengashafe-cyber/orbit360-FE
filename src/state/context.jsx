@@ -52,7 +52,10 @@ export const GlobalContextProvider = ({ children }) => {
 
         storeCurrentUser(userResponse?.data);
 
-        const userEmployeeData = await employeeService.getEmployees({ rows: 1, options: { search: userResponse.data?.email } });
+        const userEmployeeData = await employeeService.getUserEmployeeData({
+          rows: 1,
+          search: userResponse.data?.email,
+        });
 
         if (userEmployeeData?.data?.[0]) {
           storeCurrentEmployee(userEmployeeData?.data?.[0]);
@@ -63,7 +66,7 @@ export const GlobalContextProvider = ({ children }) => {
           setIsMD(isMDUser);
         }
       } catch (error) {
-        logger.error(error);
+        logger.error({ caller: 'Loading current user', payload: error });
         toast.error('Error loading current user', {
           description: `${error.message ? error.message : 'Failed to load user profile.'}`,
         });

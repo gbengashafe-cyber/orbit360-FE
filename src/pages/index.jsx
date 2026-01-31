@@ -1,6 +1,8 @@
 import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
 import Analytics from './Analytics';
 import Appraisals from './Appraisals';
+import AuthorizationCenter from './authorization-center';
+import AuthorizationCenterWIP from './authorization-center-new';
 import ClientAuth from './ClientAuth';
 import CompanyDocuments from './CompanyDocuments';
 import CompensationTool from './CompensationTool';
@@ -126,6 +128,7 @@ const PAGES = {
   FinancialReports: FinancialReports,
 
   Login: LoginPage,
+  AuthorizationCenterWIP,
 };
 
 function _getCurrentPage(url) {
@@ -151,6 +154,8 @@ function PagesContent() {
         <Route path="/" element={<Dashboard />} />
 
         <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/authorization-center" element={<AuthorizationCenter />} />
+        <Route path="/authorization-center-wip" element={<AuthorizationCenterWIP />} />
 
         <Route path="/ClientAuth" element={<ClientAuth />} />
 
@@ -216,7 +221,7 @@ function PagesContent() {
 
         <Route path="/PublicJobView" element={<PublicJobView />} />
 
-        <Route path="/Cooperative" element={<Cooperative />} />
+        <Route path="/cooperative" element={<Cooperative />} />
 
         <Route path="/KPIManagement" element={<KPIManagement />} />
 

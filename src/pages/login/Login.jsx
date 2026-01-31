@@ -1,4 +1,4 @@
-import { refreshAPI } from '@/api/apiClient';
+import { APIWithoutAuth } from '@/api/apiClient';
 import { ApiRoutes } from '@/api/apiRoutes';
 import { Input } from '@/components/ui/input';
 import { LocalStorageUtil } from '@/utils/local-storage.util';
@@ -15,7 +15,7 @@ const LoginPage = () => {
       const email = e.target.email.value;
       const password = e.target.password.value;
 
-      const response = await refreshAPI.post(ApiRoutes.Login, { email, password });
+      const response = await APIWithoutAuth.post(ApiRoutes.Login, { email, password });
       LocalStorageUtil.save(response.data.accessToken, 'orbit360-access-token');
 
       window.location.href = '/dashboard';

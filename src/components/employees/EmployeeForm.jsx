@@ -94,7 +94,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
         const employees = await departmentService.getDepartmentEmployees(
           {
             id: currentDepartment.id,
-            rows: 500,
+            rows: 25,
             options: { search: debouncedQuery },
           },
           { signal },

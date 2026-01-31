@@ -10,6 +10,12 @@ export class ApiRoutes {
   static GetCurrentUser = '/auth/me';
   static GoogleCallback = '/auth/google/callback';
 
+  static pendingAuthorization = {
+    pendingItems: '/v1/pending-authorization',
+    counts: '/v1/pending-authorization/counts',
+    modulePending: (moduleName) => `/v1/pending-authorization/${moduleName}`,
+  };
+
   // Users
   static GetUsers = '/v1/users';
   static GetUserById = (id) => `/v1/users/${id}`;
@@ -23,6 +29,16 @@ export class ApiRoutes {
   static CreateEmployee = '/v1/employees';
   static UpdateEmployee = (id) => `/v1/employees/${id}`;
   static DeleteEmployee = (id) => `/v1/employees/${id}`;
+
+  static employee = {
+    userEmployeeRecord: '/v1/employees/me',
+    getEmployees: '/v1/employees',
+  };
+
+  static loan = {
+    approve: (id) => `/v1/loans/${id}/approve`,
+    reject: (id) => `/v1/loans/${id}/reject`,
+  };
 
   // Departments
   static GetDepartments = '/v1/departments';
