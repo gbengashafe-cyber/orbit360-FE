@@ -250,7 +250,7 @@ export default function AuthorizationCenterWIP() {
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid grid-flow-col justify-center gap-x-4 w-full">
-                {Object.keys(pendingStats.breakdown).length
+                {Object.keys(pendingStats.breakdown)?.length
                   ? Object.keys(pendingStats.breakdown).map((_module, index) => (
                       <TabsTrigger value={_module} key={index} className="capitalize px-8">
                         {_module} ({pendingStats?.breakdown?.[_module]})
