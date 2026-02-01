@@ -57,9 +57,9 @@ export const GlobalContextProvider = ({ children }) => {
           search: userResponse.data?.email,
         });
 
-        if (userEmployeeData?.data?.[0]) {
-          storeCurrentEmployee(userEmployeeData?.data?.[0]);
-          const isMDUser = userEmployeeData?.data?.[0].jobRole === 'Managing Director';
+        if (userEmployeeData?.data) {
+          storeCurrentEmployee(userEmployeeData?.data);
+          const isMDUser = userEmployeeData?.data?.jobRole === 'Managing Director';
           const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
 
           setIsAdmin(isAdmin);

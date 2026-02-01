@@ -21,7 +21,6 @@ import ExpenseSettings from './ExpenseSettings';
 import FinancialReports from './FinancialReports';
 import HRDashboard from './HRDashboard';
 import InstallApp from './InstallApp';
-import KanbanBoards from './KanbanBoards';
 import KPIManagement from './KPIManagement';
 import Layout from './Layout.jsx';
 import LeaveManagement from './LeaveManagement';
@@ -117,8 +116,6 @@ const PAGES = {
 
   CompanyDocuments: CompanyDocuments,
 
-  KanbanBoards: KanbanBoards,
-
   Analytics: Analytics,
 
   Contacts: Contacts,
@@ -185,7 +182,7 @@ function PagesContent() {
 
         <Route path="/Onboarding" element={<Onboarding />} />
 
-        <Route path="/MyPayslips" element={<MyPayslips />} />
+        <Route path="/my-payslips" element={<MyPayslips />} />
 
         <Route path="/payslips" element={<MyPayslips />} />
 
@@ -226,8 +223,6 @@ function PagesContent() {
         <Route path="/KPIManagement" element={<KPIManagement />} />
 
         <Route path="/CompanyDocuments" element={<CompanyDocuments />} />
-
-        <Route path="/KanbanBoards" element={<KanbanBoards />} />
 
         <Route path="/Analytics" element={<Analytics />} />
 

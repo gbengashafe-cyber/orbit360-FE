@@ -40,6 +40,15 @@ export const employeeService = {
     return apiClient.get(endpoint);
   },
 
+  async getEmployeePayrollRecords(id, options) {
+    let endpoint = ApiRoutes.employee.payrolls(id);
+
+    if (options) {
+      endpoint = `${endpoint}?${makeQueryParams(options)}`;
+    }
+    return apiClient.get(endpoint);
+  },
+
   async getEmployeeById(id) {
     return apiClient.get(ApiRoutes.GetEmployeeById(id));
   },

@@ -66,7 +66,7 @@ const hrNav = [
 ];
 
 const employeePortalNav = [
-  { title: 'My Payslips', url: createPageUrl('MyPayslips'), icon: FileText },
+  { title: 'My Payslips', url: createPageUrl('my-payslips'), icon: FileText },
   { title: 'Appraisals', url: createPageUrl('Appraisals'), icon: BookCopy },
   { title: 'Leave Management', url: createPageUrl('LeaveManagement'), icon: PlaneTakeoff },
   { title: 'Exit Management', url: createPageUrl('ExitManagement'), icon: UserRoundX },

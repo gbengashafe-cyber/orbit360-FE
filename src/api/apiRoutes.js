@@ -34,6 +34,7 @@ export class ApiRoutes {
     userEmployeeRecord: '/v1/employees/me',
     getEmployees: '/v1/employees',
     getActiveEmployees: '/v1/employees/directory',
+    payrolls: (id) => `/v1/employees/${id}/payrolls`,
   };
 
   static loan = {
@@ -125,7 +126,7 @@ export class ApiRoutes {
   static UpdatePayroll = (id) => `/v1/payrolls/${id}`;
   static UpdatePayrollStatus = (id) => `/v1/payrolls/${id}/status`;
   static DeletePayroll = (id) => `/v1/payrolls/${id}`;
-  static GetPayrollsByEmployee = (id) => `/v1/payrolls/employee/${id}`;
+  static GetPayrollsByEmployee = (id) => `/v1/payrolls/employees/${id}`;
   static GetPayrollsByPeriod = (payPeriod) => `/v1/payrolls/periods/${payPeriod}`;
   static ProcessPayroll = (id) => `/v1/payrolls/${id}/process`;
   static PayPayroll = (id) => `/v1/payrolls/${id}/pay`;

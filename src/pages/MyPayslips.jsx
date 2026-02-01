@@ -8,6 +8,7 @@ import { Loader2, Printer, Receipt } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import Payslip from '../components/payroll/Payslip';
+import { useLocation } from 'react-router';
 
 export default function MyPayslips() {
   const [employeeData, setEmployeeData] = useState(null);
@@ -16,16 +17,16 @@ export default function MyPayslips() {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [allEmployees, setAllEmployees] = useState([]);
 
-  const { currentUser } = useGlobalContext();
+  const { currentUser, currentEmployee } = useGlobalContext();
+  const location = useLocation();
 
-  const canViewAllPayslips = currentUser?.role?.toUpperCase() === 'ADMIN' || currentUser?.jobRole === 'HR_OPERATIONS';
+  const showEmployeeList = location.pathname === '/payslips';
 
   useEffect(() => {
     const loadAllData = async () => {
       try {
-        let employeesDataResponse;
-        if (canViewAllPayslips) {
-          employeesDataResponse = await employeeService.getEmployees({ rows: 1000 });
+        if (showEmployeeList) {
+          const employeesDataResponse = await employeeService.getEmployees({ rows: 1000 });
           setAllEmployees(employeesDataResponse.data);
           if (employeesDataResponse.data.length > 0) {
             const emp = employeesDataResponse.data?.[0];
@@ -34,11 +35,8 @@ export default function MyPayslips() {
             setPayrollRecords(records.data);
           }
         } else {
-          employeesDataResponse = await employeeService.getEmployees({ options: { search: currentUser.email } });
-          if (employeesDataResponse.data.length > 0) {
-            const emp = employeesDataResponse.data?.[0];
-            setEmployeeData(emp);
-            const records = await payrollService.getPayrollByEmployee({ id: emp.id });
+          if (currentEmployee?.id) {
+            const records = await employeeService.getEmployeePayrollRecords(currentEmployee?.id);
             setPayrollRecords(records.data);
           } else {
             console.log('No employee record found for this user.');
@@ -51,7 +49,7 @@ export default function MyPayslips() {
       }
     };
     loadAllData();
-  }, [canViewAllPayslips, currentUser]);
+  }, [showEmployeeList, currentEmployee?.id]);
 
   const handleEmployeeChange = async (id) => {
     try {
@@ -81,7 +79,7 @@ export default function MyPayslips() {
     );
   }
 
-  if (!employeeData) {
+  if (!currentEmployee?.id) {
     return (
       <div className="p-8 text-center text-gray-600">
         <h2 className="text-xl font-semibold">No Employee Data Found</h2>
@@ -103,7 +101,7 @@ export default function MyPayslips() {
               <p className="text-gray-600">View and download your monthly salary statements.</p>
             </div>
           </div>
-          {canViewAllPayslips && allEmployees.length > 0 && (
+          {showEmployeeList && allEmployees.length > 0 && (
             <Select value={employeeData?.id} onValueChange={handleEmployeeChange}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="Select Employee" />
