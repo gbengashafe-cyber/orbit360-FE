@@ -10,6 +10,16 @@ export const employeeService = {
     return apiClient.get(`${ApiRoutes.GetEmployees}?page=${page}&rows=${rows}`);
   },
 
+  async getActiveEmployees({ page = 1, rows = 25, options } = { page: 1, rows: 10 }) {
+    let endpoint = `${ApiRoutes.employee.getActiveEmployees}?page=${page}&rows=${rows}`;
+
+    if (options) {
+      const queryParams = makeQueryParams(options);
+      endpoint = endpoint + `&${queryParams}`;
+    }
+    return apiClient.get(endpoint);
+  },
+
   async searchEmployees({ page = 1, rows = 10, options }, { signal }) {
     let endpoint = `${ApiRoutes.employee.getEmployees}?page=${page}&rows=${rows}`;
 

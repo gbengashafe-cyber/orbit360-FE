@@ -33,6 +33,7 @@ export class ApiRoutes {
   static employee = {
     userEmployeeRecord: '/v1/employees/me',
     getEmployees: '/v1/employees',
+    getActiveEmployees: '/v1/employees/directory',
   };
 
   static loan = {

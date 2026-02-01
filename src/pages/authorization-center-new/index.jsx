@@ -7,7 +7,7 @@ import { PENDING_STATES } from '@/constants/pendingState';
 import { useGlobalContext } from '@/state/context';
 import { logger } from '@/utils';
 import { ClipboardList, Loader2, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { AuthorizationViewDialog } from '../authorization-center/authorization-center-dialog';
 import { TransactionsTable } from '../authorization-center/transaction-table';
@@ -33,42 +33,42 @@ export default function AuthorizationCenterWIP() {
   const [pendingItemsPagination, setPendingItemsPagination] = useState({});
   const [rows, setRows] = useState(25);
 
-  useEffect(() => {
-    const getPendingCount = async () => {
-      try {
-        const result = await authorizationService.getPendingCount();
-        setPendingStats(result.data);
-      } catch (error) {
-        logger.error({ caller: 'List pending auth count', error });
-        toast.error('Error', { description: error.message || 'Could not load pending authorization count' });
-      }
-    };
-
-    getPendingCount();
+  const getPendingCount = useCallback(async () => {
+    try {
+      const result = await authorizationService.getPendingCount();
+      setPendingStats(result.data);
+    } catch (error) {
+      logger.error({ caller: 'List pending auth count', error });
+      toast.error('Error', { description: error.message || 'Could not load pending authorization count' });
+    }
   }, []);
+
+  useEffect(() => {
+    getPendingCount();
+  }, [getPendingCount]);
 
   const currentPagination = pendingItemsPagination[activeTab]?.page || 1;
 
-  useEffect(() => {
-    const loadPendingModuleItems = async () => {
-      try {
-        setTabIsLoading(true);
-        const result = await authorizationService.getModulePending(activeTab, {
-          rows,
-          page: currentPagination,
-        });
-        setPendingItems((prev) => ({ ...prev, ...{ [activeTab]: result.data } }));
-        setPendingItemsPagination((prev) => ({ ...prev, ...{ [activeTab]: result.pagination } }));
-      } catch (error) {
-        logger.error({ caller: `Load pending ${activeTab} items`, payload: error });
-        toast.error('Error', { description: error.message || `Unable to load pending ${activeTab} items` });
-      } finally {
-        setTabIsLoading(false);
-      }
-    };
-
-    loadPendingModuleItems();
+  const loadPendingModuleItems = useCallback(async () => {
+    try {
+      setTabIsLoading(true);
+      const result = await authorizationService.getModulePending(activeTab, {
+        rows,
+        page: currentPagination,
+      });
+      setPendingItems((prev) => ({ ...prev, ...{ [activeTab]: result.data } }));
+      setPendingItemsPagination((prev) => ({ ...prev, ...{ [activeTab]: result.pagination } }));
+    } catch (error) {
+      logger.error({ caller: `Load pending ${activeTab} items`, payload: error });
+      toast.error('Error', { description: error.message || `Unable to load pending ${activeTab} items` });
+    } finally {
+      setTabIsLoading(false);
+    }
   }, [activeTab, currentPagination, rows]);
+
+  useEffect(() => {
+    loadPendingModuleItems();
+  }, [loadPendingModuleItems]);
 
   useEffect(() => {
     loadData();
@@ -192,9 +192,11 @@ export default function AuthorizationCenterWIP() {
 
       toast.success('Success', { description: `${moduleName} ${action === 'approve' ? 'authorized' : 'rejected'} successfully` });
       setViewingItem(null);
+      await getPendingCount();
+      await loadPendingModuleItems();
       await loadData();
     } catch (error) {
-      logger.error({ caller: 'Handle item authorization', error });
+      logger.error({ caller: 'Handle item authorization', payload: error });
       toast.error('Error', {
         description: error.message || 'Unable to process this request. Kindly contact the system administrator',
       });
