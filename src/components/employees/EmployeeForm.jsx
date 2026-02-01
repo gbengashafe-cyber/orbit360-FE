@@ -351,7 +351,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
                     <SelectItem value="terminated">Terminated</SelectItem>
                     <SelectItem value="on_leave">On Leave</SelectItem>
                   </SelectContent>
