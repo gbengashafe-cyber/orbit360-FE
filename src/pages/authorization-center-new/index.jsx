@@ -269,6 +269,7 @@ export default function AuthorizationCenterWIP() {
                   isLoading={tabIsLoading}
                 />
                 <PaginationIconsOnly
+                  currentPage={pendingItemsPagination[activeTab]?.page}
                   pages={pendingItemsPagination[activeTab]?.pages || 1}
                   setRows={setRows}
                   setCurrentPage={(val) =>

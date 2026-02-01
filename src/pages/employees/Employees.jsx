@@ -252,7 +252,13 @@ export default function Employees() {
               <p className="text-sm">
                 Showing Page {currentPage} of {pages}
               </p>
-              <PaginationIconsOnly pages={pages} setRows={setRows} setCurrentPage={setCurrentPage} rows={rows} />
+              <PaginationIconsOnly
+                currentPage={currentPage}
+                pages={pages}
+                setRows={setRows}
+                setCurrentPage={setCurrentPage}
+                rows={rows}
+              />
             </CardFooter>
           </Tabs>
         </Card>

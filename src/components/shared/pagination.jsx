@@ -2,7 +2,15 @@ import { Field, FieldLabel } from '@/components/ui/field';
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export function PaginationIconsOnly({ setCurrentPage, setRows, rows, pages }) {
+export function PaginationIconsOnly({ setCurrentPage, setRows, rows, pages, currentPage }) {
+  const handlePrev = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNext = () => {
+    if (currentPage < pages) setCurrentPage(currentPage + 1);
+  };
+
   return (
     <div className="flex items-center justify-between gap-4">
       <Field orientation="horizontal" className="w-fit">
@@ -19,7 +27,7 @@ export function PaginationIconsOnly({ setCurrentPage, setRows, rows, pages }) {
           </SelectTrigger>
           <SelectContent align="start">
             <SelectGroup>
-              <SelectItem value={1}>1</SelectItem>
+              {/* <SelectItem value={1}>1</SelectItem> */}
               <SelectItem value={10}>10</SelectItem>
               <SelectItem value={25}>25</SelectItem>
               <SelectItem value={50}>50</SelectItem>
@@ -31,9 +39,15 @@ export function PaginationIconsOnly({ setCurrentPage, setRows, rows, pages }) {
       <Pagination className="mx-0 w-auto">
         <PaginationContent>
           <PaginationItem>
-            <PaginationPrevious href="#" />
+            <PaginationPrevious
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handlePrev();
+              }}
+            />{' '}
           </PaginationItem>
-          <Select defaultValue={1} onValueChange={(val) => setCurrentPage(val)}>
+          <Select value={currentPage} onValueChange={(val) => setCurrentPage(val)}>
             <SelectTrigger className="w-20" id="select-rows-per-page">
               <SelectValue />
             </SelectTrigger>
@@ -48,7 +62,13 @@ export function PaginationIconsOnly({ setCurrentPage, setRows, rows, pages }) {
             </SelectContent>
           </Select>
           <PaginationItem>
-            <PaginationNext href="#" />
+            <PaginationNext
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNext();
+              }}
+            />{' '}
           </PaginationItem>
         </PaginationContent>
       </Pagination>
