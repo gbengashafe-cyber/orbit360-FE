@@ -52,10 +52,7 @@ export const GlobalContextProvider = ({ children }) => {
 
         storeCurrentUser(userResponse?.data);
 
-        const userEmployeeData = await employeeService.getUserEmployeeData({
-          rows: 1,
-          search: userResponse.data?.email,
-        });
+        const userEmployeeData = await employeeService.getUserEmployeeData();
 
         if (userEmployeeData?.data) {
           storeCurrentEmployee(userEmployeeData?.data);

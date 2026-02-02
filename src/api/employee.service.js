@@ -31,12 +31,9 @@ export const employeeService = {
     return apiClient.get(endpoint, { signal });
   },
 
-  async getUserEmployeeData(options) {
+  async getUserEmployeeData() {
     let endpoint = ApiRoutes.employee.userEmployeeRecord;
 
-    if (options) {
-      endpoint = `${endpoint}?${makeQueryParams(options)}`;
-    }
     return apiClient.get(endpoint);
   },
 
