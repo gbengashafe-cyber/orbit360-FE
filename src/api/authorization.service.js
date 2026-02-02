@@ -3,9 +3,7 @@ import { ApiRoutes } from './apiRoutes';
 
 export const authorizationService = {
   async getPendingCount() {
-    let endpoint = ApiRoutes.pendingAuthorization.counts;
-
-    return apiClient.get(endpoint);
+    return apiClient.get(ApiRoutes.pendingAuthorization.counts);
   },
 
   async getPending(options) {

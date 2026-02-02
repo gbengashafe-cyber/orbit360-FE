@@ -7,7 +7,7 @@ import { LoanUtil } from '../cooperative/loan.utils';
 const FieldDisplay = ({ label, value, fullWidth = false }) => (
   <div className={fullWidth ? 'col-span-2' : ''}>
     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</div>
-    <div className="text-sm text-gray-900">{value || 'N/A'}</div>
+    <div className="text-sm text-gray-900">{value ?? 'N/A'}</div>
   </div>
 );
 
@@ -78,7 +78,11 @@ export default function RequestDetailsView({ item, moduleName }) {
   const renderLoan = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-6">
-        <FieldDisplay label="Employee Name" value={`${item?.employee?.firstName} ${item?.employee?.lastName}`} />
+        <FieldDisplay
+          label="Employee Name"
+          value={item?.employee ? `${item.employee.firstName} ${item.employee.lastName}` : 'N/A'}
+        />
+        <FieldDisplay label="Batch Reference" value={`${item?.batchId}`} />
         <FieldDisplay label="Employee Email" value={item.employee?.email} />
         <FieldDisplay label="Loan Amount" value={`₦${item.principalAmount?.toLocaleString()}`} />
         <FieldDisplay label="Interest Rate" value={`${item.interestRate}%`} />
@@ -90,6 +94,19 @@ export default function RequestDetailsView({ item, moduleName }) {
       </div>
       <Separator />
       <FieldDisplay label="Type" value={item.loanType} fullWidth />
+    </div>
+  );
+
+  const renderPayroll = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-6 mb-8">
+        <FieldDisplay label="Batch Reference" value={`${item?.batchId}`} />
+        <FieldDisplay label="Pay Period" value={item.payPeriod} />
+        <FieldDisplay label="Record Count" value={item.recordCount} />
+        <FieldDisplay label="Total Gross" value={`₦${item.totalGross?.toLocaleString()}`} />
+        <FieldDisplay label="Total Net" value={`₦${item.totalNet?.toLocaleString()}`} />
+        <FieldDisplay label="Status" value={<Badge className={getStatusColor(item.status)}>{item.status}</Badge>} />
+      </div>
     </div>
   );
 
@@ -252,18 +269,25 @@ export default function RequestDetailsView({ item, moduleName }) {
     </div>
   );
 
+  const RENDERERS = {
+    'Job Posting': renderJobPosting,
+    'Leave Request': renderLeaveRequest,
+    Resignation: renderResignation,
+    Redeployment: renderRedeployment,
+    'New Staff Request': renderNewStaffRequest,
+    'Training Request': renderTrainingRequest,
+    'Staff Complaint': renderStaffComplaint,
+    'Disciplinary Case': renderDisciplinaryCase,
+    Appraisal: renderAppraisal,
+  };
+
+  const renderer = RENDERERS[item.type];
+
   return (
     <div className="max-h-[70vh] overflow-y-auto px-1">
-      {item.type === 'Job Posting' && renderJobPosting()}
-      {item.type === 'Leave Request' && renderLeaveRequest()}
+      {renderer?.()}
       {moduleName === 'loans' && renderLoan()}
-      {item.type === 'Resignation' && renderResignation()}
-      {item.type === 'Redeployment' && renderRedeployment()}
-      {item.type === 'New Staff Request' && renderNewStaffRequest()}
-      {item.type === 'Training Request' && renderTrainingRequest()}
-      {item.type === 'Staff Complaint' && renderStaffComplaint()}
-      {item.type === 'Disciplinary Case' && renderDisciplinaryCase()}
-      {item.type === 'Appraisal' && renderAppraisal()}
+      {moduleName === 'payrolls' && renderPayroll()}
     </div>
   );
 }

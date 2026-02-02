@@ -134,6 +134,11 @@ export class ApiRoutes {
   static GetUploadedPayrollReports = `/v1/payrolls/uploads`;
   static DeleteUploadedPayrollReport = (id) => `/v1/payrolls/uploads/${id}`;
 
+  static payroll = {
+    approveBatch: (id) => `/v1/payrolls/${id}/approval`,
+    rejectBatch: (id) => `/v1/payrolls/${id}/rejection`,
+  };
+
   // Deductions
   static GetDeductions = '/v1/deductions';
   static GetDeductionById = (id) => `/v1/deductions/${id}`;

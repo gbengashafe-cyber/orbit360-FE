@@ -3,7 +3,6 @@ import { loanService } from '@/api/loan.service';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PENDING_STATES } from '@/constants/pendingState';
 import { useGlobalContext } from '@/state/context';
 import { logger } from '@/utils';
 import { ClipboardList, Loader2, XCircle } from 'lucide-react';
@@ -11,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { AuthorizationViewDialog } from '../authorization-center/authorization-center-dialog';
 import { TransactionsTable } from '../authorization-center/transaction-table';
+import { payrollService } from '@/api';
 
 export default function AuthorizationCenterWIP() {
   const [loading, setLoading] = useState(true);
@@ -20,12 +20,10 @@ export default function AuthorizationCenterWIP() {
   const [resignations, setResignations] = useState([]);
   const [redeployments, setRedeployments] = useState([]);
   const [newStaffRequests, setNewStaffRequests] = useState([]);
-  const [trainingRequests, setTrainingRequests] = useState([]);
   const [staffComplaints, setStaffComplaints] = useState([]);
-  const [disciplinaryCases, setDisciplinaryCases] = useState([]);
   const [appraisals, setAppraisals] = useState([]);
   const [viewingItem, setViewingItem] = useState(null);
-  const [activeTab, setActiveTab] = useState('loans');
+  const [activeModule, setActiveModule] = useState('loans');
   const [tabIsLoading, setTabIsLoading] = useState(true);
   const [authorizing, setAuthorizing] = useState(false);
   const [pendingStats, setPendingStats] = useState({ total: 0, breakdown: {} });
@@ -47,24 +45,27 @@ export default function AuthorizationCenterWIP() {
     getPendingCount();
   }, [getPendingCount]);
 
-  const currentPagination = pendingItemsPagination[activeTab]?.page || 1;
+  const currentPagination = pendingItemsPagination[activeModule]?.page || 1;
 
   const loadPendingModuleItems = useCallback(async () => {
     try {
+      if (!pendingStats.breakdown[activeModule]) {
+        return;
+      }
       setTabIsLoading(true);
-      const result = await authorizationService.getModulePending(activeTab, {
+      const result = await authorizationService.getModulePending(activeModule, {
         rows,
         page: currentPagination,
       });
-      setPendingItems((prev) => ({ ...prev, ...{ [activeTab]: result.data } }));
-      setPendingItemsPagination((prev) => ({ ...prev, ...{ [activeTab]: result.pagination } }));
+      setPendingItems((prev) => ({ ...prev, ...{ [activeModule]: result.data } }));
+      setPendingItemsPagination((prev) => ({ ...prev, ...{ [activeModule]: result.pagination } }));
     } catch (error) {
-      logger.error({ caller: `Load pending ${activeTab} items`, payload: error });
-      toast.error('Error', { description: error.message || `Unable to load pending ${activeTab} items` });
+      logger.error({ caller: `Load pending ${activeModule} items`, payload: error });
+      toast.error('Error', { description: error.message || `Unable to load pending ${activeModule} items` });
     } finally {
       setTabIsLoading(false);
     }
-  }, [activeTab, currentPagination, rows]);
+  }, [activeModule, currentPagination, pendingStats.breakdown, rows]);
 
   useEffect(() => {
     loadPendingModuleItems();
@@ -90,32 +91,6 @@ export default function AuthorizationCenterWIP() {
     }
   };
 
-  const allTransactions = [
-    ...jobPostings.map((j) => ({ ...j, type: 'Job Posting', title: j.title })),
-    ...leaveRequests.map((l) => ({ ...l, type: 'Leave Request', title: `${l.leave_type} - ${l.employee_name}` })),
-    ...loans.map((l) => ({
-      ...l,
-      type: 'Loan',
-      title: `${l.employee.firstName} - #${l.principalAmount?.toLocaleString()}`,
-    })),
-    ...resignations.map((r) => ({ ...r, type: 'Resignation', title: `Resignation - ${r.employee_name}` })),
-    ...redeployments.map((r) => ({ ...r, type: 'Redeployment', title: `Redeployment - ${r.employee_name}` })),
-    ...newStaffRequests.map((n) => ({ ...n, type: 'New Staff Request', title: `New Staff - ${n.position}` })),
-    ...trainingRequests.map((t) => ({ ...t, type: 'Training Request', title: `Training - ${t.employee_name}` })),
-    ...staffComplaints.map((c) => ({
-      ...c,
-      type: 'Staff Complaint',
-      title: `${c.complaint_type.replace('_', ' ')} - ${c.employee_name}`,
-    })),
-    ...disciplinaryCases.map((d) => ({
-      ...d,
-      type: 'Disciplinary Case',
-      title: `${d.case_number} - ${d.offense_type.replace('_', ' ')} - ${d.employee_name}`,
-    })),
-  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  const pendingTransactions = allTransactions.filter((t) => PENDING_STATES.includes(t.status?.toLowerCase()));
-
   const handleAuthorize = async (item, action, moduleName) => {
     setAuthorizing(true);
     try {
@@ -128,29 +103,16 @@ export default function AuthorizationCenterWIP() {
 
       // Update based on transaction type
       switch (moduleName) {
-        case 'Job Posting':
-          await base44.entities.JobPosting.update(item.id, updateData);
-          break;
-        case 'Leave Request':
-          await base44.entities.LeaveRequest.update(item.id, updateData);
-          break;
         case 'loans':
           action === 'approve' ? await loanService.approveLoan(item.id) : await loanService.rejectLoan(item.id);
           break;
-        case 'Resignation':
-          await base44.entities.ResignationRequest.update(item.id, updateData);
-          break;
-        case 'Redeployment':
-          await base44.entities.RedeploymentRequest.update(item.id, updateData);
-          break;
-        case 'New Staff Request':
-          await base44.entities.NewStaffRequest.update(item.id, updateData);
+        case 'payrolls':
+          action === 'approve'
+            ? await payrollService.approvePayrollBatch(item.id)
+            : await payrollService.rejectPayrollBatch(item.id);
           break;
         case 'Training Request':
           await base44.entities.TrainingRequest.update(item.id, updateData);
-          break;
-        case 'Staff Complaint':
-          await base44.entities.StaffComplaint.update(item.id, updateData);
           break;
         case 'Disciplinary Case':
           await base44.entities.DisciplinaryAction.update(item.id, {
@@ -187,7 +149,7 @@ export default function AuthorizationCenterWIP() {
           }
           break;
         default:
-          throw new Error('Authorization is not handled for this module');
+          throw new Error(`Authorization is not handled for module '${moduleName}'`);
       }
 
       toast.success('Success', { description: `${moduleName} ${action === 'approve' ? 'authorized' : 'rejected'} successfully` });
@@ -250,7 +212,7 @@ export default function AuthorizationCenterWIP() {
             <CardTitle>All Transactions & Authorizations</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeModule} onValueChange={setActiveModule}>
               <TabsList className="grid grid-flow-col justify-center gap-x-4 w-full">
                 {Object.keys(pendingStats.breakdown)?.length
                   ? Object.keys(pendingStats.breakdown).map((_module, index) => (
@@ -261,25 +223,29 @@ export default function AuthorizationCenterWIP() {
                   : null}
               </TabsList>
 
-              <TabsContent value="loans" className="grid gap-y-8 mt-6">
-                <TransactionsTable
-                  moduleName={activeTab}
-                  transactions={pendingItems[activeTab]}
-                  setViewingItem={setViewingItem}
-                  pagination={pendingItemsPagination[activeTab]}
-                  setRows={setRows}
-                  isLoading={tabIsLoading}
-                />
-                <PaginationIconsOnly
-                  currentPage={pendingItemsPagination[activeTab]?.page}
-                  pages={pendingItemsPagination[activeTab]?.pages || 1}
-                  setRows={setRows}
-                  setCurrentPage={(val) =>
-                    setPendingItemsPagination((prev) => ({ ...prev, [activeTab]: { ...prev[activeTab], page: val } }))
-                  }
-                  rows={rows}
-                />
-              </TabsContent>
+              {Object.keys(pendingStats.breakdown)?.length
+                ? Object.keys(pendingStats.breakdown).map((_module, index) => (
+                    <TabsContent value={_module} key={index} className="grid gap-y-8 mt-6">
+                      <TransactionsTable
+                        moduleName={activeModule}
+                        transactions={pendingItems[activeModule]}
+                        setViewingItem={setViewingItem}
+                        pagination={pendingItemsPagination[activeModule]}
+                        setRows={setRows}
+                        isLoading={tabIsLoading}
+                      />
+                      <PaginationIconsOnly
+                        currentPage={pendingItemsPagination[activeModule]?.page}
+                        pages={pendingItemsPagination[activeModule]?.pages || 1}
+                        setRows={setRows}
+                        setCurrentPage={(val) =>
+                          setPendingItemsPagination((prev) => ({ ...prev, [activeModule]: { ...prev[activeModule], page: val } }))
+                        }
+                        rows={rows}
+                      />
+                    </TabsContent>
+                  ))
+                : null}
             </Tabs>
           </CardContent>
         </Card>
@@ -290,7 +256,7 @@ export default function AuthorizationCenterWIP() {
           canAuthorize={canAuthorize}
           handleAuthorize={handleAuthorize}
           authorizing={authorizing}
-          moduleName={activeTab}
+          moduleName={activeModule}
         />
       </div>
     </div>

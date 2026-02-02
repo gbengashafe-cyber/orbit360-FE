@@ -37,7 +37,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
           dob: employee.dob ? format(parseISO(employee.dob), 'yyyy-MM-dd') : '',
         }
       : {
-          employeeId: '',
+          staffId: '',
           firstName: '',
           lastName: '',
           email: '',
@@ -218,11 +218,11 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Employee ID */}
             <div className="space-y-2">
-              <Label htmlFor="employeeId">Employee ID *</Label>
+              <Label htmlFor="staffId">Employee ID *</Label>
               <Input
-                id="employeeId"
-                value={formData.employeeId}
-                onChange={(e) => handleInputChange('employeeId', e.target.value)}
+                id="staffId"
+                value={formData.staffId}
+                onChange={(e) => handleInputChange('staffId', e.target.value)}
                 required
               />
             </div>

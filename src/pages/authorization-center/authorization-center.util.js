@@ -34,6 +34,12 @@ export const getTransactionProps = (transaction, moduleName) => {
       initiator = transaction?.initiator?.firstName;
       createdAt = format(new Date(transaction.createdAt), 'dd-MMM-yyyy');
       break;
+    case 'payrolls':
+      type = 'Monthly Salaries';
+      description = `Batch: ${transaction.payPeriod} | Count: ${transaction.recordCount}`;
+      initiator = `${transaction?.initiator?.firstName} ${transaction?.initiator?.lastName}`;
+      createdAt = format(new Date(transaction.createdAt), 'dd-MMM-yyyy');
+      break;
 
     default:
       break;
