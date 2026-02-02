@@ -142,7 +142,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
       annualBasicSalary: parseFloat(formData.annualBasicSalary) || 0,
       annualHousingAllowance: parseFloat(formData.annualHousingAllowance) || 0,
       annualTransportAllowance: parseFloat(formData.annualTransportAllowance) || 0,
-      annualLeaveAllowance: parseFloat(formData.annualLeaveAllowance) || 0,
+      annualLeaveAllowance: parseInt(formData.annualLeaveAllowance) || 0,
       annualOtherAllowances: parseFloat(formData.annualOtherAllowances) || 0,
       pensionApplicable: formData.pensionApplicable !== false,
       pensionRate: 8,
@@ -160,7 +160,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
 
       if (field === 'annualBasicSalary') {
         const basicSalary = parseFloat(value) || 0;
-        newFormData.annualLeaveAllowance = basicSalary * 0.1;
+        newFormData.annualLeaveAllowance = parseFloat(basicSalary * 0.1).toFixed(2);
       }
       return newFormData;
     });
