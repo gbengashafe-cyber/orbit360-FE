@@ -363,9 +363,12 @@ export default function Cooperative() {
           key={editingLoan?.id ?? 'new'}
           loan={editingLoan}
           showForm={showLoanForm}
+          setShowForm={setShowLoanForm}
           employees={employees}
           onSubmit={handleLoanSubmit}
           onCancel={() => setShowLoanForm(false)}
+          setEditingLoan={setEditingLoan}
+          loadData={loadData}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -427,7 +430,7 @@ export default function Cooperative() {
                     <TableCell>{new Date(loan.startDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(loan.endDate).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(loan.status)}>{loan.status.replace('_', ' ')}</Badge>
+                      <Badge className={getStatusColor(loan.status?.toLowerCase())}>{loan.status.replace('_', ' ')}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">

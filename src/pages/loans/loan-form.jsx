@@ -1,5 +1,6 @@
 import { employeeService } from '@/api';
 import { useDebounce } from '@/api/apiClient';
+import { loanService } from '@/api/loan.service';
 import { LoanUtil } from '@/components/cooperative/loan.utils';
 import Combobox from '@/components/shared/combobox';
 import { Button } from '@/components/ui/button';
@@ -10,16 +11,18 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { logger } from '@/utils';
 import { CanceledError } from 'axios';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-export const LoanForm = ({ showForm, onCancel, onSubmit, loan }) => {
+export const LoanForm = ({ showForm, setShowForm, onCancel, onSubmit, loan, setEditingLoan, loadData }) => {
   const [query, setQuery] = useState('');
   const [employees, setEmployees] = useState([]);
   const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [formData, setFormData] = useState({
     employeeId: loan?.employeeId || '',
     loanType: loan?.loanType || 'personal',
@@ -104,6 +107,35 @@ export const LoanForm = ({ showForm, onCancel, onSubmit, loan }) => {
     onSubmit(submissionData);
   };
 
+  const handleLoanSubmit = async (e) => {
+    try {
+      e.preventDefault();
+      const submissionData = {
+        ...formData,
+        principalAmount: parseFloat(formData.principalAmount),
+        interestRate: parseFloat(formData.interestRate),
+        tenureMonths: parseInt(formData.tenureMonths),
+        monthlyDeduction: calculations.monthlyDeduction,
+        totalRepayment: calculations.totalRepayment,
+        startDate: format(formData.startDate, 'yyyy-MM-dd'),
+        endDate: calculations.endDate ? format(calculations.endDate, 'yyyy-MM-dd') : null,
+        approverRole: formData.approverRole,
+      };
+
+      if (loan) {
+        await loanService.updateLoan(loan.id, submissionData);
+      } else {
+        await loanService.createLoan(submissionData);
+      }
+      setShowForm(false);
+      setEditingLoan(null);
+      loadData();
+    } catch (error) {
+      logger.error({ caller: 'Error saving loan:', payload: error });
+      setSubmitError(error.message || 'Unable to complete your request. Kindly contact the system admin');
+    }
+  };
+
   return (
     <Dialog open={showForm} onOpenChange={onCancel}>
       <DialogContent className="max-w-lg max-h-[90%] overflow-y-auto overscroll-contain">
@@ -111,7 +143,7 @@ export const LoanForm = ({ showForm, onCancel, onSubmit, loan }) => {
           <DialogTitle>{loan ? 'Edit Loan' : 'Create New Loan'}</DialogTitle>
           <DialogDescription className="sr-only">View or create loan record</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleLoanSubmit} className="space-y-4">
           {/* Employee */}
           <div className="space-y-2 flex flex-col">
             <Label htmlFor="employeeId">Employee *</Label>
@@ -258,6 +290,8 @@ export const LoanForm = ({ showForm, onCancel, onSubmit, loan }) => {
             <Label htmlFor="notes">Notes</Label>
             <Textarea id="notes" value={formData.notes} onChange={(e) => handleInputChange('notes', e.target.value)} />
           </div>
+
+          {submitError ? <div className="flex gap-3 py-2 px-3 rounded-lg text-red-800 bg-red-100">{submitError}</div> : null}
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>
