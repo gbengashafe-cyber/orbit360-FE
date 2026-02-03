@@ -95,12 +95,17 @@ export const GlobalContextProvider = ({ children }) => {
     setCurrentEmployee(employee);
   };
 
+  const isLoggedIn = () => {
+    return Object.keys(loadDataFromLocalStorage(localStorageKeys.ACCESS_TOKEN)).length;
+  };
+
   const value = {
     currentUser,
     currentEmployee,
     isMD,
     isAdmin,
     isLoadingUser,
+    isLoggedIn,
   };
 
   return <GlobalContext.Provider value={value}>{children}</GlobalContext.Provider>;

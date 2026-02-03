@@ -1,11 +1,18 @@
 import { APIWithoutAuth } from '@/api/apiClient';
 import { ApiRoutes } from '@/api/apiRoutes';
 import { Input } from '@/components/ui/input';
-import { LocalStorageUtil } from '@/utils/local-storage.util';
+import { useGlobalContext } from '@/state/context';
+import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
 import { useState } from 'react';
 
 const LoginPage = () => {
   const [error, setError] = useState(null);
+
+  const { isLoggedIn } = useGlobalContext();
+
+  if (!isLoggedIn) {
+    window.location.href = '/dashboard';
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,7 +23,7 @@ const LoginPage = () => {
       const password = e.target.password.value;
 
       const response = await APIWithoutAuth.post(ApiRoutes.Login, { email, password });
-      LocalStorageUtil.save(response.data.accessToken, 'orbit360-access-token');
+      LocalStorageUtil.save(response.data.accessToken, localStorageKeys.ACCESS_TOKEN);
 
       window.location.href = '/dashboard';
     } catch (error) {
@@ -139,7 +146,6 @@ const LoginPage = () => {
                           type="password"
                           className="flex w-full border px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-10 h-11 sm:h-12 bg-slate-50/50 border-slate-200 focus:border-slate-400 focus:ring-slate-400 rounded-xl placeholder:text-slate-400"
                           id="password"
-                          autoComplete
                           placeholder="•••••••••••••••••"
                           required
                         />
