@@ -11,11 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useGlobalContext } from '@/state/context';
+import { logger } from '@/utils';
 import { Banknote, Download, Plus, RefreshCw, ThumbsDown, ThumbsUp, Trash2, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { LoanForm } from './loans/loan-form';
-import { logger } from '@/utils';
 import { toast } from 'sonner';
+import { LoanForm } from './loans/loan-form';
 
 const LoanApprovalCard = ({ loans, onApprove, onReject, loading }) => {
   if (loans.length === 0) return null;
@@ -84,6 +84,7 @@ export default function Cooperative() {
   const [loanToReject, setLoanToReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [totalLoaned, setTotalLoaned] = useState(0);
+  const [paidOff, setPaidOff] = useState(0);
   const [activeLoans, setActiveLoaned] = useState(0);
 
   const { currentUser } = useGlobalContext();
@@ -102,6 +103,7 @@ export default function Cooperative() {
       ]);
 
       setTotalLoaned(loanDashboard.data.activeLoanSum || 0);
+      setPaidOff(loanDashboard.data.paidOffLoans || 0);
       setActiveLoaned(loanDashboard.data.activeLoans || 0);
 
       const enrichedLoans = loansData.data.map((loan) => {
@@ -396,7 +398,7 @@ export default function Cooperative() {
               <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{loans.filter((l) => l.status === 'paid_off').length}</div>
+              <div className="text-2xl font-bold">{paidOff}</div>
             </CardContent>
           </Card>
         </div>
