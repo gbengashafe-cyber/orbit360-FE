@@ -35,8 +35,8 @@ export default function MyPayslips() {
             setPayrollRecords(records.data);
           }
         } else {
-          if (currentUser?.employee?.id) {
-            const records = await employeeService.getEmployeePayrollRecords(currentUser?.employee?.id);
+          if (currentUser?.employeeData?.id) {
+            const records = await employeeService.getEmployeePayrollRecords(currentUser?.employeeData?.id);
             setPayrollRecords(records.data);
           } else {
             console.log('No employee record found for this user.');
@@ -49,7 +49,7 @@ export default function MyPayslips() {
       }
     };
     loadAllData();
-  }, [showEmployeeList, currentUser?.employee?.id]);
+  }, [showEmployeeList, currentUser?.employeeData?.id]);
 
   const handleEmployeeChange = async (id) => {
     try {
@@ -79,7 +79,7 @@ export default function MyPayslips() {
     );
   }
 
-  if (!currentUser?.employee?.id) {
+  if (!currentUser?.employeeData?.id) {
     return (
       <div className="p-8 text-center text-gray-600">
         <h2 className="text-xl font-semibold">No Employee Data Found</h2>
