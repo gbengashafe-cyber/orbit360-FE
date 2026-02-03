@@ -1,7 +1,8 @@
 import { employeeService, userService } from '@/api';
 import { logger } from '@/utils';
 import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router';
 import { toast } from 'sonner';
 
 const GlobalContext = createContext({});
@@ -22,6 +23,7 @@ const loadDataFromLocalStorage = (key) => {
   const isExpired = (now - lastFetched) / 1000 > SAVED_DATA_EXPIRY_IN_SECONDS;
 
   if (isExpired) {
+    LocalStorageUtil.delete(key);
     return {};
   }
 
@@ -31,81 +33,96 @@ const loadDataFromLocalStorage = (key) => {
 export const GlobalContextProvider = ({ children }) => {
   const [isMD, setIsMD] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [currentEmployee, setCurrentEmployee] = useState(() => {
-    return loadDataFromLocalStorage(localStorageKeys.CURRENT_EMPLOYEE);
+  const [isLoadingUser, setIsLoadingUser] = useState(() => {
+    const cached = loadDataFromLocalStorage(localStorageKeys.CURRENT_USER);
+    return !cached?.lastFetched;
   });
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [currentUser, setCurrentUser] = useState(() => {
     return loadDataFromLocalStorage(localStorageKeys.CURRENT_USER);
   });
 
+  const hasLoadedRef = useRef(false);
+  const location = useLocation();
+
   useEffect(() => {
-    const location = window.location.pathname;
-    if (['/login'].includes(location)) {
+    if (currentUser?.employeeData?.jobRole) {
+      setIsMD(currentUser.employeeData.jobRole === 'Managing Director');
+    }
+    if (currentUser?.role) {
+      setIsAdmin(currentUser.role.toUpperCase() === 'ADMIN');
+    }
+  }, [currentUser?.employeeData?.jobRole, currentUser?.role]);
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/login')) {
       return;
     }
+
+    if (hasLoadedRef.current || currentUser?.lastFetched) {
+      setIsLoadingUser(false);
+      return;
+    }
+
+    let isCancelled = false;
 
     const loadCurrentUser = async () => {
       try {
         setIsLoadingUser(true);
         const userResponse = await userService.getCurrentUser();
-
-        storeCurrentUser(userResponse?.data);
+        if (isCancelled) return;
 
         const userEmployeeData = await employeeService.getUserEmployeeData();
+        if (isCancelled) return;
 
         if (userEmployeeData?.data) {
-          storeCurrentEmployee(userEmployeeData?.data);
+          const enrichedUser = { ...userResponse?.data, employeeData: userEmployeeData?.data };
+          storeCurrentUser(enrichedUser);
+
           const isMDUser = userEmployeeData?.data?.jobRole === 'Managing Director';
           const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
 
           setIsAdmin(isAdmin);
           setIsMD(isMDUser);
+        } else {
+          storeCurrentUser(userResponse?.data);
         }
+
+        hasLoadedRef.current = true;
       } catch (error) {
+        if (isCancelled) return;
         logger.error({ caller: 'Loading current user', payload: error });
         toast.error('Error loading current user', {
-          description: `${error.message ? error.message : 'Failed to load user profile.'}`,
+          description: error.message ?? 'Failed to load user profile.',
         });
       } finally {
-        setIsLoadingUser(false);
+        if (!isCancelled) {
+          setIsLoadingUser(false);
+        }
       }
     };
 
     loadCurrentUser();
 
     return () => {
-      setCurrentUser({});
-      setIsMD(false);
-      setIsAdmin(false);
+      isCancelled = true;
     };
-  }, []);
+  }, [location.pathname]);
 
   const storeCurrentUser = (user) => {
-    user.lastFetched = new Date();
+    const userWithTimestamp = {
+      ...user,
+      lastFetched: new Date(),
+    };
 
-    LocalStorageUtil.save(user, localStorageKeys.CURRENT_USER);
-    setCurrentUser(user);
-  };
-
-  const storeCurrentEmployee = (employee) => {
-    employee.lastFetched = new Date();
-
-    LocalStorageUtil.save(employee, localStorageKeys.CURRENT_EMPLOYEE);
-    setCurrentEmployee(employee);
-  };
-
-  const isLoggedIn = () => {
-    return Object.keys(loadDataFromLocalStorage(localStorageKeys.ACCESS_TOKEN)).length;
+    LocalStorageUtil.save(userWithTimestamp, localStorageKeys.CURRENT_USER);
+    setCurrentUser(userWithTimestamp);
   };
 
   const value = {
     currentUser,
-    currentEmployee,
     isMD,
     isAdmin,
     isLoadingUser,
-    isLoggedIn,
   };
 
   return <GlobalContext.Provider value={value}>{children}</GlobalContext.Provider>;

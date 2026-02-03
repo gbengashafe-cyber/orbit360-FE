@@ -6,9 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useGlobalContext } from '@/state/context';
 import { Loader2, Printer, Receipt } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router';
 import { toast } from 'sonner';
 import Payslip from '../components/payroll/Payslip';
-import { useLocation } from 'react-router';
 
 export default function MyPayslips() {
   const [employeeData, setEmployeeData] = useState(null);
@@ -17,7 +17,7 @@ export default function MyPayslips() {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [allEmployees, setAllEmployees] = useState([]);
 
-  const { currentUser, currentEmployee } = useGlobalContext();
+  const { currentUser } = useGlobalContext();
   const location = useLocation();
 
   const showEmployeeList = location.pathname === '/payslips';
@@ -35,8 +35,8 @@ export default function MyPayslips() {
             setPayrollRecords(records.data);
           }
         } else {
-          if (currentEmployee?.id) {
-            const records = await employeeService.getEmployeePayrollRecords(currentEmployee?.id);
+          if (currentUser?.employee?.id) {
+            const records = await employeeService.getEmployeePayrollRecords(currentUser?.employee?.id);
             setPayrollRecords(records.data);
           } else {
             console.log('No employee record found for this user.');
@@ -49,7 +49,7 @@ export default function MyPayslips() {
       }
     };
     loadAllData();
-  }, [showEmployeeList, currentEmployee?.id]);
+  }, [showEmployeeList, currentUser?.employee?.id]);
 
   const handleEmployeeChange = async (id) => {
     try {
@@ -79,7 +79,7 @@ export default function MyPayslips() {
     );
   }
 
-  if (!currentEmployee?.id) {
+  if (!currentUser?.employee?.id) {
     return (
       <div className="p-8 text-center text-gray-600">
         <h2 className="text-xl font-semibold">No Employee Data Found</h2>

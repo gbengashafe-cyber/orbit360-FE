@@ -1,18 +1,20 @@
 import { APIWithoutAuth } from '@/api/apiClient';
 import { ApiRoutes } from '@/api/apiRoutes';
 import { Input } from '@/components/ui/input';
-import { useGlobalContext } from '@/state/context';
 import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { isLoggedIn } from '..';
 
 const LoginPage = () => {
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  const { isLoggedIn } = useGlobalContext();
-
-  if (!isLoggedIn) {
-    window.location.href = '/dashboard';
-  }
+  useEffect(() => {
+    if (isLoggedIn()) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,9 +25,11 @@ const LoginPage = () => {
       const password = e.target.password.value;
 
       const response = await APIWithoutAuth.post(ApiRoutes.Login, { email, password });
-      LocalStorageUtil.save(response.data.accessToken, localStorageKeys.ACCESS_TOKEN);
 
-      window.location.href = '/dashboard';
+      LocalStorageUtil.save(response.data.data.expiresAt * 1000, localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
+      LocalStorageUtil.save(response.data.data.accessToken, localStorageKeys.ACCESS_TOKEN);
+
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       setError(error.response.data?.message || 'Login failed. kindly contact the administrator for support');
     }

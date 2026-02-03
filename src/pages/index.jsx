@@ -1,4 +1,5 @@
-import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
+import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
+import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
 import Analytics from './Analytics';
 import Appraisals from './Appraisals';
 import AuthorizationCenter from './authorization-center';
@@ -124,7 +125,7 @@ const PAGES = {
 
   FinancialReports: FinancialReports,
 
-  Login: LoginPage,
+  login: LoginPage,
   AuthorizationCenterWIP,
 };
 
@@ -148,11 +149,12 @@ function PagesContent() {
   return (
     <Layout currentPageName={currentPage}>
       <Routes>
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Dashboard />} />
 
         <Route path="/Dashboard" element={<Dashboard />} />
-        <Route path="/authorization-center" element={<AuthorizationCenter />} />
-        <Route path="/authorization-center-wip" element={<AuthorizationCenterWIP />} />
+        <Route path="/authorization-center-old" element={<AuthorizationCenter />} />
+        <Route path="/authorization-center" element={<AuthorizationCenterWIP />} />
 
         <Route path="/ClientAuth" element={<ClientAuth />} />
 
@@ -239,7 +241,40 @@ function PagesContent() {
 export default function Pages() {
   return (
     <Router>
-      <PagesContent />
+      <RequireAuth>
+        <PagesContent />
+      </RequireAuth>
     </Router>
   );
 }
+
+export const isLoggedIn = () => {
+  try {
+    const expiresAt = LocalStorageUtil.get(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
+    const accessToken = LocalStorageUtil.get(localStorageKeys.ACCESS_TOKEN);
+
+    if (!accessToken || !expiresAt) return false;
+
+    if (expiresAt && Date.now() > expiresAt) {
+      LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
+      LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
+      return false;
+    }
+
+    return true;
+  } catch {
+    LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
+    LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
+    return false;
+  }
+};
+
+const RequireAuth = ({ children }) => {
+  const location = useLocation();
+
+  if (!isLoggedIn()) {
+    <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+};

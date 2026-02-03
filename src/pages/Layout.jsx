@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from '@/components/ui/sidebar';
-import { useGlobalContext } from '@/state/context';
+import { GlobalContextProvider, useGlobalContext } from '@/state/context';
 import { createPageUrl } from '@/utils';
 import {
   BadgePercent,
@@ -44,14 +44,15 @@ import {
   Users2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router';
+import { Link, Navigate, useLocation } from 'react-router';
 import EmployeeGate from '../components/EmployeeGate';
 import Logo from '../components/Logo';
-import { LocalStorageUtil } from '../utils/local-storage.util';
+import { localStorageKeys, LocalStorageUtil } from '../utils/local-storage.util';
+import { isLoggedIn } from '.';
 
 const hrNav = [
-  { title: 'Authorization Center', url: createPageUrl('AuthorizationCenter'), icon: ClipboardList },
-  { title: 'Authorization Center (wip)', url: createPageUrl('authorization-center-wip'), icon: ClipboardList },
+  // { title: 'Authorization Center', url: createPageUrl('AuthorizationCenter'), icon: ClipboardList },
+  { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
   { title: 'Employees', url: createPageUrl('Employees'), icon: Users2 },
   { title: 'Payroll', url: createPageUrl('Payroll'), icon: Banknote },
   { title: 'Payslips', url: createPageUrl('payslips'), icon: FileText },
@@ -99,6 +100,8 @@ const LayoutContent = ({ children }) => {
     setIsAdminNavOpen(adminNav.some((item) => path === item.url));
   }, [location.pathname]);
 
+  if (!isLoggedIn()) return <Navigate to="/login" replace />;
+
   const MATERIAL_COLORS = {
     primary: '#1976D2',
     surface: '#FFFFFF',
@@ -107,7 +110,8 @@ const LayoutContent = ({ children }) => {
 
   const handleLogout = async () => {
     await userService.logout();
-    LocalStorageUtil.delete('orbit360-access-token');
+    LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
+    LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
     window.location.href = '/login';
   };
 
@@ -267,14 +271,16 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <EmployeeGate>
-      <SidebarProvider
-        style={{
-          '--sidebar-width': '18rem',
-          '--sidebar-width-mobile': '20rem',
-        }}
-      >
-        <LayoutContent>{children}</LayoutContent>
-      </SidebarProvider>
+      <GlobalContextProvider>
+        <SidebarProvider
+          style={{
+            '--sidebar-width': '18rem',
+            '--sidebar-width-mobile': '20rem',
+          }}
+        >
+          <LayoutContent>{children}</LayoutContent>
+        </SidebarProvider>
+      </GlobalContextProvider>
     </EmployeeGate>
   );
 }

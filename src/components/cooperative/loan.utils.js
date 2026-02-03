@@ -11,7 +11,7 @@ export class LoanUtil {
     const totalRepayment = principal + totalInterest;
     const monthlyDeduction = totalRepayment / tenure;
 
-    const endDate = addMonths(new Date(startDate), tenureMonths);
+    const endDate = addMonths(new Date(startDate), tenure);
 
     return { monthlyDeduction, totalRepayment, totalInterest, endDate };
   };
