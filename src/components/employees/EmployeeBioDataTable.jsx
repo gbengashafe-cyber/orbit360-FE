@@ -2,9 +2,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
 import { Edit, Mail, MoreHorizontal, Users, UserX } from 'lucide-react';
 
-export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, getStatusColor, onResendInstructions }) => {
+export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onResendInstructions }) => {
   return (
     <div className="overflow-x-auto">
       <Table>

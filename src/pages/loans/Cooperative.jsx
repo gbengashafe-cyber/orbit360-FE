@@ -11,11 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useGlobalContext } from '@/state/context';
-import { logger } from '@/utils';
 import { Banknote, Download, Plus, RefreshCw, ThumbsDown, ThumbsUp, Trash2, TrendingUp, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { LoanForm } from './loan-form';
+import { logger } from '@/utils';
 import { toast } from 'sonner';
-import { LoanForm } from './loans/loan-form';
 
 const LoanApprovalCard = ({ loans, onApprove, onReject, loading }) => {
   if (loans.length === 0) return null;
@@ -84,16 +84,11 @@ export default function Cooperative() {
   const [loanToReject, setLoanToReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [totalLoaned, setTotalLoaned] = useState(0);
-  const [paidOff, setPaidOff] = useState(0);
   const [activeLoans, setActiveLoaned] = useState(0);
 
   const { currentUser } = useGlobalContext();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [loanDashboard, loansData, employeesData] = await Promise.all([
@@ -103,7 +98,6 @@ export default function Cooperative() {
       ]);
 
       setTotalLoaned(loanDashboard.data.activeLoanSum || 0);
-      setPaidOff(loanDashboard.data.paidOffLoans || 0);
       setActiveLoaned(loanDashboard.data.activeLoans || 0);
 
       const enrichedLoans = loansData.data.map((loan) => {
@@ -125,11 +119,16 @@ export default function Cooperative() {
         setPendingApprovals(pending);
       }
     } catch (error) {
-      console.error('Error loading cooperative data:', error);
+      logger.error({ caller: 'Load loan data', error });
+      toast.error('Error', { description: error.message || 'Error loading loans' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleDeleteLoan = async (loanId) => {
     if (window.confirm('Are you sure you want to delete this loan? This action cannot be undone.')) {
@@ -234,18 +233,12 @@ export default function Cooperative() {
       setEditingLoan(null);
       loadData();
     } catch (error) {
-      logger.error({ caller: 'Error saving loan:', payload: error });
-      toast.error('Error', { description: error.message || 'Unable to complete your request. Kindly contact the system admin' });
+      console.error('Error saving loan:', error);
     }
   };
 
   const handleEdit = (loan) => {
     setEditingLoan(loan);
-    setShowLoanForm(true);
-  };
-
-  const handleCreate = () => {
-    setEditingLoan(null);
     setShowLoanForm(true);
   };
 
@@ -256,15 +249,15 @@ export default function Cooperative() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active':
+      case 'ACTIVE':
         return 'bg-green-200 text-green-700';
-      case 'paid_off':
+      case 'PAID_OFF':
         return 'bg-blue-100 text-blue-700';
-      case 'pending_approval':
+      case 'PENDING_APPROVAL':
         return 'bg-yellow-100 text-yellow-700';
-      case 'pending_disbursement':
+      case 'PENDING_DISBURSEMENT':
         return 'bg-green-100 text-yellow-700';
-      case 'rejected':
+      case 'REJECTED':
         return 'bg-red-100 text-red-700';
       default:
         return 'bg-gray-100 text-gray-700';
@@ -340,16 +333,17 @@ export default function Cooperative() {
               <p className="text-gray-600">Manage employee loans and deductions.</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className=" flex gap-2">
             <Button variant="outline" size="icon" onClick={loadData}>
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
+
             <Button
-              className="bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-lg shadow-blue-700/25"
-              onClick={handleCreate}
+              variant="blue"
+              onClick={() => setShowLoanForm(true)}
+              className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Loan
+              <Plus className="w-4 h-4" /> Create Loan
             </Button>
           </div>
         </div>
@@ -359,18 +353,6 @@ export default function Cooperative() {
           onApprove={handleApproveLoan}
           onReject={setLoanToReject}
           loading={actionLoading}
-        />
-
-        <LoanForm
-          key={editingLoan?.id ?? 'new'}
-          loan={editingLoan}
-          showForm={showLoanForm}
-          setShowForm={setShowLoanForm}
-          employees={employees}
-          onSubmit={handleLoanSubmit}
-          onCancel={() => setShowLoanForm(false)}
-          setEditingLoan={setEditingLoan}
-          loadData={loadData}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -398,7 +380,7 @@ export default function Cooperative() {
               <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{paidOff}</div>
+              <div className="text-2xl font-bold">{loans.filter((l) => l.status === 'paid_off').length}</div>
             </CardContent>
           </Card>
         </div>
@@ -432,7 +414,9 @@ export default function Cooperative() {
                     <TableCell>{new Date(loan.startDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(loan.endDate).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(loan.status?.toLowerCase())}>{loan.status.replace('_', ' ')}</Badge>
+                      <Badge className={`${getStatusColor(loan?.status?.toUpperCase())} capitalize`}>
+                        {loan.status.replace('_', ' ')}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -472,7 +456,7 @@ export default function Cooperative() {
         open={!!loanToReject}
         onOpenChange={() => {
           setLoanToReject(null);
-          setRejectionReason('');
+          setRejectionReason(''); // Clear reason on dialog close
         }}
       >
         <DialogContent>
@@ -507,6 +491,14 @@ export default function Cooperative() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <LoanForm
+        showForm={showLoanForm}
+        setShowForm={setShowLoanForm}
+        editingLoan={editingLoan}
+        onSubmit={handleLoanSubmit}
+        employees={employees}
+      />
     </div>
   );
 }

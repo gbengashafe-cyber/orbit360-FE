@@ -1,26 +1,15 @@
-import React, { useState } from 'react';
+import { leaveService } from '@/api';
 import { Button } from '@/components/ui/button';
+import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import { leaveService } from '@/api';
+import { logger } from '@/utils';
 import { showToast } from '@/utils/toast';
-import {
-  DialogFooter,
-  DialogClose
-} from "@/components/ui/dialog";
+import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
 
-const LEAVE_TYPES = [
-  'vacation',
-  'sick',
-  'personal',
-  'maternity',
-  'paternity',
-  'bereavement',
-  'unpaid',
-  'other'
-];
+const LEAVE_TYPES = ['vacation', 'sick', 'personal', 'maternity', 'paternity', 'bereavement', 'unpaid', 'other'];
 
 export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
   const [formData, setFormData] = useState({
@@ -28,19 +17,23 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
     type: '',
     startDate: '',
     endDate: '',
-    reason: ''
+    reason: '',
   });
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    setFormError('');
+
     if (!formData.employeeId || !formData.type || !formData.startDate || !formData.endDate) {
-      showToast.error('Please fill in all required fields', 'Validation Error');
+      setFormError('Please fill in all required fields', 'Validation Error');
+
       return;
     }
 
@@ -51,7 +44,7 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
         type: formData.type,
         startDate: formData.startDate,
         endDate: formData.endDate,
-        reason: formData.reason
+        reason: formData.reason,
       });
 
       setFormData({
@@ -59,14 +52,14 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
         type: '',
         startDate: '',
         endDate: '',
-        reason: ''
+        reason: '',
       });
 
       showToast.success('Leave request submitted successfully!', 'Success');
       onSubmit(response);
     } catch (error) {
-      console.error('Error submitting leave request:', error);
-      showToast.error(error.response?.data?.message || error.message || 'Failed to submit leave request', 'Error');
+      logger.error({ caller: 'Error submitting leave request', payload: error });
+      setFormError(error.response?.data?.message || error.message || 'Failed to submit leave request');
     } finally {
       setLoading(false);
     }
@@ -81,9 +74,9 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
             <SelectValue placeholder="Select an employee..." />
           </SelectTrigger>
           <SelectContent>
-            {employees?.map(emp => (
+            {employees?.map((emp) => (
               <SelectItem key={emp.id} value={String(emp.id)}>
-                {(emp.firstName || emp.first_name)} {(emp.lastName || emp.last_name)}
+                {emp.firstName || emp.first_name} {emp.lastName || emp.last_name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -97,7 +90,7 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
             <SelectValue placeholder="Select leave type..." />
           </SelectTrigger>
           <SelectContent>
-            {LEAVE_TYPES.map(type => (
+            {LEAVE_TYPES.map((type) => (
               <SelectItem key={type} value={type}>
                 {type.charAt(0).toUpperCase() + type.slice(1)}
               </SelectItem>
@@ -108,9 +101,9 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
 
       <div>
         <Label htmlFor="startDate">Start Date *</Label>
-        <Input 
-          id="startDate" 
-          type="date" 
+        <Input
+          id="startDate"
+          type="date"
           value={formData.startDate}
           onChange={(e) => handleInputChange('startDate', e.target.value)}
           required
@@ -119,9 +112,9 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
 
       <div>
         <Label htmlFor="endDate">End Date *</Label>
-        <Input 
-          id="endDate" 
-          type="date" 
+        <Input
+          id="endDate"
+          type="date"
           value={formData.endDate}
           onChange={(e) => handleInputChange('endDate', e.target.value)}
           required
@@ -130,9 +123,9 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
 
       <div>
         <Label htmlFor="reason">Reason</Label>
-        <textarea 
-          id="reason" 
-          rows="3" 
+        <textarea
+          id="reason"
+          rows="3"
           value={formData.reason}
           onChange={(e) => handleInputChange('reason', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -142,7 +135,9 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
         </DialogClose>
         <Button type="submit" disabled={loading}>
           {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}

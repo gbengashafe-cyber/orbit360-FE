@@ -7,11 +7,11 @@ export class LoanUtil {
     const annualInterest = parseFloat(interestRate) / 100;
     const tenure = parseInt(tenureMonths);
 
-    const totalInterest = principal * annualInterest * (tenure / 12);
+    const totalInterest = principal * annualInterest;
     const totalRepayment = principal + totalInterest;
     const monthlyDeduction = totalRepayment / tenure;
 
-    const endDate = addMonths(new Date(startDate), tenureMonths);
+    const endDate = addMonths(new Date(startDate), tenure);
 
     return { monthlyDeduction, totalRepayment, totalInterest, endDate };
   };

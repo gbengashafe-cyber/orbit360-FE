@@ -10,18 +10,42 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogDescription,
+    DialogFooter,
+} from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, Plus, FileText, Clock, CheckCircle, XCircle, Briefcase, User, Info, UserCheck, AlertCircle, Upload, Paperclip, Loader2 } from 'lucide-react';
+import {
+    Calendar,
+    Plus,
+    FileText,
+    Clock,
+    CheckCircle,
+    XCircle,
+    Briefcase,
+    User,
+    Info,
+    UserCheck,
+    AlertCircle,
+    Upload,
+    Paperclip,
+    Loader2,
+} from 'lucide-react';
 import PropTypes from 'prop-types';
+import { logger } from '@/utils';
 
 const FileUploader = ({ files, setFiles, title, description, id }) => {
     const handleFileChange = (e) => {
-        setFiles(prev => [...prev, ...Array.from(e.target.files)]);
+        setFiles((prev) => [...prev, ...Array.from(e.target.files)]);
     };
 
     const removeFile = (index) => {
-        setFiles(prev => prev.filter((_, i) => i !== index));
+        setFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
     const formatFileSize = (bytes) => {
@@ -47,11 +71,19 @@ const FileUploader = ({ files, setFiles, title, description, id }) => {
                             <div className="flex items-center gap-2 overflow-hidden">
                                 <Paperclip className="w-4 h-4 text-gray-500 flex-shrink-0" />
                                 <div className="truncate">
-                                    <p className="text-sm font-medium truncate" title={file.name}>{file.name}</p>
+                                    <p className="text-sm font-medium truncate" title={file.name}>
+                                        {file.name}
+                                    </p>
                                     <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
                                 </div>
                             </div>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removeFile(file.name)} className="text-red-500 hover:text-red-700 h-6 w-6">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeFile(file.name)}
+                                className="text-red-500 hover:text-red-700 h-6 w-6"
+                            >
                                 <XCircle className="w-4 h-4" />
                             </Button>
                         </div>
@@ -71,7 +103,6 @@ FileUploader.propTypes = {
 };
 
 export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, leaveBalance: preLoadedBalance }) {
-
     const [leaveRequests, setLeaveRequests] = useState(preLoadedLeaves || []);
     const [employees, setEmployees] = useState([]);
     const [leaveBalance, setLeaveBalance] = useState(preLoadedBalance || 0);
@@ -96,28 +127,33 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         handover_notes: '',
         covering_employee_id: '',
         selected_supervisor_id: '',
-        supervisor_department: ''
+        supervisor_department: '',
     });
 
-    const calculateLeaveBalance = React.useCallback((requests) => {
-        // Calculate used days using business days (excluding weekends)
-        const approvedAnnualLeave = requests
-            .filter(r => r.status === 'approved' && (r.type === 'vacation' || r.type === 'annual'))
-            .reduce((acc, curr) => {
-                const days = calculateBusinessDays(curr.startDate || curr.start_date, curr.endDate || curr.end_date, curr.leave_period);
-                return acc + days;
-            }, 0);
-        const entitlement = employee?.annual_leave_entitlement || 20;
-        const remaining = entitlement - approvedAnnualLeave;
-        setLeaveBalance(Math.max(0, remaining));
-    }, [employee?.annual_leave_entitlement]);
+    const [formError, setFormError] = useState('');
+
+    // FIXED: Calculate leave balance using business days (excluding weekends)
+    const calculateLeaveBalance = React.useCallback(
+        (requests) => {
+            const approvedAnnualLeave = requests
+                .filter((r) => r.status === 'approved' && (r.type === 'vacation' || r.type === 'annual'))
+                .reduce((acc, curr) => {
+                    const days = calculateBusinessDays(curr.startDate || curr.start_date, curr.endDate || curr.end_date, curr.leave_period);
+                    return acc + days;
+                }, 0);
+            const entitlement = employee?.annual_leave_entitlement || 20;
+            const remaining = entitlement - approvedAnnualLeave;
+            setLeaveBalance(Math.max(0, remaining));
+        },
+        [employee?.annual_leave_entitlement],
+    );
 
     const loadData = React.useCallback(async () => {
         setLoading(true);
         try {
             const [leavesData, allEmployeesData] = await Promise.all([
                 leaveService.getLeaves(1, 100),
-                employeeService.getEmployees({ page: 1, rows: 100 })
+                employeeService.getEmployees({ page: 1, rows: 100 }),
             ]);
 
             const requests = leavesData?.data || leavesData || [];
@@ -140,33 +176,35 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         loadData();
     }, [loadData]);
 
+    // FIXED: Use business days calculator that excludes weekends
     const calculateDays = (startDate, endDate, period) => {
-        // Use the business days calculator that excludes weekends
         return calculateBusinessDays(startDate, endDate, period);
     };
 
+    // FIXED: Enhanced form submission with leave type formatting and proper validation
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setFormError('');
 
         // Validate leave type is selected
         if (!formData.leave_type) {
-            showToast.error('Please select a leave type', 'Validation Error');
+            setFormError('Please select a leave type');
             return;
         }
 
         const daysRequested = calculateDays(formData.start_date, formData.end_date, formData.leave_period);
 
-        // Only check balance for leave types that count against entitlement (annual/vacation)
+        // Only check balance for leave types with entitlement
         const leaveTypesWithBalance = ['annual', 'vacation'];
         if (leaveTypesWithBalance.includes(formData.leave_type) && daysRequested > leaveBalance) {
-            showToast.error(`Insufficient leave balance. Available: ${leaveBalance} days, Requested: ${daysRequested} days.`, 'Error');
+            setFormError(`Insufficient leave balance. Available: ${leaveBalance} days, Requested: ${daysRequested} days.`);
             return;
         }
 
         setIsSubmitting(true);
 
         try {
-            // Format leave type to ensure it matches API expectations
+            // Format leave type to match API expectations
             const leaveType = formatLeaveType(formData.leave_type);
 
             const leaveData = {
@@ -175,7 +213,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                 startDate: formData.start_date,
                 endDate: formData.end_date,
                 reason: formData.reason,
-                leave_period: formData.leave_period
+                leave_period: formData.leave_period,
             };
 
             const response = await leaveService.createLeave(leaveData);
@@ -191,8 +229,8 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             loadData();
             if (onUpdate) onUpdate();
         } catch (error) {
-            console.error('Error submitting leave request:', error);
-            showToast.error(error.response?.data?.message || error.message || 'Failed to submit leave request', 'Error');
+            logger.error({ caller: 'Error submitting leave request:', payload: error });
+            setFormError(error.response?.data?.message || error.message || 'Failed to submit leave request');
         } finally {
             setIsSubmitting(false);
         }
@@ -210,19 +248,19 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             handover_notes: '',
             covering_employee_id: '',
             selected_supervisor_id: '',
-            supervisor_department: ''
+            supervisor_department: '',
         });
         setHandoverFiles([]);
         setSupportingFiles([]);
+        setFormError('');
     };
 
     const handleFormOpen = (isOpen) => {
         setShowForm(isOpen);
         if (isOpen && employee?.supervisor_id) {
-            // Pre-populate supervisor field when form opens
-            setFormData(prev => ({
+            setFormData((prev) => ({
                 ...prev,
-                selected_supervisor_id: employee.supervisor_id.toString()
+                selected_supervisor_id: employee.supervisor_id.toString(),
             }));
         } else if (!isOpen) {
             resetForm();
@@ -232,19 +270,19 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     const getSupervisorName = () => {
         if (employee?.supervisor_name) return employee.supervisor_name;
         if (employee?.supervisor_id && employees.length > 0) {
-            const supervisor = employees.find(e => e.id === employee.supervisor_id);
+            const supervisor = employees.find((e) => e.id === employee.supervisor_id);
             if (supervisor) return `${supervisor.first_name} ${supervisor.last_name}`;
         }
         return 'N/A';
     };
 
     const handleSupervisorChange = (supervisorId) => {
-        setFormData(prev => {
-            const selectedSupervisor = employees.find(e => e.id.toString() === supervisorId);
+        setFormData((prev) => {
+            const selectedSupervisor = employees.find((e) => e.id.toString() === supervisorId);
             return {
                 ...prev,
                 selected_supervisor_id: supervisorId,
-                supervisor_department: selectedSupervisor?.department || ''
+                supervisor_department: selectedSupervisor?.department || '',
             };
         });
     };
@@ -276,7 +314,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             approved: 'bg-green-100 text-green-700',
             rejected: 'bg-red-100 text-red-700',
             cancelled: 'bg-gray-100 text-gray-700',
-            pending: 'bg-orange-100 text-orange-700' // Added pending status with orange color
+            pending: 'bg-orange-100 text-orange-700',
         };
         return colors[status] || 'bg-gray-100 text-gray-700';
     };
@@ -288,11 +326,10 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             approved: <CheckCircle className="w-4 h-4" />,
             rejected: <XCircle className="w-4 h-4" />,
             cancelled: <XCircle className="w-4 h-4" />,
-            pending: <UserCheck className="w-4 h-4" /> // Added pending status with UserCheck icon
+            pending: <UserCheck className="w-4 h-4" />,
         };
         return icons[status] || <Clock className="w-4 h-4" />;
     };
-
 
     return (
         <div className="space-y-6">
@@ -301,7 +338,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                     <h2 className="text-2xl font-bold text-gray-900">Leave Management</h2>
                     <p className="text-gray-600">Manage your leave and view approvals</p>
                 </div>
-                <Dialog open={showForm} onOpenChange={setShowForm}>
+                <Dialog open={showForm} onOpenChange={handleFormOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-gradient-to-r from-blue-700 to-blue-800">
                             <Plus className="w-4 h-4 mr-2" />
@@ -311,52 +348,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                 </Dialog>
             </div>
 
-            {/* Employee Selector */}
-            {/*
-            <Card className="bg-white/90 backdrop-blur-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><User className="w-5 h-5" />Select Employee</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Select value={String(employee?.id)} onValueChange={handleEmployeeChange}>
-                        <SelectTrigger className="w-full md:w-1/3">
-                            <SelectValue placeholder="Select employee..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {employees.map(emp => (
-                                <SelectItem key={emp.id} value={String(emp.id)}>
-                                    {((emp.firstName || emp.first_name) + ' ' + (emp.lastName || emp.last_name)).toUpperCase()}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {employee && (
-                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                <div>
-                                    <p className="text-gray-600">Name</p>
-                                    <p className="font-semibold text-gray-900">{employee.firstName} {employee.lastName}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-600">Email</p>
-                                    <p className="font-semibold text-gray-900 truncate">{employee.email}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-600">Department</p>
-                                    <p className="font-semibold text-gray-900">{employee.departmentName || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-600">Leave Balance</p>
-                                    <p className="font-semibold text-blue-600 text-lg">{leaveBalance} days</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-            */}
-
-            {/* Leave Balance Summary */}
+            {/* FIXED: Leave Balance Summary - Shows total, used, and remaining days */}
             <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
                 <CardContent className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -377,8 +369,9 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                 <p className="text-sm text-gray-600">Used (Approved)</p>
                                 <p className="text-2xl font-bold text-gray-900">
                                     {leaveRequests
-                                        .filter(r => r.status === 'approved' && (r.type === 'vacation' || r.type === 'annual'))
-                                        .reduce((acc, curr) => acc + calculateBusinessDays(curr.startDate || curr.start_date, curr.endDate || curr.end_date, curr.leave_period), 0)} days
+                                        .filter((r) => r.status === 'approved' && (r.type === 'vacation' || r.type === 'annual'))
+                                        .reduce((acc, curr) => acc + calculateBusinessDays(curr.startDate || curr.start_date, curr.endDate || curr.end_date, curr.leave_period), 0)}{' '}
+                                    days
                                 </p>
                             </div>
                         </div>
@@ -400,9 +393,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                     <CardTitle>My Leave</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {loading && (
-                        <div className="text-center p-8">Loading leave requests...</div>
-                    )}
+                    {loading && <div className="text-center p-8">Loading leave requests...</div>}
                     {!loading && leaveRequests.length > 0 && (
                         <div className="overflow-x-auto">
                             <Table>
@@ -425,7 +416,9 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                         return (
                                             <TableRow key={request.id}>
                                                 <TableCell className="capitalize">{getLeaveTypeDisplay(leaveType)}</TableCell>
-                                                <TableCell>{startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}</TableCell>
+                                                <TableCell>
+                                                    {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
+                                                </TableCell>
                                                 <TableCell>{days}</TableCell>
                                                 <TableCell>
                                                     <Badge className={getStatusColor(request.status)}>
@@ -472,11 +465,11 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                         <DialogTitle>Submit Leave Request</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-
                         <Alert variant="info" className="bg-orange-50 border-orange-200">
                             <AlertCircle className="h-4 w-4 text-orange-600" />
                             <AlertDescription className="text-orange-800">
-                                Please fill out all relevant fields. While not mandatory, complete information helps expedite the approval process.
+                                Please fill out all relevant fields. While not mandatory, complete information helps expedite the approval
+                                process.
                             </AlertDescription>
                         </Alert>
 
@@ -487,10 +480,24 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                <div><span className="font-medium">Full Name:</span><p>{employee?.firstName || employee?.first_name} {employee?.lastName || employee?.last_name}</p></div>
-                                <div><span className="font-medium">Employee ID:</span><p>{employee?.id || employee?.employee_id}</p></div>
-                                <div><span className="font-medium">Department:</span><p className="capitalize">{employee?.department || 'N/A'}</p></div>
-                                <div><span className="font-medium">Supervisor:</span><p>{getSupervisorName()}</p></div>
+                                <div>
+                                    <span className="font-medium">Full Name:</span>
+                                    <p>
+                                        {employee?.firstName || employee?.first_name} {employee?.lastName || employee?.last_name}
+                                    </p>
+                                </div>
+                                <div>
+                                    <span className="font-medium">Employee ID:</span>
+                                    <p>{employee?.id || employee?.employee_id}</p>
+                                </div>
+                                <div>
+                                    <span className="font-medium">Department:</span>
+                                    <p className="capitalize">{employee?.department || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <span className="font-medium">Supervisor:</span>
+                                    <p>{getSupervisorName()}</p>
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -509,7 +516,9 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                             <div className="space-y-2">
                                 <Label htmlFor="leave_type">Type of Leave</Label>
                                 <Select value={formData.leave_type} onValueChange={(value) => setFormData({ ...formData, leave_type: value })}>
-                                    <SelectTrigger id="leave_type"><SelectValue placeholder="Select leave type" /></SelectTrigger>
+                                    <SelectTrigger id="leave_type">
+                                        <SelectValue placeholder="Select leave type" />
+                                    </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="annual">Annual Leave</SelectItem>
                                         <SelectItem value="sick">Sick Leave</SelectItem>
@@ -523,8 +532,13 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="leave_period">Leave Period</Label>
-                                <Select value={formData.leave_period} onValueChange={(value) => setFormData({ ...formData, leave_period: value })}>
-                                    <SelectTrigger id="leave_period"><SelectValue /></SelectTrigger>
+                                <Select
+                                    value={formData.leave_period}
+                                    onValueChange={(value) => setFormData({ ...formData, leave_period: value })}
+                                >
+                                    <SelectTrigger id="leave_period">
+                                        <SelectValue />
+                                    </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="full_day">Full Day(s)</SelectItem>
                                         <SelectItem value="half_day_morning">Half Day - Morning</SelectItem>
@@ -537,21 +551,41 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="start_date">Start Date</Label>
-                                <Input id="start_date" type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+                                <Input
+                                    id="start_date"
+                                    type="date"
+                                    value={formData.start_date}
+                                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="end_date">End Date</Label>
-                                <Input id="end_date" type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+                                <Input
+                                    id="end_date"
+                                    type="date"
+                                    value={formData.end_date}
+                                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label>Total Days</Label>
-                                <Input value={calculateDays(formData.start_date, formData.end_date, formData.leave_period)} readOnly className="bg-gray-100 font-bold" />
+                                <Input
+                                    value={calculateDays(formData.start_date, formData.end_date, formData.leave_period)}
+                                    readOnly
+                                    className="bg-gray-100 font-bold"
+                                />
                             </div>
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="reason">Reason for Leave</Label>
-                            <Textarea id="reason" value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} placeholder="Provide a brief reason for your leave request..." rows={3} />
+                            <Textarea
+                                id="reason"
+                                value={formData.reason}
+                                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                                placeholder="Provide a brief reason for your leave request..."
+                                rows={3}
+                            />
                         </div>
 
                         <FileUploader
@@ -570,43 +604,57 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                             <div className="space-y-2">
                                 <Label htmlFor="selected_supervisor_id">Approving Supervisor</Label>
                                 <Select value={formData.selected_supervisor_id} onValueChange={handleSupervisorChange}>
-                                    <SelectTrigger id="selected_supervisor_id"><SelectValue placeholder="Select your direct supervisor" /></SelectTrigger>
+                                    <SelectTrigger id="selected_supervisor_id">
+                                        <SelectValue placeholder="Select your direct supervisor" />
+                                    </SelectTrigger>
                                     <SelectContent>
-                                        {employees.map(emp => (
+                                        {employees.map((emp) => (
                                             <SelectItem key={emp.id} value={String(emp.id)}>
-                                                {(emp.firstName || emp.first_name)} {(emp.lastName || emp.last_name)} - {(emp.jobRole || emp.position || emp.departmentName || 'N/A')}
+                                                {emp.firstName || emp.first_name} {emp.lastName || emp.last_name} -{' '}
+                                                {emp.jobRole || emp.position || emp.departmentName || 'N/A'}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
-                            {/* 
-                            <div className="space-y-2">
-                                <Label htmlFor="supervisor_department">Supervisor Department</Label>
-                                <Input id="supervisor_department" value={formData.supervisor_department} readOnly className="bg-gray-100" placeholder="Department will auto-populate" />
-                            </div>
-                            */}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="emergency_contact">Contact Number (during leave)</Label>
-                                <Input id="emergency_contact" value={formData.emergency_contact} onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })} placeholder="Your phone number while on leave" />
+                                <Input
+                                    id="emergency_contact"
+                                    value={formData.emergency_contact}
+                                    onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })}
+                                    placeholder="Your phone number while on leave"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="alternative_email">Alternative Email</Label>
-                                <Input id="alternative_email" type="email" value={formData.alternative_email} onChange={(e) => setFormData({ ...formData, alternative_email: e.target.value })} placeholder="Alternative email if applicable" />
+                                <Input
+                                    id="alternative_email"
+                                    type="email"
+                                    value={formData.alternative_email}
+                                    onChange={(e) => setFormData({ ...formData, alternative_email: e.target.value })}
+                                    placeholder="Alternative email if applicable"
+                                />
                             </div>
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="covering_employee_id">Backup/Reliever Name</Label>
-                            <Select value={formData.covering_employee_id} onValueChange={(value) => setFormData({ ...formData, covering_employee_id: value })}>
-                                <SelectTrigger id="covering_employee_id"><SelectValue placeholder="Select employee to cover your duties" /></SelectTrigger>
+                            <Select
+                                value={formData.covering_employee_id}
+                                onValueChange={(value) => setFormData({ ...formData, covering_employee_id: value })}
+                            >
+                                <SelectTrigger id="covering_employee_id">
+                                    <SelectValue placeholder="Select employee to cover your duties" />
+                                </SelectTrigger>
                                 <SelectContent>
-                                    {employees.map(emp => (
+                                    {employees.map((emp) => (
                                         <SelectItem key={emp.id} value={String(emp.id)}>
-                                            {(emp.firstName || emp.first_name)} {(emp.lastName || emp.last_name)} - {(emp.departmentName || emp.department || 'N/A')}
+                                            {emp.firstName || emp.first_name} {emp.lastName || emp.last_name} -{' '}
+                                            {emp.departmentName || emp.department || 'N/A'}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -631,9 +679,12 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                             description="Attach any files relevant to your handover. (Max 5MB per file)"
                             id="handover_document"
                         />
+                        {formError ? <div className="px-4 py-3 bg-red-100 text-red-900 rounded-lg">{formError}</div> : null}
 
                         <div className="flex justify-end gap-3 pt-4 border-t">
-                            <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+                            <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                                Cancel
+                            </Button>
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? (
                                     <>
@@ -659,8 +710,12 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
-                        <Button variant="destructive" onClick={handleConfirmDelete}>Delete</Button>
+                        <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleConfirmDelete}>
+                            Delete
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

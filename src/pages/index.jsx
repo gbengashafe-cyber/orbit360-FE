@@ -1,6 +1,9 @@
-import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
+import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
+import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
 import Analytics from './Analytics';
 import Appraisals from './Appraisals';
+import AuthorizationCenter from './authorization-center';
+import AuthorizationCenterWIP from './authorization-center-new';
 import ClientAuth from './ClientAuth';
 import CompanyDocuments from './CompanyDocuments';
 import CompensationTool from './CompensationTool';
@@ -19,7 +22,6 @@ import ExpenseSettings from './ExpenseSettings';
 import FinancialReports from './FinancialReports';
 import HRDashboard from './HRDashboard';
 import InstallApp from './InstallApp';
-import KanbanBoards from './KanbanBoards';
 import KPIManagement from './KPIManagement';
 import Layout from './Layout.jsx';
 import LeaveManagement from './LeaveManagement';
@@ -115,8 +117,6 @@ const PAGES = {
 
   CompanyDocuments: CompanyDocuments,
 
-  KanbanBoards: KanbanBoards,
-
   Analytics: Analytics,
 
   Contacts: Contacts,
@@ -125,7 +125,8 @@ const PAGES = {
 
   FinancialReports: FinancialReports,
 
-  Login: LoginPage,
+  login: LoginPage,
+  AuthorizationCenterWIP,
 };
 
 function _getCurrentPage(url) {
@@ -148,9 +149,12 @@ function PagesContent() {
   return (
     <Layout currentPageName={currentPage}>
       <Routes>
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Dashboard />} />
 
         <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/authorization-center-old" element={<AuthorizationCenter />} />
+        <Route path="/authorization-center" element={<AuthorizationCenterWIP />} />
 
         <Route path="/ClientAuth" element={<ClientAuth />} />
 
@@ -180,7 +184,7 @@ function PagesContent() {
 
         <Route path="/Onboarding" element={<Onboarding />} />
 
-        <Route path="/MyPayslips" element={<MyPayslips />} />
+        <Route path="/my-payslips" element={<MyPayslips />} />
 
         <Route path="/payslips" element={<MyPayslips />} />
 
@@ -196,7 +200,7 @@ function PagesContent() {
 
         <Route path="/MeetingManager" element={<MeetingManager />} />
 
-        <Route path="/LeaveManagement" element={<LeaveManagement />} />
+        <Route path="/leave-management" element={<LeaveManagement />} />
 
         <Route path="/Appraisals" element={<Appraisals />} />
 
@@ -216,13 +220,11 @@ function PagesContent() {
 
         <Route path="/PublicJobView" element={<PublicJobView />} />
 
-        <Route path="/Cooperative" element={<Cooperative />} />
+        <Route path="/cooperative" element={<Cooperative />} />
 
         <Route path="/KPIManagement" element={<KPIManagement />} />
 
         <Route path="/CompanyDocuments" element={<CompanyDocuments />} />
-
-        <Route path="/KanbanBoards" element={<KanbanBoards />} />
 
         <Route path="/Analytics" element={<Analytics />} />
 
@@ -239,7 +241,28 @@ function PagesContent() {
 export default function Pages() {
   return (
     <Router>
-      <PagesContent />
+      <RequireAuth>
+        <PagesContent />
+      </RequireAuth>
     </Router>
   );
 }
+
+export const isLoggedIn = () => {
+  // const expiresAt = LocalStorageUtil.get(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
+  const accessToken = LocalStorageUtil.get(localStorageKeys.ACCESS_TOKEN);
+
+  if (!accessToken) return false;
+
+  return true;
+};
+
+const RequireAuth = ({ children }) => {
+  const location = useLocation();
+
+  if (!isLoggedIn()) {
+    <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+};

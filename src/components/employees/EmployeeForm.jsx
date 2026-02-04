@@ -22,7 +22,7 @@ import { LoanUtil } from '../cooperative/loan.utils';
 import { EmployeeUtil } from './employee.utils';
 import EmployeeLoans from './EmployeeLoans';
 
-export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartments = [], jobRoles = [] }) {
+export default function EmployeeForm({ employee, onSubmit, onCancel, error, allDepartments = [], jobRoles = [] }) {
   const [employeeLoans, setEmployeeLoans] = useState([]);
   const [query, setQuery] = useState('');
   const [departmentEmployees, setDepartmentEmployees] = useState([]);
@@ -37,7 +37,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
           dob: employee.dob ? format(parseISO(employee.dob), 'yyyy-MM-dd') : '',
         }
       : {
-          employeeId: '',
+          staffId: '',
           firstName: '',
           lastName: '',
           email: '',
@@ -79,70 +79,45 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
   );
   const debouncedQuery = useDebounce(query, 600);
 
-  // Map job roles to departments
-  const getExpectedDepartmentForJobRole = (jobRole) => {
-    if (!jobRole) return null;
-    const lowerJobRole = jobRole.toLowerCase();
-    
-    if (lowerJobRole.includes('hr') || lowerJobRole.includes('human')) return 'HR';
-    if (lowerJobRole.includes('engineer')) return 'Engineering';
-    if (lowerJobRole.includes('sales')) return 'Sales';
-    if (lowerJobRole.includes('operation')) return 'Operations';
-    if (lowerJobRole.includes('finance') || lowerJobRole.includes('accounting')) return 'Finance';
-    if (lowerJobRole.includes('market')) return 'Marketing';
-    return null;
-  };
-
   useEffect(() => {
     const controller = new AbortController();
 
-    const loadSupervisors = async (signal) => {
+    const loadDepartmentEmployees = async (signal) => {
       setIsLoading(true);
       try {
-        // Load all employees to use as potential supervisors
-        const allEmpsResponse = await employeeService.getEmployees(
+        const currentDepartment = allDepartments.find((_department) => _department.name === formData.departmentName);
+
+        if (!currentDepartment) {
+          return;
+        }
+
+        const employees = await departmentService.getDepartmentEmployees(
           {
-            page: 1,
-            rows: 500,
+            id: currentDepartment.id,
+            rows: 25,
+            options: { search: debouncedQuery },
           },
           { signal },
         );
 
-        // Filter out the current employee being edited
-        let supervisors = allEmpsResponse.data || [];
-        if (employee?.id) {
-          supervisors = supervisors.filter(emp => emp.id !== employee.id);
-        }
-
-        // Filter by search query on client side (name, email, phone)
-        if (debouncedQuery) {
-          const query = debouncedQuery.toLowerCase();
-          supervisors = supervisors.filter(emp => 
-            (emp.firstName && emp.firstName.toLowerCase().includes(query)) ||
-            (emp.lastName && emp.lastName.toLowerCase().includes(query)) ||
-            (emp.email && emp.email.toLowerCase().includes(query)) ||
-            (emp.phone && emp.phone.includes(query))
-          );
-        }
-
-        setDepartmentEmployees(supervisors);
+        setDepartmentEmployees(employees.data.employees);
       } catch (error) {
         if (error instanceof CanceledError) {
           return;
         }
         toast.error('Error:', {
-          description: `${error.message ? error.message : 'Could not load supervisors.'}`,
+          description: `${error.message ? error.message : 'Could not load employees in this department.'}`,
         });
       } finally {
         setIsLoading(false);
       }
     };
-    loadSupervisors(controller.signal);
+    loadDepartmentEmployees(controller.signal);
 
     return () => {
       controller.abort();
     };
-  }, [debouncedQuery, employee?.id]);
+  }, [allDepartments, debouncedQuery, formData.departmentName]);
 
   useEffect(() => {
     async function loadData() {
@@ -167,7 +142,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
       annualBasicSalary: parseFloat(formData.annualBasicSalary) || 0,
       annualHousingAllowance: parseFloat(formData.annualHousingAllowance) || 0,
       annualTransportAllowance: parseFloat(formData.annualTransportAllowance) || 0,
-      annualLeaveAllowance: parseFloat(formData.annualLeaveAllowance) || 0,
+      annualLeaveAllowance: parseInt(formData.annualLeaveAllowance) || 0,
       annualOtherAllowances: parseFloat(formData.annualOtherAllowances) || 0,
       pensionApplicable: formData.pensionApplicable !== false,
       pensionRate: 8,
@@ -185,7 +160,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
 
       if (field === 'annualBasicSalary') {
         const basicSalary = parseFloat(value) || 0;
-        newFormData.annualLeaveAllowance = basicSalary * 0.1;
+        newFormData.annualLeaveAllowance = parseFloat(basicSalary * 0.1).toFixed(2);
       }
       return newFormData;
     });
@@ -200,15 +175,11 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
         supervisorName: `${selectedSupervisor.firstName} ${selectedSupervisor.lastName}`,
         supervisorRole: selectedSupervisor.jobRole,
         supervisorDepartment: selectedSupervisor.departmentName,
-        // Don't auto-populate the employee's department - let it stay as selected
       }));
     } else {
       setFormData((prev) => ({
         ...prev,
         supervisorId: null,
-        supervisorName: '',
-        supervisorRole: '',
-        supervisorDepartment: '',
       }));
     }
   };
@@ -247,11 +218,11 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Employee ID */}
             <div className="space-y-2">
-              <Label htmlFor="employeeId">Employee ID *</Label>
+              <Label htmlFor="staffId">Staff ID *</Label>
               <Input
-                id="employeeId"
-                value={formData.employeeId}
-                onChange={(e) => handleInputChange('employeeId', e.target.value)}
+                id="staffId"
+                value={formData.staffId}
+                onChange={(e) => handleInputChange('staffId', e.target.value)}
                 required
               />
             </div>
@@ -379,8 +350,9 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="pending_approval">Pending Approval</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
                     <SelectItem value="terminated">Terminated</SelectItem>
                     <SelectItem value="on_leave">On Leave</SelectItem>
                   </SelectContent>
@@ -391,10 +363,12 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
 
           <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Reporting Line</h3>
           {/* Reporting Line Fields */}
-          <div className="flex gap-4">
-            <div className="flex-1 space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              {/*  */}
+
               {/* Supervisor Search Field */}
-              <div className="space-y-2">
+              <div className="space-y-2 flex flex-col">
                 <Label htmlFor="supervisor">Supervisor</Label>
                 <Popover open={open} onOpenChange={setOpen}>
                   <PopoverTrigger asChild>
@@ -461,21 +435,13 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
                     </Command>
                   </PopoverContent>
                 </Popover>
-                </div>
-                </div>
-                <div className="flex-1 space-y-2">
-                <Label htmlFor="supervisor_department">Supervisor Department</Label>
-                <Input 
-                id="supervisor_department" 
-                value={formData.supervisorDepartment} 
-                readOnly 
-                className="bg-gray-100" 
-                placeholder="Department will auto-populate"
-                />
-                </div>
-                </div>
+              </div>
 
-              <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Compensation & Benefits (Annual)</h3>
+              {/*  */}
+            </div>
+          </div>
+
+          <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Compensation & Benefits (Annual)</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="annualBasicSalary">Annual Basic Salary (₦) *</Label>
@@ -859,6 +825,8 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
               </div>
             </>
           )}
+
+          {error ? <div className="bg-red-100 text-red-900 rounded-lg px-4 py-3">{error}</div> : null}
 
           <div className="flex justify-end gap-2 mt-8 pt-6 border-t">
             <Button type="button" variant="outline" onClick={onCancel}>

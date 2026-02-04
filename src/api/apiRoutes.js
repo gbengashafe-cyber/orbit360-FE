@@ -10,6 +10,12 @@ export class ApiRoutes {
   static GetCurrentUser = '/auth/me';
   static GoogleCallback = '/auth/google/callback';
 
+  static pendingAuthorization = {
+    pendingItems: '/v1/pending-authorization',
+    counts: '/v1/pending-authorization/counts',
+    modulePending: (moduleName) => `/v1/pending-authorization/${moduleName}`,
+  };
+
   // Users
   static GetUsers = '/v1/users';
   static GetUserById = (id) => `/v1/users/${id}`;
@@ -23,6 +29,21 @@ export class ApiRoutes {
   static CreateEmployee = '/v1/employees';
   static UpdateEmployee = (id) => `/v1/employees/${id}`;
   static DeleteEmployee = (id) => `/v1/employees/${id}`;
+
+  static employee = {
+    userEmployeeRecord: '/v1/employees/me',
+    getEmployees: '/v1/employees',
+    getActiveEmployees: '/v1/employees/directory',
+    modificationRequest: (id) => `/v1/employees/${id}`,
+    payrolls: (id) => `/v1/employees/${id}/payrolls`,
+    approve: (id) => `/v1/employees/${id}/approval`,
+    reject: (id) => `/v1/employees/${id}/rejection`,
+  };
+
+  static loan = {
+    approve: (id) => `/v1/loans/${id}/approve`,
+    reject: (id) => `/v1/loans/${id}/reject`,
+  };
 
   // Departments
   static GetDepartments = '/v1/departments';
@@ -108,13 +129,18 @@ export class ApiRoutes {
   static UpdatePayroll = (id) => `/v1/payrolls/${id}`;
   static UpdatePayrollStatus = (id) => `/v1/payrolls/${id}/status`;
   static DeletePayroll = (id) => `/v1/payrolls/${id}`;
-  static GetPayrollsByEmployee = (id) => `/v1/payrolls/employee/${id}`;
+  static GetPayrollsByEmployee = (id) => `/v1/payrolls/employees/${id}`;
   static GetPayrollsByPeriod = (payPeriod) => `/v1/payrolls/periods/${payPeriod}`;
   static ProcessPayroll = (id) => `/v1/payrolls/${id}/process`;
   static PayPayroll = (id) => `/v1/payrolls/${id}/pay`;
   static UploadPayrollReport = `/v1/payrolls/uploads`;
   static GetUploadedPayrollReports = `/v1/payrolls/uploads`;
   static DeleteUploadedPayrollReport = (id) => `/v1/payrolls/uploads/${id}`;
+
+  static payroll = {
+    approveBatch: (id) => `/v1/payrolls/${id}/approval`,
+    rejectBatch: (id) => `/v1/payrolls/${id}/rejection`,
+  };
 
   // Deductions
   static GetDeductions = '/v1/deductions';

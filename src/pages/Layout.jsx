@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from '@/components/ui/sidebar';
-import { useGlobalContext } from '@/state/context';
+import { GlobalContextProvider, useGlobalContext } from '@/state/context';
 import { createPageUrl } from '@/utils';
 import {
   BadgePercent,
@@ -28,6 +28,7 @@ import {
   FolderArchive,
   HandCoins,
   LayoutDashboard,
+  Loader2,
   LogOut,
   MessageSquareHeart,
   NotebookPen,
@@ -43,13 +44,15 @@ import {
   Users2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router';
+import { Link, Navigate, useLocation } from 'react-router';
+import { isLoggedIn } from '.';
 import EmployeeGate from '../components/EmployeeGate';
 import Logo from '../components/Logo';
-import { LocalStorageUtil } from '../utils/local-storage.util';
+import { localStorageKeys, LocalStorageUtil } from '../utils/local-storage.util';
 
 const hrNav = [
-  { title: 'Authorization Center', url: createPageUrl('AuthorizationCenter'), icon: ClipboardList },
+  // { title: 'Authorization Center', url: createPageUrl('AuthorizationCenter'), icon: ClipboardList },
+  { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
   { title: 'Employees', url: createPageUrl('Employees'), icon: Users2 },
   { title: 'Payroll', url: createPageUrl('Payroll'), icon: Banknote },
   { title: 'Payslips', url: createPageUrl('payslips'), icon: FileText },
@@ -65,14 +68,15 @@ const hrNav = [
 ];
 
 const employeePortalNav = [
-  { title: 'My Payslips', url: createPageUrl('MyPayslips'), icon: FileText },
+  { title: 'My Payslips', url: createPageUrl('my-payslips'), icon: FileText },
   { title: 'Appraisals', url: createPageUrl('Appraisals'), icon: BookCopy },
-  { title: 'Leave Management', url: createPageUrl('LeaveManagement'), icon: PlaneTakeoff },
+  { title: 'Leave Management', url: createPageUrl('leave-management'), icon: PlaneTakeoff },
   { title: 'Exit Management', url: createPageUrl('ExitManagement'), icon: UserRoundX },
   { title: 'Document Hub', url: createPageUrl('CompanyDocuments'), icon: FileBox },
   { title: 'Staff Complaints', url: createPageUrl('StaffComplaints'), icon: MessageSquareHeart },
   { title: 'Request Training', url: createPageUrl('RequestTraining'), icon: NotebookPen },
   { title: 'Staff Movement', url: createPageUrl('StaffMovement'), icon: Shuffle },
+  { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
 ];
 
 const adminNav = [
@@ -97,6 +101,8 @@ const LayoutContent = ({ children }) => {
     setIsAdminNavOpen(adminNav.some((item) => path === item.url));
   }, [location.pathname]);
 
+  if (!isLoggedIn()) return <Navigate to="/login" replace />;
+
   const MATERIAL_COLORS = {
     primary: '#1976D2',
     surface: '#FFFFFF',
@@ -105,7 +111,8 @@ const LayoutContent = ({ children }) => {
 
   const handleLogout = async () => {
     await userService.logout();
-    LocalStorageUtil.delete('orbit360-access-token');
+    LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
+    LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
     window.location.href = '/login';
   };
 
@@ -149,17 +156,11 @@ const LayoutContent = ({ children }) => {
 
   if (isLoadingUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen min-w-72 flex items-center justify-center bg-gray-100">
         <div className="flex flex-col items-center space-y-3 text-gray-700">
-          <svg className="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          <span className="text-lg font-medium">Loading application...</span>
+          <span className="text-lg font-medium flex ">
+            <Loader2 className="w-8 aspect-square animate-spin text-blue-700" /> Loading...
+          </span>
         </div>
       </div>
     );
@@ -173,8 +174,8 @@ const LayoutContent = ({ children }) => {
           boxShadow: '0 8px 10px -5px rgba(0,0,0,0.2), 0 16px 24px 2px rgba(0,0,0,0.14), 0 6px 30px 5px rgba(0,0,0,0.12)',
         }}
         collapsible
-        open={sidebarOpen}
-        onOpenChange={setSidebarOpen}
+        // open={sidebarOpen}
+        // onOpenChange={setSidebarOpen}
       >
         <SidebarHeader
           className="border-b border-gray-100 p-6 flex justify-between items-center"
@@ -265,30 +266,22 @@ const LayoutContent = ({ children }) => {
 };
 
 export default function Layout({ children, currentPageName }) {
-  // const [installPrompt, setInstallPrompt] = useState(null);
-
-  // useEffect(() => {
-  //   const handleBeforeInstallPrompt = (e) => {
-  //     e.preventDefault();
-  //     setInstallPrompt(e);
-  //   };
-  //   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-  //   return () => {
-  //     window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  //   };
-  // }, []);
-
   if (['PublicJobView', 'ScrollBoard', 'login'].includes(currentPageName?.toLowerCase())) {
     return <>{children}</>;
   }
 
   return (
     <EmployeeGate>
-      <SidebarProvider>
-        <LayoutContent>{children}</LayoutContent>
-        {/* {currentPageName !== 'InstallApp' && <PWAInstallPrompt />} */}
-      </SidebarProvider>
+      <GlobalContextProvider>
+        <SidebarProvider
+          style={{
+            '--sidebar-width': '18rem',
+            '--sidebar-width-mobile': '20rem',
+          }}
+        >
+          <LayoutContent>{children}</LayoutContent>
+        </SidebarProvider>
+      </GlobalContextProvider>
     </EmployeeGate>
   );
 }

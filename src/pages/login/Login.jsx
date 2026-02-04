@@ -1,11 +1,20 @@
-import { refreshAPI } from '@/api/apiClient';
+import { APIWithoutAuth } from '@/api/apiClient';
 import { ApiRoutes } from '@/api/apiRoutes';
 import { Input } from '@/components/ui/input';
-import { LocalStorageUtil } from '@/utils/local-storage.util';
-import { useState } from 'react';
+import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { isLoggedIn } from '..';
 
 const LoginPage = () => {
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoggedIn()) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,12 +24,14 @@ const LoginPage = () => {
       const email = e.target.email.value;
       const password = e.target.password.value;
 
-      const response = await refreshAPI.post(ApiRoutes.Login, { email, password });
-      LocalStorageUtil.save(response.data.accessToken, 'orbit360-access-token');
+      const response = await APIWithoutAuth.post(ApiRoutes.Login, { email, password });
 
-      window.location.href = '/dashboard';
+      LocalStorageUtil.save(response.data.data.expiresAt * 1000, localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
+      LocalStorageUtil.save(response.data.data.accessToken, localStorageKeys.ACCESS_TOKEN);
+
+      navigate('/dashboard', { replace: true });
     } catch (error) {
-      setError(error?.message || 'Login failed. kindly contact the administrator for support');
+      setError(error.response.data?.message || 'Login failed. kindly contact the administrator for support');
     }
   };
   return (
@@ -139,7 +150,6 @@ const LoginPage = () => {
                           type="password"
                           className="flex w-full border px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-10 h-11 sm:h-12 bg-slate-50/50 border-slate-200 focus:border-slate-400 focus:ring-slate-400 rounded-xl placeholder:text-slate-400"
                           id="password"
-                          autoComplete
                           placeholder="•••••••••••••••••"
                           required
                         />

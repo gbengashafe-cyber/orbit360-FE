@@ -2,6 +2,7 @@ export const localStorageKeys = Object.freeze({
   CURRENT_USER: 'orbit360-current-user',
   CURRENT_EMPLOYEE: 'orbit360-current-employee',
   ACCESS_TOKEN: 'orbit360-access-token',
+  ACCESS_TOKEN_EXPIRES_AT: 'orbit360-access-token-expires',
 });
 
 export class LocalStorageUtil {
@@ -31,6 +32,7 @@ export class LocalStorageUtil {
 
   static get = (key) => {
     this.validateKey(key);
+
     return localStorage.getItem(key);
   };
 }

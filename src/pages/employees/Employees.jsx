@@ -1,13 +1,13 @@
 import { employeeService } from '@/api';
 import { jobRoleService } from '@/api/job-role.service';
 import { EmployeeBioDataTable } from '@/components/employees/EmployeeBioDataTable';
-import { EmployeeUtil } from '@/components/employees/employee.utils';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAllDepartments } from '@/hooks/use-all-departments';
+import { logger } from '@/utils';
 import { AlertCircle, Plus, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -31,26 +31,44 @@ export default function Employees() {
 
   const { allDepartments } = useAllDepartments();
 
-  const loadEmployees = useCallback(async () => {
+  const loadTerminatedEmployees = useCallback(async () => {
     setLoading(true);
     try {
       const employeesData = await employeeService.getEmployees({
         page: currentPage,
         rows,
-        options: { status: currentStatus === 'active' ? '' : currentStatus },
+        options: { status: currentStatus },
       });
       setEmployees(employeesData.data);
       setPages(employeesData?.pagination?.pages || 1);
     } catch (error) {
+      logger.error({ caller: 'Loading terminated employees', payload: error });
       toast.error('Error', { description: `${error.message ? error.message : 'Unable to load employees data.'}` });
     } finally {
       setLoading(false);
     }
   }, [currentPage, currentStatus, rows]);
 
+  const loadActiveEmployees = useCallback(async () => {
+    setLoading(true);
+    try {
+      const employeesData = await employeeService.getActiveEmployees({
+        page: currentPage,
+        rows,
+      });
+      setEmployees(employeesData.data);
+      setPages(employeesData?.pagination?.pages || 1);
+    } catch (error) {
+      logger.error({ caller: 'Loading active employees', payload: error });
+      toast.error('Error', { description: `${error.message ? error.message : 'Unable to load employees data.'}` });
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, rows]);
+
   useEffect(() => {
-    loadEmployees();
-  }, [loadEmployees]);
+    currentStatus === 'active' ? loadActiveEmployees() : loadTerminatedEmployees();
+  }, [currentStatus, loadActiveEmployees, loadTerminatedEmployees]);
 
   useEffect(() => {
     loadJobRoles();
@@ -71,7 +89,7 @@ export default function Employees() {
     setSuccess('');
     try {
       if (editingEmployee) {
-        await employeeService.updateEmployee(editingEmployee.id, employeeData);
+        await employeeService.submitModificationRequest(editingEmployee.id, employeeData);
         setSuccess('Employee details updated successfully.');
       } else {
         const newEmployee = await employeeService.createEmployee({ ...employeeData, createUser });
@@ -104,7 +122,7 @@ export default function Employees() {
       }
       setShowForm(false);
       setEditingEmployee(null);
-      loadEmployees();
+      loadTerminatedEmployees();
       setTimeout(() => {
         setSuccess('');
         setError('');
@@ -141,7 +159,7 @@ export default function Employees() {
     if (window.confirm('Are you sure you want to terminate this employee? Their record will be moved to the ex-staff archive.')) {
       try {
         await employeeService.updateEmployee(employeeId, { status: 'terminated' });
-        loadEmployees();
+        loadTerminatedEmployees();
         setSuccess('Employee terminated successfully.');
         setTimeout(() => setSuccess(''), 8000);
       } catch (error) {
@@ -195,6 +213,7 @@ export default function Employees() {
             employee={editingEmployee}
             jobRoles={jobRoles}
             onSubmit={handleFormSubmit}
+            error={error}
             onCancel={() => {
               setShowForm(false);
               setEditingEmployee(null);
@@ -213,7 +232,7 @@ export default function Employees() {
           >
             <CardHeader>
               <TabsList className="grid w-full grid-cols-2 max-w-md">
-                <TabsTrigger value="active">All Employees</TabsTrigger>
+                <TabsTrigger value="active">Active Employees</TabsTrigger>
                 <TabsTrigger value="terminated">Ex-Staff Archive</TabsTrigger>
               </TabsList>
             </CardHeader>
@@ -232,7 +251,6 @@ export default function Employees() {
                       employees={employees}
                       onEdit={handleEdit}
                       onTerminate={handleTerminate}
-                      getStatusColor={EmployeeUtil.getStatusColor}
                       onResendInstructions={handleResendInstructions}
                     />
                   </TabsContent>
@@ -241,7 +259,6 @@ export default function Employees() {
                       employees={employees}
                       onEdit={handleEdit}
                       onTerminate={handleTerminate}
-                      getStatusColor={EmployeeUtil.getStatusColor}
                       onResendInstructions={handleResendInstructions}
                     />
                   </TabsContent>
@@ -252,7 +269,13 @@ export default function Employees() {
               <p className="text-sm">
                 Showing Page {currentPage} of {pages}
               </p>
-              <PaginationIconsOnly pages={pages} setRows={setRows} setCurrentPage={setCurrentPage} rows={rows} />
+              <PaginationIconsOnly
+                currentPage={currentPage}
+                pages={pages}
+                setRows={setRows}
+                setCurrentPage={setCurrentPage}
+                rows={rows}
+              />
             </CardFooter>
           </Tabs>
         </Card>
