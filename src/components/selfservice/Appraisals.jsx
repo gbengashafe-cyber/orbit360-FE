@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Appraisal, AppraisalCycle, KPI, AppraisalKPI, Employee, User } from '@/api/entities';
+import { appraisalService } from '@/api/appraisal.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,19 +36,26 @@ const AppraisalForm = ({ appraisal, appraisalKPIs, onUpdate, employee, currentUs
         setIsSubmitting(true);
         try {
             // Update all KPIs
-            await Promise.all(kpiData.map(kpi => AppraisalKPI.update(kpi.id, kpi)));
+            const kpiUpdatePromises = kpiData.map(kpi =>
+                appraisalService.updateAppraisalKPI(appraisal.id, kpi.id, kpi)
+                    .catch(err => console.warn(`Could not update KPI ${kpi.id}:`, err))
+            );
+            await Promise.all(kpiUpdatePromises);
 
             const isCompleting = isSupervisorView && appraisal.status === 'pending_supervisor_review';
             const newStatus = isSupervisorView ? 'completed' : 'pending_supervisor_review';
             const totalScore = isCompleting ? parseFloat(calculateWeightedScore()) : appraisal.total_score;
 
-            // Update appraisal status and comments
-            await Appraisal.update(appraisal.id, {
+            // Prepare update data
+            const updateData = {
                 status: newStatus,
-                [isSupervisorView ? 'supervisor_overall_comments' : 'employee_overall_comments']: overallComments,
                 total_score: totalScore,
+                [isSupervisorView ? 'supervisor_overall_comments' : 'employee_overall_comments']: overallComments,
                 [isSupervisorView ? 'supervisor_approval_date' : 'submission_date']: new Date().toISOString(),
-            });
+            };
+
+            // Update appraisal status and comments via API
+            await appraisalService.updateAppraisal(appraisal.id, updateData);
 
             onUpdate();
         } catch (error) {
@@ -56,7 +64,7 @@ const AppraisalForm = ({ appraisal, appraisalKPIs, onUpdate, employee, currentUs
             setIsSubmitting(false);
         }
     };
-    
+
     const canEdit = (isSupervisorView && appraisal.status === 'pending_supervisor_review') || (!isSupervisorView && appraisal.status === 'pending_self_assessment');
 
     return (
@@ -75,13 +83,13 @@ const AppraisalForm = ({ appraisal, appraisalKPIs, onUpdate, employee, currentUs
                                 <div className="col-span-1">
                                     <label className="text-sm font-medium">Rating (1-5)</label>
                                     <Select value={kpi.employee_rating} onValueChange={(val) => handleRatingChange(kpi.id, val)} disabled={isSupervisorView || !canEdit}>
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>{[1,2,3,4,5].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>{[1, 2, 3, 4, 5].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
                                 <div className="col-span-4">
-                                     <label className="text-sm font-medium">Comment</label>
-                                     <Textarea value={kpi.employee_comment} onChange={(e) => handleCommentChange(kpi.id, e.target.value)} disabled={isSupervisorView || !canEdit}/>
+                                    <label className="text-sm font-medium">Comment</label>
+                                    <Textarea value={kpi.employee_comment} onChange={(e) => handleCommentChange(kpi.id, e.target.value)} disabled={isSupervisorView || !canEdit} />
                                 </div>
                             </div>
                         </div>
@@ -94,13 +102,13 @@ const AppraisalForm = ({ appraisal, appraisalKPIs, onUpdate, employee, currentUs
                                     <div className="col-span-1">
                                         <label className="text-sm font-medium">Rating (1-5)</label>
                                         <Select value={kpi.supervisor_rating} onValueChange={(val) => handleRatingChange(kpi.id, val)} disabled={!isSupervisorView || !canEdit}>
-                                            <SelectTrigger><SelectValue/></SelectTrigger>
-                                            <SelectContent>{[1,2,3,4,5].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>{[1, 2, 3, 4, 5].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                     <div className="col-span-4">
                                         <label className="text-sm font-medium">Comment</label>
-                                        <Textarea value={kpi.supervisor_comment} onChange={(e) => handleCommentChange(kpi.id, e.target.value)} disabled={!isSupervisorView || !canEdit}/>
+                                        <Textarea value={kpi.supervisor_comment} onChange={(e) => handleCommentChange(kpi.id, e.target.value)} disabled={!isSupervisorView || !canEdit} />
                                     </div>
                                 </div>
                             </div>
@@ -113,7 +121,7 @@ const AppraisalForm = ({ appraisal, appraisalKPIs, onUpdate, employee, currentUs
             <Card>
                 <CardHeader><CardTitle>Overall Comments</CardTitle></CardHeader>
                 <CardContent>
-                    <Textarea value={overallComments} onChange={(e) => setOverallComments(e.target.value)} rows={5} disabled={!canEdit}/>
+                    <Textarea value={overallComments} onChange={(e) => setOverallComments(e.target.value)} rows={5} disabled={!canEdit} />
                 </CardContent>
             </Card>
 
@@ -125,8 +133,8 @@ const AppraisalForm = ({ appraisal, appraisalKPIs, onUpdate, employee, currentUs
                     <p className="text-sm text-gray-500">Based on {isSupervisorView ? 'supervisor' : 'your'} ratings.</p>
                 </CardContent>
             </Card>
-            
-            {canEdit && <Button onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin"/>} Submit {isSupervisorView ? 'Final Appraisal' : 'to Supervisor'}</Button>}
+
+            {canEdit && <Button onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Submit {isSupervisorView ? 'Final Appraisal' : 'to Supervisor'}</Button>}
         </div>
     );
 };
@@ -145,19 +153,27 @@ export default function AppraisalsComponent({ employee, currentUser, onUpdate, i
         if (!employee?.id) return;
         setLoading(true);
         try {
-            const [appraisalData, cycleData] = await Promise.all([
-                Appraisal.filter({ employee_id: employee.id }),
-                AppraisalCycle.filter({ status: 'active' })
-            ]);
-            setAppraisals(appraisalData);
-            setActiveCycles(cycleData);
+            // Fetch appraisals for current employee
+            const appraisalResponse = await appraisalService.filterAppraisals({ employee_id: employee.id });
+            const appraisalData = appraisalResponse.data || appraisalResponse;
 
-            if(isSupervisor) {
-                 const reportIds = directReports.map(r => r.id);
-                 if (reportIds.length > 0) {
-                    const teamData = await Appraisal.filter({ employee_id: { $in: reportIds } });
-                    setTeamAppraisals(teamData);
-                 }
+            // Fetch active appraisal cycles
+            const cycleResponse = await appraisalService.filterAppraisalCycles({ status: 'active' });
+            const cycleData = cycleResponse.data || cycleResponse;
+
+            setAppraisals(Array.isArray(appraisalData) ? appraisalData : []);
+            setActiveCycles(Array.isArray(cycleData) ? cycleData : []);
+
+            // Fetch team appraisals if user is supervisor
+            if (isSupervisor) {
+                const reportIds = directReports.map(r => r.id);
+                if (reportIds.length > 0) {
+                    const teamResponse = await appraisalService.filterAppraisals({
+                        employee_id: reportIds.join(',')
+                    });
+                    const teamData = teamResponse.data || teamResponse;
+                    setTeamAppraisals(Array.isArray(teamData) ? teamData : []);
+                }
             }
 
         } catch (error) {
@@ -181,9 +197,16 @@ export default function AppraisalsComponent({ employee, currentUser, onUpdate, i
 
     const loadKPIsForAppraisal = async (appraisalId) => {
         setLoading(true);
-        const kpis = await AppraisalKPI.filter({ appraisal_id: appraisalId });
-        setAppraisalKPIs(kpis);
-        setLoading(false);
+        try {
+            const response = await appraisalService.getAppraisalKPIs(appraisalId);
+            const kpis = response.data || response;
+            setAppraisalKPIs(Array.isArray(kpis) ? kpis : []);
+        } catch (error) {
+            console.error("Error loading appraisal KPIs:", error);
+            setAppraisalKPIs([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleCreateAppraisal = async (cycleId) => {
@@ -192,29 +215,40 @@ export default function AppraisalsComponent({ employee, currentUser, onUpdate, i
             const cycle = activeCycles.find(c => c.id === cycleId);
             const supervisor = await Employee.get(employee.supervisor_id);
 
+            // Prepare appraisal data matching the API contract
             const newAppraisalData = {
+                appraisal_cycle_id: cycle.id,
                 employee_id: employee.id,
-                employee_name: `${employee.first_name} ${employee.last_name}`,
-                cycle_id: cycle.id,
-                cycle_name: cycle.name,
-                supervisor_id: supervisor?.id || '',
-                supervisor_name: supervisor ? `${supervisor.first_name} ${supervisor.last_name}` : 'N/A',
+                manager_id: supervisor?.id || null,
+                performance_summary: '',
+                strengths: '',
+                areas_for_improvement: '',
+            };
+
+            // Create appraisal via API
+            const response = await appraisalService.createAppraisal(newAppraisalData);
+            const newAppraisal = response.data || response;
+
+            // Fetch and associate KPI templates
+            const kpiResponse = await appraisalService.filterKPIs({
                 job_role: employee.position,
                 department: employee.department,
-            };
-            const newAppraisal = await Appraisal.create(newAppraisalData);
+                status: 'active'
+            });
+            const kpiTemplates = Array.isArray(kpiResponse.data) ? kpiResponse.data : kpiResponse;
 
-            // Fetch and create AppraisalKPIs
-            const kpiTemplates = await KPI.filter({ job_role: employee.position, department: employee.department, status: 'active' });
-            
-            const kpiCreationPromises = kpiTemplates.map(kpi => AppraisalKPI.create({
-                appraisal_id: newAppraisal.id,
-                kpi_id: kpi.id,
-                kpi_title: kpi.title,
-                kpi_description: kpi.description,
-                kpi_weight: kpi.weight,
-            }));
-            await Promise.all(kpiCreationPromises);
+            // Link KPIs to appraisal (if API supports it)
+            if (Array.isArray(kpiTemplates) && kpiTemplates.length > 0) {
+                const kpiUpdatePromises = kpiTemplates.map(kpi =>
+                    appraisalService.updateAppraisalKPI(newAppraisal.id, kpi.id, {
+                        kpi_id: kpi.id,
+                        kpi_title: kpi.title,
+                        kpi_description: kpi.description,
+                        kpi_weight: kpi.weight,
+                    }).catch(err => console.warn(`Could not link KPI ${kpi.id}:`, err))
+                );
+                await Promise.all(kpiUpdatePromises);
+            }
 
             loadData();
             setSelectedAppraisalId(newAppraisal.id);
@@ -239,7 +273,7 @@ export default function AppraisalsComponent({ employee, currentUser, onUpdate, i
     };
 
     const renderAppraisalList = (appraisalList, title) => (
-         <Card>
+        <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent>
                 <div className="space-y-2">
@@ -266,33 +300,33 @@ export default function AppraisalsComponent({ employee, currentUser, onUpdate, i
         return (
             <div>
                 <Button variant="outline" onClick={() => setSelectedAppraisalId(null)} className="mb-4">← Back to List</Button>
-                <AppraisalForm 
-                  appraisal={selectedAppraisal} 
-                  appraisalKPIs={appraisalKPIs} 
-                  onUpdate={() => { setSelectedAppraisalId(null); loadData(); }} 
-                  employee={employee}
-                  currentUser={currentUser}
-                  isSupervisorView={isSupervisorView}
+                <AppraisalForm
+                    appraisal={selectedAppraisal}
+                    appraisalKPIs={appraisalKPIs}
+                    onUpdate={() => { setSelectedAppraisalId(null); loadData(); }}
+                    employee={employee}
+                    currentUser={currentUser}
+                    isSupervisorView={isSupervisorView}
                 />
             </div>
         );
     }
-    
+
     return (
         <div className="space-y-6">
             {isSupervisor && (
-                 <div className="flex space-x-1 rounded-lg bg-gray-100 p-1">
+                <div className="flex space-x-1 rounded-lg bg-gray-100 p-1">
                     <Button onClick={() => setActiveTab('my_appraisal')} variant={activeTab === 'my_appraisal' ? 'default' : 'ghost'} className="w-full">My Appraisals</Button>
                     <Button onClick={() => setActiveTab('team_appraisals')} variant={activeTab === 'team_appraisals' ? 'default' : 'ghost'} className="w-full">Team Appraisals</Button>
-                 </div>
+                </div>
             )}
-            
+
             {activeTab === 'my_appraisal' && isMyPortal && (
                 <Card>
                     <CardHeader><CardTitle>Start New Appraisal</CardTitle></CardHeader>
                     <CardContent>
                         {activeCycles.length > 0 ? (
-                             <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4">
                                 <Select onValueChange={handleCreateAppraisal}>
                                     <SelectTrigger className="w-[280px]"><SelectValue placeholder="Select an active appraisal cycle..." /></SelectTrigger>
                                     <SelectContent>
@@ -303,7 +337,7 @@ export default function AppraisalsComponent({ employee, currentUser, onUpdate, i
                                         ))}
                                     </SelectContent>
                                 </Select>
-                             </div>
+                            </div>
                         ) : (
                             <p className="text-gray-500">No active appraisal cycles found.</p>
                         )}
