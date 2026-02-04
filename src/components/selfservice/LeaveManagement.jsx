@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { leaveService, employeeService } from '@/api';
 import { showToast } from '@/utils/toast';
+import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay, calculateRemainingDays } from '@/utils/leaveCalculator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -99,16 +100,16 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     });
 
     const calculateLeaveBalance = React.useCallback((requests) => {
+        // Calculate used days using business days (excluding weekends)
         const approvedAnnualLeave = requests
-            .filter(r => r.status === 'approved' && r.type === 'vacation')
+            .filter(r => r.status === 'approved' && (r.type === 'vacation' || r.type === 'annual'))
             .reduce((acc, curr) => {
-                const startDate = new Date(curr.startDate);
-                const endDate = new Date(curr.endDate);
-                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                const days = calculateBusinessDays(curr.startDate || curr.start_date, curr.endDate || curr.end_date, curr.leave_period);
                 return acc + days;
             }, 0);
-        const entitlement = employee?.annual_leave_entitlement || 21;
-        setLeaveBalance(entitlement - approvedAnnualLeave);
+        const entitlement = employee?.annual_leave_entitlement || 20;
+        const remaining = entitlement - approvedAnnualLeave;
+        setLeaveBalance(Math.max(0, remaining));
     }, [employee?.annual_leave_entitlement]);
 
     const loadData = React.useCallback(async () => {
@@ -140,24 +141,24 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     }, [loadData]);
 
     const calculateDays = (startDate, endDate, period) => {
-        if (!startDate || !endDate) return 0;
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-
-        if (period !== 'full_day' && start.toDateString() === end.toDateString()) {
-            return 0.5;
-        }
-
-        const diffTime = Math.abs(end - start);
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        // Use the business days calculator that excludes weekends
+        return calculateBusinessDays(startDate, endDate, period);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Validate leave type is selected
+        if (!formData.leave_type) {
+            showToast.error('Please select a leave type', 'Validation Error');
+            return;
+        }
+
         const daysRequested = calculateDays(formData.start_date, formData.end_date, formData.leave_period);
 
-        if (formData.leave_type === 'vacation' && daysRequested > leaveBalance) {
+        // Only check balance for leave types that count against entitlement (annual/vacation)
+        const leaveTypesWithBalance = ['annual', 'vacation'];
+        if (leaveTypesWithBalance.includes(formData.leave_type) && daysRequested > leaveBalance) {
             showToast.error(`Insufficient leave balance. Available: ${leaveBalance} days, Requested: ${daysRequested} days.`, 'Error');
             return;
         }
@@ -165,15 +166,24 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         setIsSubmitting(true);
 
         try {
+            // Format leave type to ensure it matches API expectations
+            const leaveType = formatLeaveType(formData.leave_type);
+
             const leaveData = {
                 employeeId: employee.id,
-                type: formData.leave_type,
+                type: leaveType,
                 startDate: formData.start_date,
                 endDate: formData.end_date,
-                reason: formData.reason
+                reason: formData.reason,
+                leave_period: formData.leave_period
             };
 
-            await leaveService.createLeave(leaveData);
+            const response = await leaveService.createLeave(leaveData);
+
+            // Verify response was successful
+            if (!response || (response.error && response.error !== false)) {
+                throw new Error(response?.message || 'Failed to create leave request');
+            }
 
             showToast.success('Leave request submitted successfully!', 'Success');
             setShowForm(false);
@@ -346,6 +356,45 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             </Card>
             */}
 
+            {/* Leave Balance Summary */}
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+                <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-blue-100 rounded-lg">
+                                <Calendar className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600">Total Entitlement</p>
+                                <p className="text-2xl font-bold text-gray-900">{employee?.annual_leave_entitlement || 20} days</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-orange-100 rounded-lg">
+                                <Clock className="w-6 h-6 text-orange-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600">Used (Approved)</p>
+                                <p className="text-2xl font-bold text-gray-900">
+                                    {leaveRequests
+                                        .filter(r => r.status === 'approved' && (r.type === 'vacation' || r.type === 'annual'))
+                                        .reduce((acc, curr) => acc + calculateBusinessDays(curr.startDate || curr.start_date, curr.endDate || curr.end_date, curr.leave_period), 0)} days
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-green-100 rounded-lg">
+                                <CheckCircle className="w-6 h-6 text-green-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600">Balance Remaining</p>
+                                <p className="text-2xl font-bold text-green-600">{leaveBalance} days</p>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             <Card className="bg-white/90 backdrop-blur-sm">
                 <CardHeader>
                     <CardTitle>My Leave</CardTitle>
@@ -369,12 +418,13 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                 </TableHeader>
                                 <TableBody>
                                     {leaveRequests.map((request) => {
-                                        const startDate = new Date(request.startDate);
-                                        const endDate = new Date(request.endDate);
-                                        const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                                        const startDate = new Date(request.startDate || request.start_date);
+                                        const endDate = new Date(request.endDate || request.end_date);
+                                        const days = calculateBusinessDays(request.startDate || request.start_date, request.endDate || request.end_date, request.leave_period);
+                                        const leaveType = request.type || request.leave_type;
                                         return (
                                             <TableRow key={request.id}>
-                                                <TableCell className="capitalize">{(request.type || request.leave_type).replaceAll('_', ' ')}</TableCell>
+                                                <TableCell className="capitalize">{getLeaveTypeDisplay(leaveType)}</TableCell>
                                                 <TableCell>{startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}</TableCell>
                                                 <TableCell>{days}</TableCell>
                                                 <TableCell>
