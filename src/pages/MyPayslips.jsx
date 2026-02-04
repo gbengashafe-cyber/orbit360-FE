@@ -79,15 +79,6 @@ export default function MyPayslips() {
     );
   }
 
-  if (!currentUser?.employeeData?.id) {
-    return (
-      <div className="p-8 text-center text-gray-600">
-        <h2 className="text-xl font-semibold">No Employee Data Found</h2>
-        <p>Your user account is not linked to an employee record. Please contact HR.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="p-4 lg:p-8 min-h-screen no-print" style={{ backgroundColor: '#F5F5F5' }}>
       <div className="max-w-4xl mx-auto space-y-8">
@@ -147,6 +138,13 @@ export default function MyPayslips() {
               </div>*/}
             </div>
           </CardHeader>
+
+          {!currentUser?.employeeData?.id ? (
+            <div className="p-8 text-center text-gray-600">
+              <h2 className="text-xl font-semibold">No Employee Data Found</h2>
+              <p>Your user account is not linked to an employee record. Please contact HR.</p>
+            </div>
+          ) : null}
           <CardContent>
             {payrollRecords.length > 0 ? (
               <ul className="space-y-3">

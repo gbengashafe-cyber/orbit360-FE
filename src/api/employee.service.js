@@ -20,6 +20,13 @@ export const employeeService = {
     return apiClient.get(endpoint);
   },
 
+  approveMaintenance: async (id) => {
+    return apiClient.patch(ApiRoutes.employee.approve(id));
+  },
+  rejectMaintenance: async (id) => {
+    return apiClient.patch(ApiRoutes.employee.reject(id));
+  },
+
   async searchEmployees({ page = 1, rows = 10, options }, { signal }) {
     let endpoint = `${ApiRoutes.employee.getEmployees}?page=${page}&rows=${rows}`;
 
@@ -56,6 +63,10 @@ export const employeeService = {
 
   async updateEmployee(id, data) {
     return apiClient.put(ApiRoutes.UpdateEmployee(id), data);
+  },
+
+  async submitModificationRequest(id, data) {
+    return apiClient.patch(ApiRoutes.employee.modificationRequest(id), data);
   },
 
   async deleteEmployee(id) {

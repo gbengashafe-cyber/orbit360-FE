@@ -1,3 +1,4 @@
+import { employeeService, leaveService, payrollService } from '@/api';
 import { authorizationService } from '@/api/authorization.service';
 import { loanService } from '@/api/loan.service';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
@@ -10,7 +11,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { AuthorizationViewDialog } from '../authorization-center/authorization-center-dialog';
 import { TransactionsTable } from '../authorization-center/transaction-table';
-import { payrollService } from '@/api';
 
 export default function AuthorizationCenterWIP() {
   const [loading, setLoading] = useState(true);
@@ -110,6 +110,16 @@ export default function AuthorizationCenterWIP() {
           action === 'approve'
             ? await payrollService.approvePayrollBatch(item.id)
             : await payrollService.rejectPayrollBatch(item.id);
+          break;
+        case 'employees':
+          action === 'approve'
+            ? await employeeService.approveMaintenance(item.id)
+            : await employeeService.rejectMaintenance(item.id);
+          break;
+        case 'leaves':
+          action === 'approve'
+            ? await leaveService.updateLeaveStatus(item.id, 'APPROVED')
+            : await leaveService.updateLeaveStatus(item.id, 'REJECTED');
           break;
         case 'Training Request':
           await base44.entities.TrainingRequest.update(item.id, updateData);

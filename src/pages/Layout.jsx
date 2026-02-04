@@ -45,10 +45,10 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
+import { isLoggedIn } from '.';
 import EmployeeGate from '../components/EmployeeGate';
 import Logo from '../components/Logo';
 import { localStorageKeys, LocalStorageUtil } from '../utils/local-storage.util';
-import { isLoggedIn } from '.';
 
 const hrNav = [
   // { title: 'Authorization Center', url: createPageUrl('AuthorizationCenter'), icon: ClipboardList },
@@ -70,7 +70,7 @@ const hrNav = [
 const employeePortalNav = [
   { title: 'My Payslips', url: createPageUrl('my-payslips'), icon: FileText },
   { title: 'Appraisals', url: createPageUrl('Appraisals'), icon: BookCopy },
-  { title: 'Leave Management', url: createPageUrl('LeaveManagement'), icon: PlaneTakeoff },
+  { title: 'Leave Management', url: createPageUrl('leave-management'), icon: PlaneTakeoff },
   { title: 'Exit Management', url: createPageUrl('ExitManagement'), icon: UserRoundX },
   { title: 'Document Hub', url: createPageUrl('CompanyDocuments'), icon: FileBox },
   { title: 'Staff Complaints', url: createPageUrl('StaffComplaints'), icon: MessageSquareHeart },

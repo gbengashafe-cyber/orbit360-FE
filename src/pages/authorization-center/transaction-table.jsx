@@ -30,7 +30,7 @@ export function TransactionsTable({ moduleName, transactions, setViewingItem, is
               return (
                 <React.Fragment key={`${type}-${transaction.id}`}>
                   <TableRow>
-                    <TableCell className="font-medium">{type}</TableCell>
+                    <TableCell className="font-medium capitalize">{type}</TableCell>
                     <TableCell>{description}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(transaction.status)}>{transaction.status}</Badge>

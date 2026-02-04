@@ -22,23 +22,32 @@ export const getStatusColor = (status) => {
 };
 
 export const getTransactionProps = (transaction, moduleName) => {
+  console.log('🚀 ~ getTransactionProps ~ transaction:', transaction);
   let type = '_',
     description = '_',
     initiator = '_',
-    createdAt = '';
+    createdAt = transaction.createdAt ? format(new Date(transaction.createdAt), 'dd-MMM-yyyy') : '_';
 
   switch (moduleName) {
     case 'loans':
       type = transaction.loanType;
       description = `${transaction.employee.firstName} - ${transaction.principalAmount}`;
       initiator = transaction?.initiator?.firstName;
-      createdAt = format(new Date(transaction.createdAt), 'dd-MMM-yyyy');
       break;
     case 'payrolls':
       type = 'Monthly Salaries';
       description = `Batch: ${transaction.payPeriod} | Count: ${transaction.recordCount}`;
       initiator = `${transaction?.initiator?.firstName} ${transaction?.initiator?.lastName}`;
-      createdAt = format(new Date(transaction.createdAt), 'dd-MMM-yyyy');
+      break;
+    case 'employees':
+      type = 'Employees';
+      description = `${transaction.firstName} ${transaction.lastName}`;
+      initiator = `${transaction?.initiator?.firstName} ${transaction?.initiator?.lastName}`;
+      break;
+    case 'leaves':
+      type = transaction.type;
+      description = `${transaction.employee.firstName} ${transaction.employee.lastName}`;
+      initiator = `${transaction?.employee?.firstName} ${transaction?.employee?.lastName}`;
       break;
 
     default:

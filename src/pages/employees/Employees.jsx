@@ -1,19 +1,18 @@
 import { employeeService } from '@/api';
 import { jobRoleService } from '@/api/job-role.service';
 import { EmployeeBioDataTable } from '@/components/employees/EmployeeBioDataTable';
-import { EmployeeUtil } from '@/components/employees/employee.utils';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAllDepartments } from '@/hooks/use-all-departments';
+import { logger } from '@/utils';
 import { AlertCircle, Plus, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import EmployeeForm from '../../components/employees/EmployeeForm';
 import { WelcomeDialog } from './welcome-dialog';
-import { logger } from '@/utils';
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -90,7 +89,7 @@ export default function Employees() {
     setSuccess('');
     try {
       if (editingEmployee) {
-        await employeeService.updateEmployee(editingEmployee.id, employeeData);
+        await employeeService.submitModificationRequest(editingEmployee.id, employeeData);
         setSuccess('Employee details updated successfully.');
       } else {
         const newEmployee = await employeeService.createEmployee({ ...employeeData, createUser });
@@ -214,6 +213,7 @@ export default function Employees() {
             employee={editingEmployee}
             jobRoles={jobRoles}
             onSubmit={handleFormSubmit}
+            error={error}
             onCancel={() => {
               setShowForm(false);
               setEditingEmployee(null);
@@ -251,7 +251,6 @@ export default function Employees() {
                       employees={employees}
                       onEdit={handleEdit}
                       onTerminate={handleTerminate}
-                      getStatusColor={EmployeeUtil.getStatusColor}
                       onResendInstructions={handleResendInstructions}
                     />
                   </TabsContent>
@@ -260,7 +259,6 @@ export default function Employees() {
                       employees={employees}
                       onEdit={handleEdit}
                       onTerminate={handleTerminate}
-                      getStatusColor={EmployeeUtil.getStatusColor}
                       onResendInstructions={handleResendInstructions}
                     />
                   </TabsContent>

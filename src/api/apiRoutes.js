@@ -34,7 +34,10 @@ export class ApiRoutes {
     userEmployeeRecord: '/v1/employees/me',
     getEmployees: '/v1/employees',
     getActiveEmployees: '/v1/employees/directory',
+    modificationRequest: (id) => `/v1/employees/${id}`,
     payrolls: (id) => `/v1/employees/${id}/payrolls`,
+    approve: (id) => `/v1/employees/${id}/approval`,
+    reject: (id) => `/v1/employees/${id}/rejection`,
   };
 
   static loan = {

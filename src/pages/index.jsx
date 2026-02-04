@@ -200,7 +200,7 @@ function PagesContent() {
 
         <Route path="/MeetingManager" element={<MeetingManager />} />
 
-        <Route path="/LeaveManagement" element={<LeaveManagement />} />
+        <Route path="/leave-management" element={<LeaveManagement />} />
 
         <Route path="/Appraisals" element={<Appraisals />} />
 
@@ -249,24 +249,12 @@ export default function Pages() {
 }
 
 export const isLoggedIn = () => {
-  try {
-    const expiresAt = LocalStorageUtil.get(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
-    const accessToken = LocalStorageUtil.get(localStorageKeys.ACCESS_TOKEN);
+  // const expiresAt = LocalStorageUtil.get(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
+  const accessToken = LocalStorageUtil.get(localStorageKeys.ACCESS_TOKEN);
 
-    if (!accessToken || !expiresAt) return false;
+  if (!accessToken) return false;
 
-    if (expiresAt && Date.now() > expiresAt) {
-      LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
-      LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
-      return false;
-    }
-
-    return true;
-  } catch {
-    LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
-    LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
-    return false;
-  }
+  return true;
 };
 
 const RequireAuth = ({ children }) => {

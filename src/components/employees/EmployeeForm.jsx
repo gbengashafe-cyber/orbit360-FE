@@ -22,7 +22,7 @@ import { LoanUtil } from '../cooperative/loan.utils';
 import { EmployeeUtil } from './employee.utils';
 import EmployeeLoans from './EmployeeLoans';
 
-export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartments = [], jobRoles = [] }) {
+export default function EmployeeForm({ employee, onSubmit, onCancel, error, allDepartments = [], jobRoles = [] }) {
   const [employeeLoans, setEmployeeLoans] = useState([]);
   const [query, setQuery] = useState('');
   const [departmentEmployees, setDepartmentEmployees] = useState([]);
@@ -218,7 +218,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Employee ID */}
             <div className="space-y-2">
-              <Label htmlFor="staffId">Employee ID *</Label>
+              <Label htmlFor="staffId">Staff ID *</Label>
               <Input
                 id="staffId"
                 value={formData.staffId}
@@ -350,6 +350,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="pending_approval">Pending Approval</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="suspended">Suspended</SelectItem>
                     <SelectItem value="terminated">Terminated</SelectItem>
@@ -824,6 +825,8 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, allDepartme
               </div>
             </>
           )}
+
+          {error ? <div className="bg-red-100 text-red-900 rounded-lg px-4 py-3">{error}</div> : null}
 
           <div className="flex justify-end gap-2 mt-8 pt-6 border-t">
             <Button type="button" variant="outline" onClick={onCancel}>

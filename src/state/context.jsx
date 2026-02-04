@@ -23,7 +23,6 @@ const loadDataFromLocalStorage = (key) => {
   const isExpired = (now - lastFetched) / 1000 > SAVED_DATA_EXPIRY_IN_SECONDS;
 
   if (isExpired) {
-    LocalStorageUtil.delete(key);
     return {};
   }
 
