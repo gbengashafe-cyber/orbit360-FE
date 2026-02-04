@@ -22,7 +22,6 @@ export const getStatusColor = (status) => {
 };
 
 export const getTransactionProps = (transaction, moduleName) => {
-  console.log('🚀 ~ getTransactionProps ~ transaction:', transaction);
   let type = '_',
     description = '_',
     initiator = '_',

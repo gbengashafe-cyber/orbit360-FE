@@ -76,6 +76,7 @@ const employeePortalNav = [
   { title: 'Staff Complaints', url: createPageUrl('StaffComplaints'), icon: MessageSquareHeart },
   { title: 'Request Training', url: createPageUrl('RequestTraining'), icon: NotebookPen },
   { title: 'Staff Movement', url: createPageUrl('StaffMovement'), icon: Shuffle },
+  { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
 ];
 
 const adminNav = [
