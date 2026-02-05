@@ -21,10 +21,10 @@ export const employeeService = {
   },
 
   approveMaintenance: async (id) => {
-    return apiClient.patch(ApiRoutes.employee.approve(id));
+    return apiClient.post(ApiRoutes.employee.approve(id));
   },
   rejectMaintenance: async (id) => {
-    return apiClient.patch(ApiRoutes.employee.reject(id));
+    return apiClient.post(ApiRoutes.employee.reject(id));
   },
 
   async searchEmployees({ page = 1, rows = 10, options }, { signal }) {

@@ -345,12 +345,14 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, error, allD
             {formData.id ? (
               <div className="space-y-2">
                 <Label htmlFor="status">Employment Status</Label>
-                <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                <Select value={formData.status?.toLowerCase()} onValueChange={(value) => handleInputChange('status', value)}>
                   <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                    {formData.status.toLowerCase() === 'pending_approval' ? (
+                      <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                    ) : null}
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="suspended">Suspended</SelectItem>
                     <SelectItem value="terminated">Terminated</SelectItem>

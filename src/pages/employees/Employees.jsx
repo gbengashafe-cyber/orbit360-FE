@@ -89,13 +89,13 @@ export default function Employees() {
     setSuccess('');
     try {
       if (editingEmployee) {
-        await employeeService.submitModificationRequest(editingEmployee.id, employeeData);
-        setSuccess('Employee details updated successfully.');
+        const response = await employeeService.submitModificationRequest(editingEmployee.id, employeeData);
+        setSuccess(response.message ?? 'Employee details updated successfully');
       } else {
-        const newEmployee = await employeeService.createEmployee({ ...employeeData, createUser });
-        let successMsg = 'New employee created successfully.';
+        const newEmployeeResponse = await employeeService.createEmployee({ ...employeeData, createUser });
+        let successMsg = newEmployeeResponse.message ?? 'New employee created successfully.';
 
-        if (createUser && newEmployee) {
+        if (createUser && newEmployeeResponse) {
           try {
             const instructions = `
               <h3>Welcome aboard!</h3>
@@ -158,13 +158,11 @@ export default function Employees() {
   const handleTerminate = async (employeeId) => {
     if (window.confirm('Are you sure you want to terminate this employee? Their record will be moved to the ex-staff archive.')) {
       try {
-        await employeeService.updateEmployee(employeeId, { status: 'terminated' });
+        const response = await employeeService.submitModificationRequest(employeeId, { status: 'terminated' });
         loadTerminatedEmployees();
-        setSuccess('Employee terminated successfully.');
-        setTimeout(() => setSuccess(''), 8000);
+        toast.success('Success', { description: response.message ?? 'Employee terminated successfully.' });
       } catch (error) {
         setError(`Failed to terminate employee: ${error.message}`);
-        setTimeout(() => setError(''), 8000);
       }
     }
   };

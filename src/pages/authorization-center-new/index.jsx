@@ -84,7 +84,7 @@ export default function AuthorizationCenterWIP() {
 
       setLoans(pendingResponse.data?.loans);
     } catch (error) {
-      logger.error({ caller: 'List pending auth items', error });
+      logger.error({ caller: 'List pending auth items', payload: error });
       toast.error('Error', { description: error.message || 'Error loading data' });
     } finally {
       setLoading(false);
@@ -101,25 +101,29 @@ export default function AuthorizationCenterWIP() {
         approved_date: new Date().toISOString().split('T')[0],
       };
 
+      let responsePayload;
+
       // Update based on transaction type
       switch (moduleName) {
         case 'loans':
-          action === 'approve' ? await loanService.approveLoan(item.id) : await loanService.rejectLoan(item.id);
+          action === 'approve'
+            ? (responsePayload = await loanService.approveLoan(item.id))
+            : (responsePayload = await loanService.rejectLoan(item.id));
           break;
         case 'payrolls':
           action === 'approve'
-            ? await payrollService.approvePayrollBatch(item.id)
-            : await payrollService.rejectPayrollBatch(item.id);
+            ? (responsePayload = await payrollService.approvePayrollBatch(item.id))
+            : (responsePayload = await payrollService.rejectPayrollBatch(item.id));
           break;
         case 'employees':
           action === 'approve'
-            ? await employeeService.approveMaintenance(item.id)
-            : await employeeService.rejectMaintenance(item.id);
+            ? (responsePayload = await employeeService.approveMaintenance(item.id))
+            : (responsePayload = await employeeService.rejectMaintenance(item.id));
           break;
         case 'leaves':
           action === 'approve'
-            ? await leaveService.updateLeaveStatus(item.id, 'APPROVED')
-            : await leaveService.updateLeaveStatus(item.id, 'REJECTED');
+            ? (responsePayload = await leaveService.updateLeaveStatus(item.id, 'APPROVED'))
+            : (responsePayload = await leaveService.updateLeaveStatus(item.id, 'REJECTED'));
           break;
         case 'Training Request':
           await base44.entities.TrainingRequest.update(item.id, updateData);
@@ -162,7 +166,13 @@ export default function AuthorizationCenterWIP() {
           throw new Error(`Authorization is not handled for module '${moduleName}'`);
       }
 
-      toast.success('Success', { description: `${moduleName} ${action === 'approve' ? 'authorized' : 'rejected'} successfully` });
+      if (responsePayload?.message) {
+        toast.success('Success', { description: responsePayload.message });
+      } else {
+        toast.success('Success', {
+          description: `${moduleName} ${action === 'approve' ? 'authorized' : 'rejected'} successfully`,
+        });
+      }
       setViewingItem(null);
       await getPendingCount();
       await loadPendingModuleItems();

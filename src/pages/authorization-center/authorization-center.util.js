@@ -17,6 +17,7 @@ export const getStatusColor = (status) => {
     verdict_delivered: 'bg-orange-100 text-orange-700',
     penalty_applied: 'bg-red-100 text-red-700',
     closed: 'bg-gray-100 text-gray-700',
+    terminated: 'bg-red-100 text-red-700',
   };
   return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-700';
 };
@@ -39,8 +40,8 @@ export const getTransactionProps = (transaction, moduleName) => {
       initiator = `${transaction?.initiator?.firstName} ${transaction?.initiator?.lastName}`;
       break;
     case 'employees':
-      type = 'Employees';
-      description = `${transaction.firstName} ${transaction.lastName}`;
+      type = transaction.actionType;
+      description = `${transaction.employee.firstName} ${transaction.employee.lastName}`;
       initiator = `${transaction?.initiator?.firstName} ${transaction?.initiator?.lastName}`;
       break;
     case 'leaves':
