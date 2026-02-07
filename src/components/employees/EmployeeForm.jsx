@@ -206,6 +206,16 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, error, allD
   const formatCurrency = (value) =>
     (value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  const getSupervisorName = () => {
+    if (!departmentEmployees.length || !formData.supervisorId) {
+      return '';
+    }
+
+    const supervisor = departmentEmployees.find((_emp) => _emp.id === formData.supervisorId);
+
+    return `${supervisor.firstName} ${supervisor.lastName}`;
+  };
+
   return (
     <Card className="bg-white/90 backdrop-blur-sm border-slate-200/60 shadow-2xl shadow-slate-200/60 mt-6">
       <CardHeader>
@@ -381,7 +391,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel, error, allD
                       aria-expanded={open}
                       className="w-full justify-between font-normal border-slate-200"
                     >
-                      {formData.supervisorId ? formData.supervisorName : 'Select supervisor...'}
+                      {formData.supervisorId ? getSupervisorName() : 'Select supervisor...'}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
