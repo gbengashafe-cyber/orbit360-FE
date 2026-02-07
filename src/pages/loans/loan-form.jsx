@@ -122,11 +122,13 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, onSubmit, loan, setE
         approverRole: formData.approverRole,
       };
 
+      let response;
       if (loan) {
-        await loanService.updateLoan(loan.id, submissionData);
+        response = await loanService.updateLoan(loan.id, submissionData);
       } else {
-        await loanService.createLoan(submissionData);
+        response = await loanService.createLoan(submissionData);
       }
+      toast.success('Success', { description: response.message ?? 'Request submitted successfully' });
       setShowForm(false);
       setEditingLoan(null);
       loadData();

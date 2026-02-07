@@ -245,7 +245,7 @@ export default function AuthorizationCenterWIP() {
 
               {Object.keys(pendingStats.breakdown)?.length
                 ? Object.keys(pendingStats.breakdown).map((_module, index) => (
-                    <TabsContent value={_module} key={index} className="grid gap-y-8 mt-6">
+                    <TabsContent value={_module} key={index} className=" mt-6">
                       <TransactionsTable
                         moduleName={activeModule}
                         transactions={pendingItems[activeModule]}
