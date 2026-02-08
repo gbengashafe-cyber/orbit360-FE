@@ -40,6 +40,12 @@ export const TaxBreakdown = ({ employee, totalGrossPay, annualPensionDeduction, 
                 <span>Less: Annual NHF (2.5%):</span> <span>(₦{EmployeeUtil.formatCurrency(annualNHFDeduction)})</span>
               </div>
             )}
+            {employee.annualRentAmount && (
+              <div className="flex justify-between text-red-600 py-1">
+                <span>Less: Rent Relief (Max 500k):</span>{' '}
+                <span>(₦{EmployeeUtil.formatCurrency(EmployeeUtil.calculateRentRelief(employee.annualRentAmount))})</span>
+              </div>
+            )}
             <div className="flex justify-between font-bold text-base border-t-2 pt-3 mt-3 text-blue-900">
               <span>Annual Taxable Income:</span>
               <span>₦{EmployeeUtil.formatCurrency(annualPAYEData.taxableIncome)}</span>

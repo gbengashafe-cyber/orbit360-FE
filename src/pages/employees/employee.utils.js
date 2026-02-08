@@ -35,13 +35,19 @@ export class EmployeeUtil {
     return (basic * 2.5) / 100;
   };
 
+  static calculateRentRelief = (annualRentAmount) => {
+    const annualRentRelief = parseFloat(annualRentAmount * 0.2).toFixed(2);
+    return annualRentRelief <= 500000 ? annualRentRelief : parseFloat(500000).toFixed(2);
+  };
+
   static calculatePAYE = (employee) => {
     const annualGross = this.calculateTotalGrossPay(employee);
     const annualPension = this.calculatePensionDeduction(employee);
     const annualNhf = this.calculateNHFDeduction(employee);
+    const annualRentRelief = this.calculateRentRelief(employee.annualRentAmount);
 
     // Step 1: Calculate Taxable Income (Gross Income - Deductions)
-    const taxableIncome = parseFloat(Math.max(0, annualGross - annualPension - annualNhf).toFixed(2));
+    const taxableIncome = parseFloat(Math.max(0, annualGross - annualPension - annualNhf - annualRentRelief).toFixed(2));
 
     // Step 2: Apply Progressive Tax Rates per Nigeria Tax Act 2025
     let annualTax = 0;

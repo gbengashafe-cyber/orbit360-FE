@@ -72,6 +72,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
           nextOfKinPhone: '',
           nextOfKinAddress: '',
           leaveEntitlement: 22,
+          annualRentAmount: 0,
         },
   );
 
@@ -101,7 +102,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const totalGrossPay = EmployeeUtil.calculateTotalGrossPay(formData);
+    const totalGrossPay = compensation.totalGrossPay;
     const submissionData = {
       ...formData,
       annualBasicSalary: parseFloat(formData.annualBasicSalary) || 0,
@@ -109,6 +110,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
       annualTransportAllowance: parseFloat(formData.annualTransportAllowance) || 0,
       annualLeaveAllowance: parseInt(formData.annualLeaveAllowance) || 0,
       annualOtherAllowances: parseFloat(formData.annualOtherAllowances) || 0,
+      annualRentAmount: parseFloat(formData.annualRentAmount) || 0,
       pensionApplicable: formData.pensionApplicable !== false,
       pensionRate: 8,
       nhfRate: 2.5,
@@ -126,6 +128,11 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
       if (field === 'annualBasicSalary') {
         const basicSalary = parseFloat(value) || 0;
         newFormData.annualLeaveAllowance = parseFloat(basicSalary * 0.1).toFixed(2);
+      }
+
+      if (field === 'annualRentAmount') {
+        const annualRentAmount = parseFloat(value) || 0;
+        newFormData.annualRentRelief = EmployeeUtil.calculateRentRelief(annualRentAmount);
       }
       return newFormData;
     });
@@ -149,17 +156,12 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
     }
   };
 
-  const totalGrossPay = EmployeeUtil.calculateTotalGrossPay(formData);
-  const annualPensionDeduction = EmployeeUtil.calculatePensionDeduction(formData);
-  const annualNHFDeduction = EmployeeUtil.calculateNHFDeduction(formData);
-
   const getSupervisorName = () => {
     if (!departmentEmployees.length || !formData.supervisorId) {
       return '';
     }
 
     const supervisor = departmentEmployees.find((_emp) => _emp.id === formData.supervisorId);
-
     return `${supervisor.firstName} ${supervisor.lastName}`;
   };
 
@@ -413,6 +415,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                 <Input
                   id="annualBasicSalary"
                   type="number"
+                  min={0}
                   value={formData.annualBasicSalary}
                   onChange={(e) => handleInputChange('annualBasicSalary', e.target.value)}
                   required
@@ -423,6 +426,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                 <Input
                   id="annualHousingAllowance"
                   type="number"
+                  min={0}
                   value={formData.annualHousingAllowance}
                   onChange={(e) => handleInputChange('annualHousingAllowance', e.target.value)}
                 />
@@ -432,6 +436,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                 <Input
                   id="annualTransportAllowance"
                   type="number"
+                  min={0}
                   value={formData.annualTransportAllowance}
                   onChange={(e) => handleInputChange('annualTransportAllowance', e.target.value)}
                 />
@@ -452,6 +457,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                 <Input
                   id="annualOtherAllowances"
                   type="number"
+                  min={0}
                   value={formData.annualOtherAllowances}
                   onChange={(e) => handleInputChange('annualOtherAllowances', e.target.value)}
                 />
@@ -461,25 +467,46 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                 <Input
                   id="leaveEntitlement"
                   type="number"
+                  min={0}
                   value={formData.leaveEntitlement}
                   onChange={(e) => handleInputChange('leaveEntitlement', e.target.value)}
                 />
               </div>
               <div className="bg-blue-50 p-3 rounded-lg flex flex-col justify-center">
                 <Label className="text-blue-800">Total Annual Gross Pay</Label>
-                <p className="text-xl font-bold text-blue-800">₦{EmployeeUtil.formatCurrency(totalGrossPay)}</p>
+                <p className="text-xl font-bold text-blue-800">₦{EmployeeUtil.formatCurrency(compensation.totalGrossPay)}</p>
               </div>
             </div>
 
             <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Deductions & Relief Configuration (Annual)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="space-y-2">
+                <Label htmlFor="annualRentAmount">Rent Amount</Label>
+                <Input
+                  id="annualRentAmount"
+                  type="number"
+                  min={0}
+                  value={formData.annualRentAmount}
+                  onChange={(e) => handleInputChange('annualRentAmount', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 flex justify-end items-center ">
+                <p>
+                  <Label>Rent Relief:</Label>
+                  <span className="inline-block ms-6">₦{EmployeeUtil.formatCurrency(formData.annualRentRelief || 0)}</span>
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-2">
                 <Label htmlFor="pension_rate">Pension Deduction (Fixed at 8%)</Label>
                 <Input id="pension_rate" type="number" value="8" disabled className="bg-gray-100 cursor-not-allowed" />
                 <p className="text-xs text-gray-500 font-medium">
-                  Annual: ₦{EmployeeUtil.formatCurrency(annualPensionDeduction)}
+                  Annual: ₦{EmployeeUtil.formatCurrency(compensation.annualPensionDeduction)}
                 </p>
-                <p className="text-xs text-gray-500">Monthly: ₦{EmployeeUtil.formatCurrency(annualPensionDeduction / 12)}</p>
+                <p className="text-xs text-gray-500">
+                  Monthly: ₦{EmployeeUtil.formatCurrency(compensation.annualPensionDeduction / 12)}
+                </p>
                 <p className="text-xs text-gray-400">Based on Basic + Housing + Transport</p>
               </div>
 
@@ -507,8 +534,12 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                     Apply NHF Deduction (2.5%)
                   </Label>
                 </div>
-                <p className="text-xs text-gray-500 font-medium">Annual: ₦{compensation.annualNHFDeduction}</p>
-                <p className="text-xs text-gray-500">Monthly: ₦{EmployeeUtil.formatCurrency(annualNHFDeduction / 12)}</p>
+                <p className="text-xs text-gray-500 font-medium">
+                  Annual: ₦{EmployeeUtil.formatCurrency(compensation.annualNHFDeduction)}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Monthly: ₦{EmployeeUtil.formatCurrency(compensation.annualNHFDeduction / 12)}
+                </p>
                 <p className="text-xs text-gray-400">Based on Basic Salary only</p>
               </div>
             </div>

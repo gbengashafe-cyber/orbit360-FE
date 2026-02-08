@@ -1,14 +1,13 @@
 import { employeeService } from '@/api';
 import { jobRoleService } from '@/api/job-role.service';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAllDepartments } from '@/hooks/use-all-departments';
 import { EmployeeBioDataTable } from '@/pages/employees/employee-bio-data-table';
 import { logger } from '@/utils';
-import { AlertCircle, Plus, Users } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { EmployeeForm } from './employee-form';
@@ -20,7 +19,6 @@ export function Employees() {
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [showWelcomeInfoDialog, setShowWelcomeInfoDialog] = useState(false);
   const [welcomeInfo, setWelcomeInfo] = useState({ email: '', instructions: '' });
   const [jobRoles, setJobRoles] = useState([]);
@@ -86,7 +84,6 @@ export function Employees() {
   const handleFormSubmit = async (formData) => {
     const { employeeData, createUser } = formData;
     setError('');
-    setSuccess('');
     try {
       if (editingEmployee) {
         const response = await employeeService.submitModificationRequest(editingEmployee.id, employeeData);
