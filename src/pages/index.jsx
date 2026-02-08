@@ -13,7 +13,7 @@ import Dashboard from './dashboard/Dashboard';
 import Deals from './Deals';
 import DocumentManagement from './DocumentManagement';
 import EmailCenter from './EmailCenter';
-import Employees from './employees/Employees';
+import { Employees } from './employees/employees-page';
 import ExitManagement from './ExitManagement';
 import ExpenseApprovals from './ExpenseApprovals';
 import ExpenseDetail from './ExpenseDetail';

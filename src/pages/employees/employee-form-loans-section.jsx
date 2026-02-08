@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { LoanUtil } from '../cooperative/loan.utils';
+import { LoanUtil } from '../../components/cooperative/loan.utils';
 import { EmployeeUtil } from './employee.utils';
 
-const EmployeeLoans = ({ employeeLoans, totalAnnualLoanDeduction, totalMonthlyLoanDeduction }) => {
+export const EmployeeLoans = ({ employeeLoans, totalAnnualLoanDeduction, totalMonthlyLoanDeduction }) => {
   return (
     <Card className="mt-6 border-orange-200 shadow-lg bg-orange-50/30">
       <CardHeader className="bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-t-lg">
@@ -49,5 +49,3 @@ const EmployeeLoans = ({ employeeLoans, totalAnnualLoanDeduction, totalMonthlyLo
     </Card>
   );
 };
-
-export default EmployeeLoans;

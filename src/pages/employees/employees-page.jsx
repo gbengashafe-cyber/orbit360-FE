@@ -1,20 +1,20 @@
 import { employeeService } from '@/api';
 import { jobRoleService } from '@/api/job-role.service';
-import { EmployeeBioDataTable } from '@/components/employees/EmployeeBioDataTable';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAllDepartments } from '@/hooks/use-all-departments';
+import { EmployeeBioDataTable } from '@/pages/employees/employee-bio-data-table';
 import { logger } from '@/utils';
 import { AlertCircle, Plus, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import EmployeeForm from '../../components/employees/EmployeeForm';
+import { EmployeeForm } from './employee-form';
 import { WelcomeDialog } from './welcome-dialog';
 
-export default function Employees() {
+export function Employees() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -90,7 +90,7 @@ export default function Employees() {
     try {
       if (editingEmployee) {
         const response = await employeeService.submitModificationRequest(editingEmployee.id, employeeData);
-        setSuccess(response.message ?? 'Employee details updated successfully');
+        toast.success({ description: response.message ?? 'Employee details updated successfully' });
       } else {
         const newEmployeeResponse = await employeeService.createEmployee({ ...employeeData, createUser });
         let successMsg = newEmployeeResponse.message ?? 'New employee created successfully.';
@@ -115,26 +115,23 @@ export default function Employees() {
 
             successMsg += ' A user account was created. Please share the login instructions with the new employee.';
           } catch (userError) {
-            setError(`Employee was created, but failed to create user account: ${userError.message}`);
+            throw new Error(`Employee was created, but failed to create user account: ${userError.message}`);
           }
         }
-        setSuccess(successMsg);
+        toast.success('Success', { description: successMsg });
       }
       setShowForm(false);
       setEditingEmployee(null);
       loadTerminatedEmployees();
-      setTimeout(() => {
-        setSuccess('');
-        setError('');
-      }, 8000);
     } catch (error) {
-      setError(`Failed to save employee: ${error.message || 'Unable to complete request. Kindly contact the administrator'}`);
+      setError(`${error.message || 'Unable to complete request. Kindly contact the administrator'}`);
     }
   };
 
   const handleEdit = (employee) => {
     setEditingEmployee(employee);
     setShowForm(true);
+    setError('');
   };
 
   const handleResendInstructions = (employee) => {
@@ -184,6 +181,7 @@ export default function Employees() {
             onClick={() => {
               setEditingEmployee(null);
               setShowForm(true);
+              setError('');
             }}
             className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
           >
@@ -191,33 +189,6 @@ export default function Employees() {
             Add Employee
           </Button>
         </div>
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {success && (
-          <Alert className="border-green-500 text-green-700">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
-
-        {showForm && (
-          <EmployeeForm
-            allDepartments={allDepartments}
-            employee={editingEmployee}
-            jobRoles={jobRoles}
-            onSubmit={handleFormSubmit}
-            error={error}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingEmployee(null);
-            }}
-          />
-        )}
 
         <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
           <Tabs
@@ -278,7 +249,20 @@ export default function Employees() {
           </Tabs>
         </Card>
       </div>
-
+      {showForm ? (
+        <EmployeeForm
+          showForm={showForm}
+          allDepartments={allDepartments}
+          employee={editingEmployee}
+          jobRoles={jobRoles}
+          onSubmit={handleFormSubmit}
+          error={error}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingEmployee(null);
+          }}
+        />
+      ) : null}
       <WelcomeDialog shouldOpen={showWelcomeInfoDialog} setShouldOpen={setShowWelcomeInfoDialog} welcomeInfo={welcomeInfo} />
     </div>
   );
