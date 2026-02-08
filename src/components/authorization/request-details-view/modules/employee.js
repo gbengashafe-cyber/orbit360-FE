@@ -28,7 +28,7 @@ export const EmployeeSchema = {
       fields: [
         {
           label: 'Supervisor',
-          path: 'employeeDraft.supervisor',
+          path: 'employeeDraft.draftSupervisor',
           formatter: (emp) => (emp ? `${emp.firstName} ${emp.lastName}` : 'N/A'),
           type: 'string',
         },
