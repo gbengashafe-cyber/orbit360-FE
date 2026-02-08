@@ -87,7 +87,7 @@ export function Employees() {
     try {
       if (editingEmployee) {
         const response = await employeeService.submitModificationRequest(editingEmployee.id, employeeData);
-        toast.success({ description: response.message ?? 'Employee details updated successfully' });
+        toast.success('Success', { description: response.message ?? 'Employee details updated successfully' });
       } else {
         const newEmployeeResponse = await employeeService.createEmployee({ ...employeeData, createUser });
         let successMsg = newEmployeeResponse.message ?? 'New employee created successfully.';
@@ -112,7 +112,9 @@ export function Employees() {
 
             successMsg += ' A user account was created. Please share the login instructions with the new employee.';
           } catch (userError) {
-            throw new Error(`Employee was created, but failed to create user account: ${userError.message}`);
+            throw new Error(
+              `Employee was created, but failed to create user account: ${userError?.message || 'Kindly contact system administrator'}`,
+            );
           }
         }
         toast.success('Success', { description: successMsg });

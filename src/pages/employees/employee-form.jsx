@@ -499,7 +499,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
               <div className="space-y-2 flex justify-end items-center ">
                 <p>
                   <Label>Rent Relief:</Label>
-                  <span className="inline-block ms-6">₦{EmployeeUtil.formatCurrency(formData.annualRentRelief || 0)}</span>
+                  <span className="inline-block ms-6">₦{EmployeeUtil.formatCurrency(formData.annualRentRelief)}</span>
                 </p>
               </div>
             </div>
