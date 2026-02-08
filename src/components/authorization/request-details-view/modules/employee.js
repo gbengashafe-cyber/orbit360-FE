@@ -48,6 +48,7 @@ export const EmployeeSchema = {
     {
       title: 'Deductions & Relief Configuration (Annual)',
       fields: [
+        { label: 'Annual Rent', path: 'employeeDraft.annualRentAmount', type: 'currency' },
         { label: 'Pension Deduction', path: 'pensionRate', formatter: () => '8', type: 'percentage' },
         {
           label: 'NHF Applicable',
