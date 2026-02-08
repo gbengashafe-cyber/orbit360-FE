@@ -416,6 +416,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                   id="annualBasicSalary"
                   type="number"
                   min={0}
+                  step={0.01}
                   value={formData.annualBasicSalary}
                   onChange={(e) => handleInputChange('annualBasicSalary', e.target.value)}
                   required
@@ -427,6 +428,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                   id="annualHousingAllowance"
                   type="number"
                   min={0}
+                  step={0.01}
                   value={formData.annualHousingAllowance}
                   onChange={(e) => handleInputChange('annualHousingAllowance', e.target.value)}
                 />
@@ -437,6 +439,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                   id="annualTransportAllowance"
                   type="number"
                   min={0}
+                  step={0.01}
                   value={formData.annualTransportAllowance}
                   onChange={(e) => handleInputChange('annualTransportAllowance', e.target.value)}
                 />
@@ -458,6 +461,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                   id="annualOtherAllowances"
                   type="number"
                   min={0}
+                  step={0.01}
                   value={formData.annualOtherAllowances}
                   onChange={(e) => handleInputChange('annualOtherAllowances', e.target.value)}
                 />
@@ -468,6 +472,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                   id="leaveEntitlement"
                   type="number"
                   min={0}
+                  step={0.01}
                   value={formData.leaveEntitlement}
                   onChange={(e) => handleInputChange('leaveEntitlement', e.target.value)}
                 />
@@ -486,6 +491,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                   id="annualRentAmount"
                   type="number"
                   min={0}
+                  step={0.01}
                   value={formData.annualRentAmount}
                   onChange={(e) => handleInputChange('annualRentAmount', e.target.value)}
                 />
