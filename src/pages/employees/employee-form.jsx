@@ -24,7 +24,7 @@ import { useSupervisorSearch } from './hooks/use-supervisor-search';
 export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, allDepartments = [], jobRoles = [] }) {
   const [employeeLoans, setEmployeeLoans] = useState([]);
   const [query, setQuery] = useState('');
-  const [createUserAccount, setCreateUserAccount] = useState(true);
+  const [shouldCreateUser, setShouldCreateUser] = useState(true);
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState(
     employee
@@ -118,7 +118,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
       totalAnnualGrossPay: parseFloat(totalGrossPay.toFixed(2)),
       supervisorId: String(formData.supervisorId || ''),
     };
-    onSubmit({ employeeData: submissionData, createUser: !employee && createUserAccount });
+    onSubmit({ employeeData: { ...submissionData, shouldCreateUser }, shouldCreateUser: shouldCreateUser });
   };
 
   const handleInputChange = (field, value) => {
@@ -671,8 +671,8 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                   <div className="flex items-start space-x-3">
                     <Checkbox
                       id="createUserAccount"
-                      checked={createUserAccount}
-                      onCheckedChange={setCreateUserAccount}
+                      checked={shouldCreateUser}
+                      onCheckedChange={setShouldCreateUser}
                       className="mt-1"
                     />
                     <div className="grid gap-1.5 leading-none">
