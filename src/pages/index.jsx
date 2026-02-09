@@ -149,7 +149,7 @@ function PagesContent() {
   return (
     <Layout currentPageName={currentPage}>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={isLoggedIn() ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
         <Route path="/" element={<Dashboard />} />
 
         <Route path="/Dashboard" element={<Dashboard />} />
@@ -160,7 +160,7 @@ function PagesContent() {
 
         <Route path="/UserManagement" element={<UserManagement />} />
 
-        <Route path="/Payroll" element={<Payroll />} />
+        <Route path="/payroll" element={<Payroll />} />
 
         <Route path="/Recruitment" element={<Recruitment />} />
 
