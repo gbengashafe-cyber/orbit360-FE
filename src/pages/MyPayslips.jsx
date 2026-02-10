@@ -1,7 +1,7 @@
 import { employeeService, payrollService } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGlobalContext } from '@/state/context';
 import { Loader2, Printer, Receipt } from 'lucide-react';
@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import { toast } from 'sonner';
 import Payslip from '../components/payroll/Payslip';
+import { DialogPrintContent } from './Payroll';
 
 export default function MyPayslips() {
   const [employeeData, setEmployeeData] = useState(null);
@@ -170,7 +171,7 @@ export default function MyPayslips() {
                           View Payslip
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-4xl p-0 border-0">
+                      <DialogPrintContent>
                         {selectedRecord && (
                           <>
                             <DialogHeader>
@@ -178,7 +179,7 @@ export default function MyPayslips() {
                               <DialogDescription></DialogDescription>
                             </DialogHeader>
                             <Payslip payrollRecord={selectedRecord} employee={employeeData} />
-                            <div className="p-4 bg-gray-100 flex justify-end no-print">
+                            <div className="sticky bottom-0 py-6 px-4 bg-gray-200 flex justify-end no-print">
                               <Button onClick={handlePrint}>
                                 <Printer className="w-4 h-4 mr-2" />
                                 Print / Save as PDF
@@ -186,7 +187,7 @@ export default function MyPayslips() {
                             </div>
                           </>
                         )}
-                      </DialogContent>
+                      </DialogPrintContent>
                     </Dialog>
                   </li>
                 ))}

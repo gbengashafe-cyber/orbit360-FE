@@ -7,7 +7,7 @@ const Payslip = ({ payrollRecord, employee }) => {
   }
 
   return (
-    <div className="p-8 sm:p-12 print:px-6 print:py-6 print:shadow-none print:drop-shadow-none" id="payslip-content">
+    <div className="print:px-6 print:py-6 print:drop-shadow-none print:max-w-full  sm:p-12" id="payslip-content">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Payslip</h1>

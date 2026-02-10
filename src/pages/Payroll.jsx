@@ -619,14 +619,14 @@ export default function Payroll() {
       </Dialog>
 
       <Dialog open={!!viewingPayslip} onOpenChange={() => setViewingPayslip(null)}>
-        <DialogContent className="max-w-4xl p-0 border-0 print:border-0 print:absolute print:top-0 print:left-0 print:translate-x-0 print:translate-y-0 print:max-w-full print:shadow-none print:drop-shadow-none print:[&_button]:hidden max-h-[80vh] overflow-y-auto">
+        <DialogPrintContent className="">
           <DialogHeader>
             <DialogTitle></DialogTitle>
           </DialogHeader>
           {viewingPayslip && (
             <div ref={payslipRef} className="print-container">
               <Payslip payrollRecord={viewingPayslip.record} employee={viewingPayslip.employee} />
-              <div className="p-4 bg-gray-100 flex justify-end">
+              <div className="sticky bottom-0 py-6 px-4 rounded-e-none overflow-hidden bg-gray-200 flex justify-end">
                 <Button onClick={() => window.print()}>
                   <Printer className="w-4 h-4 mr-2" />
                   Print / Save as PDF
@@ -634,8 +634,18 @@ export default function Payroll() {
               </div>
             </div>
           )}
-        </DialogContent>
+        </DialogPrintContent>
       </Dialog>
     </div>
   );
 }
+
+export const DialogPrintContent = ({ children, className }) => {
+  return (
+    <DialogContent
+      className={`print:shadow-none max-w-4xl p-0 border-0 print:border-0 print:absolute print:top-0 print:left-0 print:translate-x-0 print:translate-y-0 print:[&_button]:hidden max-h-[80vh] overflow-y-auto ${className}`}
+    >
+      {children}
+    </DialogContent>
+  );
+};
