@@ -43,7 +43,9 @@ export default function MyPayslips() {
           }
         }
       } catch (error) {
-        toast.error('Error loading payslip data', { description: `${error.message ? error.message : ''}` });
+        toast.error('Error loading payslip data', {
+          description: error.message ?? 'Kindly contact the system administrator',
+        });
       } finally {
         setLoading(false);
       }

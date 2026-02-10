@@ -54,7 +54,7 @@ const hrNav = [
   // { title: 'Authorization Center', url: createPageUrl('AuthorizationCenter'), icon: ClipboardList },
   { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
   { title: 'Employees', url: createPageUrl('Employees'), icon: Users2 },
-  { title: 'Payroll', url: createPageUrl('Payroll'), icon: Banknote },
+  { title: 'Payroll', url: createPageUrl('payroll'), icon: Banknote },
   { title: 'Payslips', url: createPageUrl('payslips'), icon: FileText },
   { title: 'Cooperative & Loans', url: createPageUrl('Cooperative'), icon: HandCoins },
   // { title: 'Compensation Tool', url: createPageUrl('CompensationTool'), icon: Calculator },

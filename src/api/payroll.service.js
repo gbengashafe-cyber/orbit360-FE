@@ -17,6 +17,9 @@ export const payrollService = {
   async getPayrollByPeriod({ payPeriod, page = 1, rows = 20 }) {
     return apiClient.get(`${ApiRoutes.GetPayrollsByPeriod(payPeriod)}?page=${page}&rows=${rows}`);
   },
+  async getPayrollBatchByPeriod({ payPeriod }) {
+    return apiClient.get(`${ApiRoutes.payroll.getBatchByPeriod(payPeriod)}`);
+  },
 
   async generatePayroll(payPeriod) {
     return apiClient.post(ApiRoutes.GeneratePayroll, { payPeriod });

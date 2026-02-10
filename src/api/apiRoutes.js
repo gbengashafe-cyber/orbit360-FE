@@ -140,6 +140,7 @@ export class ApiRoutes {
   static payroll = {
     approveBatch: (id) => `/v1/payrolls/${id}/approval`,
     rejectBatch: (id) => `/v1/payrolls/${id}/rejection`,
+    getBatchByPeriod: (period) => `/v1/payrolls/periods/batches/${period}`,
   };
 
   // Deductions

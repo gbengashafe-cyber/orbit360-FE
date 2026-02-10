@@ -1,37 +1,13 @@
 import { Separator } from '@/components/ui/separator';
+import { EmployeeUtil } from '@/pages/employees/employee.utils';
 
 const Payslip = ({ payrollRecord, employee }) => {
   if (!payrollRecord || !employee) {
     return <div className="p-8 text-center">Loading payslip data...</div>;
   }
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(value ?? 0);
-  };
-
   return (
-    <div className="bg-white p-8 sm:p-12 shadow-lg overflow-y-auto max-h-[80vh]" id="payslip-content">
-      <style>
-        {`
-          @media print {
-            body * {
-              visibility: hidden;
-            }
-            #payslip-content, #payslip-content * {
-              visibility: visible;
-            }
-            #payslip-content {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-            }
-            .no-print {
-              display: none;
-            }
-          }
-        `}
-      </style>
+    <div className="p-8 sm:p-12 print:px-6 print:py-6 print:shadow-none print:drop-shadow-none" id="payslip-content">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Payslip</h1>
@@ -47,7 +23,7 @@ const Payslip = ({ payrollRecord, employee }) => {
 
       <Separator className="my-4" />
 
-      <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm mb-6">
+      <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm mb-16">
         <div>
           <span className="font-semibold text-gray-600 min-w-[130px] inline-block">Employee Name: </span>
           <span>
@@ -55,8 +31,8 @@ const Payslip = ({ payrollRecord, employee }) => {
           </span>
         </div>
         <div>
-          <span className="font-semibold text-gray-600 min-w-[130px] inline-block">Employee ID: </span>
-          <span>{employee?.employeeId}</span>
+          <span className="font-semibold text-gray-600 min-w-[130px] inline-block">Staff ID: </span>
+          <span>{employee?.staffId}</span>
         </div>
         <div>
           <span className="font-semibold text-gray-600 min-w-[130px] inline-block">Department: </span>
@@ -66,74 +42,89 @@ const Payslip = ({ payrollRecord, employee }) => {
           <span className="font-semibold text-gray-600 min-w-[130px] inline-block">Job Role: </span>
           <span>{employee?.jobRole?.replace('_', ' ')}</span>
         </div>
-        <div>
+        {/* <div>
           <span className="font-semibold text-gray-600 min-w-[130px] inline-block">Payment Date: </span>
           <span>{payrollRecord.paymentDate ? new Date(payrollRecord.paymentDate).toLocaleDateString() : 'N/A'}</span>
-        </div>
+        </div> */}
         <div>
           <span className="font-semibold text-gray-600 min-w-[130px] inline-block">Pay Period: </span>
           <span>{new Date(payrollRecord.payPeriod).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-8">
         {/* Earnings */}
         <div>
           <h3 className="text-lg font-semibold border-b pb-2 mb-2 text-green-700">Earnings</h3>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
-              <span>Basic Salary:</span> <span>{formatCurrency(payrollRecord.basicSalary)}</span>
+              <span>Basic Salary:</span> <span>{EmployeeUtil.formatCurrency(payrollRecord.basicSalary)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Housing Allowance:</span> <span>{formatCurrency(payrollRecord.housingAllowance)}</span>
+              <span>Housing Allowance:</span> <span>{EmployeeUtil.formatCurrency(payrollRecord.housingAllowance)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Transport Allowance:</span> <span>{formatCurrency(payrollRecord.transportAllowance)}</span>
+              <span>Transport Allowance:</span> <span>{EmployeeUtil.formatCurrency(payrollRecord.transportAllowance)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Leave Allowance:</span> <span>{formatCurrency(payrollRecord.leaveAllowance)}</span>
+              <span>Leave Allowance:</span> <span>{EmployeeUtil.formatCurrency(payrollRecord.leaveAllowance)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Other Allowances:</span> <span>{formatCurrency(payrollRecord.otherAllowance)}</span>
+              <span>Other Allowances:</span> <span>{EmployeeUtil.formatCurrency(payrollRecord.otherAllowance)}</span>
             </div>
             {/*{taxBreakdown.thirteenth_month_payment > 0 && (
               <div className="flex justify-between text-green-700 font-semibold">
-                <span>13th Month Bonus (Dec):</span> <span>{formatCurrency(taxBreakdown.thirteenth_month_payment)}</span>
+                <span>13th Month Bonus (Dec):</span> <span>{EmployeeUtil.formatCurrency(taxBreakdown.thirteenth_month_payment)}</span>
               </div>
             )} */}
             <Separator className="my-2" />
             <div className="flex justify-between font-bold text-base">
-              <span>Gross Salary:</span> <span>{formatCurrency(payrollRecord.grossSalary)}</span>
+              <span>Gross Salary:</span> <span>{EmployeeUtil.formatCurrency(payrollRecord.grossSalary)}</span>
             </div>
           </div>
         </div>
 
-        {/* Deductions */}
-        <div>
-          <h3 className="text-lg font-semibold border-b pb-2 mb-2 text-red-700">Deductions</h3>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span>Pension ({8}%):</span>
-              <span>{formatCurrency(payrollRecord.pensionDeduction)}</span>
-            </div>
-            {employee.nhfApplicable && (
+        <div className="grid gap-y-6">
+          <div>
+            <h3 className="text-lg font-semibold border-b pb-2 mb-2 text-gray-700">Reliefs</h3>
+            <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span>NHF ({2.5}%):</span>
-                <span>{formatCurrency(payrollRecord.nhfDeduction)}</span>
+                <span>Rent Relief:</span>
+                <span>{EmployeeUtil.formatCurrency(payrollRecord.rentRelief)}</span>
               </div>
-            )}
-            {payrollRecord.loanDeduction > 0 && (
-              <div className="flex justify-between">
-                <span>Loan Repayment:</span>
-                <span>{formatCurrency(payrollRecord.loanDeduction)}</span>
+
+              <Separator className="my-2" />
+              <div className="flex justify-between font-bold text-base">
+                <span>Total Relief:</span> <span>{EmployeeUtil.formatCurrency(payrollRecord.rentRelief)}</span>
               </div>
-            )}
-            <div className="flex justify-between">
-              <span>PAYE Tax:</span> <span>{formatCurrency(payrollRecord.payeDeduction)}</span>
             </div>
-            <Separator className="my-2" />
-            <div className="flex justify-between font-bold text-base">
-              <span>Total Deductions:</span> <span>{formatCurrency(payrollRecord.totalDeductions)}</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold border-b pb-2 mb-2 text-red-700">Deductions</h3>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span>Pension ({8}%):</span>
+                <span>{EmployeeUtil.formatCurrency(payrollRecord.pensionDeduction)}</span>
+              </div>
+              {employee.nhfApplicable && (
+                <div className="flex justify-between">
+                  <span>NHF ({2.5}%):</span>
+                  <span>{EmployeeUtil.formatCurrency(payrollRecord.nhfDeduction)}</span>
+                </div>
+              )}
+              {payrollRecord.loanDeduction > 0 && (
+                <div className="flex justify-between">
+                  <span>Loan Repayment:</span>
+                  <span>{EmployeeUtil.formatCurrency(payrollRecord.loanDeduction)}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span>PAYE Tax:</span> <span>{EmployeeUtil.formatCurrency(payrollRecord.payeDeduction)}</span>
+              </div>
+              <Separator className="my-2" />
+              <div className="flex justify-between font-bold text-base">
+                <span>Total Deductions:</span> <span>{EmployeeUtil.formatCurrency(payrollRecord.totalDeductions)}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -144,7 +135,7 @@ const Payslip = ({ payrollRecord, employee }) => {
       {/* Net Pay */}
       <div className="text-right">
         <p className="text-gray-600 font-semibold">NET PAY</p>
-        <p className="text-3xl font-bold text-gray-900">{formatCurrency(payrollRecord.netSalary)}</p>
+        <p className="text-3xl font-bold text-gray-900">{EmployeeUtil.formatCurrency(payrollRecord.netSalary)}</p>
       </div>
 
       {/* <Separator className="my-6" /> */}

@@ -23,7 +23,7 @@ import {
   Upload,
   Users,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import Payslip from '../components/payroll/Payslip';
 
@@ -53,6 +53,8 @@ export default function Payroll() {
   const [currentUploadedReport, setCurrentUploadedReport] = useState(null);
   const [summaryCards, setSummaryCards] = useState([]);
   const [periodPayrollMeta, setPeriodPayrollMeta] = useState({ count: 0, totalNet: 0, totalGross: 0 });
+
+  const payslipRef = useRef(null);
 
   const loadPeriodPayroll = useCallback(async () => {
     setLoading(true);
@@ -153,9 +155,16 @@ export default function Payroll() {
   const generateMonthlyPayroll = async (selectedPeriod) => {
     setGeneratingPayroll(true);
     try {
-      const existingPayroll = await payrollService.getPayrollByPeriod({ payPeriod: selectedPeriod, rows: 1 });
+      const existingPayroll = await payrollService.getPayrollBatchByPeriod({ payPeriod: selectedPeriod });
 
-      if (existingPayroll.data.length > 0) {
+      if (existingPayroll.data?.status === 'PENDING_APPROVAL') {
+        toast.error('Error', {
+          description: 'There is a payroll batch pending approval for this period. Kindly clear the pending batch and try again',
+        });
+        return;
+      }
+
+      if (['ACTIVE', 'PAID'].includes(existingPayroll.data?.status?.toUpperCase())) {
         setShowPayrollOverwriteAlert(true);
         return;
       }
@@ -610,14 +619,14 @@ export default function Payroll() {
       </Dialog>
 
       <Dialog open={!!viewingPayslip} onOpenChange={() => setViewingPayslip(null)}>
-        <DialogContent className="max-w-4xl p-0 border-0">
+        <DialogContent className="max-w-4xl p-0 border-0 print:border-0 print:absolute print:top-0 print:left-0 print:translate-x-0 print:translate-y-0 print:max-w-full print:shadow-none print:drop-shadow-none print:[&_button]:hidden max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle></DialogTitle>
           </DialogHeader>
           {viewingPayslip && (
-            <div>
+            <div ref={payslipRef} className="print-container">
               <Payslip payrollRecord={viewingPayslip.record} employee={viewingPayslip.employee} />
-              <div className="p-4 bg-gray-100 flex justify-end no-print">
+              <div className="p-4 bg-gray-100 flex justify-end">
                 <Button onClick={() => window.print()}>
                   <Printer className="w-4 h-4 mr-2" />
                   Print / Save as PDF
