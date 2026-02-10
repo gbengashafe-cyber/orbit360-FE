@@ -261,7 +261,7 @@ export default function Payroll() {
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
+    <div className="p-4 lg:p-8 min-h-screen print:hidden" style={{ backgroundColor: '#F5F5F5' }}>
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex items-center gap-3">
@@ -619,7 +619,7 @@ export default function Payroll() {
       </Dialog>
 
       <Dialog open={!!viewingPayslip} onOpenChange={() => setViewingPayslip(null)}>
-        <DialogPrintContent className="">
+        <DialogPrintContent>
           <DialogHeader>
             <DialogTitle></DialogTitle>
           </DialogHeader>
