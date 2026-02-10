@@ -396,6 +396,15 @@ export default function Payroll() {
                                   })}
                                 </div>
                               </div>
+                              <div className="text-gray-600 mb-1 font-medium">
+                                <div>
+                                  <span className="inline-block min-w-[45%]">Rent Relief:</span>₦{' '}
+                                  {record.rentRelief?.toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </div>
+                              </div>
                               <div className="text-red-600">
                                 <div>
                                   <span className="inline-block min-w-[45%]">Pension ({taxBreakdown.pensionRate || 8}%):</span>₦{' '}
