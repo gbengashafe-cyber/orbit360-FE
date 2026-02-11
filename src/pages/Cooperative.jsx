@@ -427,7 +427,7 @@ export default function Cooperative() {
                   <TableRow key={loan.id}>
                     <TableCell>{getEmployeeName(loan.employeeId)}</TableCell>
                     <TableCell className="capitalize">{loan.loanType?.replace('_', ' ')}</TableCell>
-                    <TableCell>₦{loan.principal?.toLocaleString()}</TableCell>
+                    <TableCell>₦{loan.principalAmount?.toLocaleString()}</TableCell>
                     <TableCell>₦{loan.monthlyDeduction?.toLocaleString()}</TableCell>
                     <TableCell>{new Date(loan.startDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(loan.endDate).toLocaleDateString()}</TableCell>

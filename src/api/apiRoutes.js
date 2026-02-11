@@ -158,6 +158,10 @@ export class ApiRoutes {
   static UpdateLoan = (id) => `/v1/loans/${id}`;
   static DeleteLoan = (id) => `/v1/loans/${id}`;
 
+  static loans = {
+    getMyLoans: `/v1/employees/loans`,
+  };
+
   // Complaints
   static GetComplaints = '/v1/complaints';
   static GetComplaintById = (id) => `/v1/complaints/${id}`;

@@ -13,6 +13,7 @@ import Dashboard from './dashboard/Dashboard';
 import Deals from './Deals';
 import DocumentManagement from './DocumentManagement';
 import EmailCenter from './EmailCenter';
+import { EmployeeCooperative } from './employee-cooperative/cooperative-loan';
 import { Employees } from './employees/employees-page';
 import ExitManagement from './ExitManagement';
 import ExpenseApprovals from './ExpenseApprovals';
@@ -221,6 +222,7 @@ function PagesContent() {
         <Route path="/PublicJobView" element={<PublicJobView />} />
 
         <Route path="/cooperative" element={<Cooperative />} />
+        <Route path="/employee-cooperative" element={<EmployeeCooperative />} />
 
         <Route path="/KPIManagement" element={<KPIManagement />} />
 

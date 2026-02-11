@@ -164,7 +164,7 @@ export default function Payroll() {
         return;
       }
 
-      if (['ACTIVE', 'PAID'].includes(existingPayroll.data?.status?.toUpperCase())) {
+      if (['APPROVED'].includes(existingPayroll.data?.status?.toUpperCase())) {
         setShowPayrollOverwriteAlert(true);
         return;
       }

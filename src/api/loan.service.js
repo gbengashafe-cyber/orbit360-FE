@@ -1,9 +1,24 @@
-import { apiClient } from './apiClient';
+import { apiClient, makeQueryParams } from './apiClient';
 import { ApiRoutes } from './apiRoutes';
 
 export const loanService = {
   async getLoans(page = 1, rows = 10) {
     return apiClient.get(`${ApiRoutes.GetLoans}?page=${page}&rows=${rows}`);
+  },
+
+  async getMyLoans(options) {
+    let endpoint = ApiRoutes.loans.getMyLoans;
+
+    if (options) {
+      const queryParams = makeQueryParams(options);
+      endpoint = `${endpoint}?${queryParams}`;
+    }
+
+    if (options.signal) {
+      return apiClient.get(endpoint, { signal: options.signal });
+    }
+
+    return apiClient.get(endpoint);
   },
 
   async getLoanDashboard() {

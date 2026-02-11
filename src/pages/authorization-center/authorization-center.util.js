@@ -18,6 +18,8 @@ export const getStatusColor = (status) => {
     penalty_applied: 'bg-red-100 text-red-700',
     closed: 'bg-gray-100 text-gray-700',
     terminated: 'bg-red-100 text-red-700',
+    paid_off: 'bg-blue-100 text-blue-700',
+    pending_disbursement: 'bg-green-100 text-yellow-700',
   };
   return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-700';
 };
