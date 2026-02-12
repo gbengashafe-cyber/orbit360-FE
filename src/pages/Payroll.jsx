@@ -2,6 +2,7 @@ import { employeeService, payrollService } from '@/api';
 import { DeleteUploadedPayrollAlert } from '@/components/payroll/DeleteUploadedPayrollAlert';
 import { PayrollOverwriteAlert } from '@/components/payroll/OverwriteAlert';
 import { generatePayrollCSV } from '@/components/payroll/payroll-csv';
+import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +28,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import Payslip from '../components/payroll/Payslip';
 import { getStatusColor } from './authorization-center/authorization-center.util';
-import { PaginationIconsOnly } from '@/components/shared/pagination';
 
 export default function Payroll() {
   const [loading, setLoading] = useState(true);
@@ -77,7 +77,7 @@ export default function Payroll() {
     try {
       const [reportsData, employeesData] = await Promise.all([
         payrollService.getUploadedPayrolls(),
-        employeeService.getEmployees({ rows: 1 }),
+        employeeService.getActiveEmployees({ rows: 1 }),
       ]);
       setUploadedReports(reportsData.data);
 
