@@ -26,16 +26,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import Payslip from '../components/payroll/Payslip';
-
-const getStatusColor = (status) => {
-  const colors = {
-    generated: 'bg-blue-100 text-blue-700',
-    processed: 'bg-green-100 text-green-700',
-    paid: 'bg-emerald-100 text-emerald-700',
-    failed: 'bg-red-100 text-red-700',
-  };
-  return colors[status] || 'bg-gray-100 text-gray-700';
-};
+import { getStatusColor } from './authorization-center/authorization-center.util';
+import { PaginationIconsOnly } from '@/components/shared/pagination';
 
 export default function Payroll() {
   const [loading, setLoading] = useState(true);
@@ -53,6 +45,10 @@ export default function Payroll() {
   const [currentUploadedReport, setCurrentUploadedReport] = useState(null);
   const [summaryCards, setSummaryCards] = useState([]);
   const [periodPayrollMeta, setPeriodPayrollMeta] = useState({ count: 0, totalNet: 0, totalGross: 0 });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rows, setRows] = useState(25);
+  const [pages, setPages] = useState(1);
+  const [periodTotal, setPeriodTotal] = useState(0);
 
   const payslipRef = useRef(null);
 
@@ -66,6 +62,8 @@ export default function Payroll() {
         totalGross: payrollData?.meta?.totalGrossPay,
         totalNet: payrollData?.meta?.totalNetPay,
       });
+      setPages(payrollData?.pagination?.pages || 1);
+      setPeriodTotal(payrollData?.pagination?.total || 0);
     } catch (error) {
       toast.error('Error loading payroll data', {
         description: `${error.message ? error.message : ''}`,
@@ -157,7 +155,7 @@ export default function Payroll() {
     try {
       const existingPayroll = await payrollService.getPayrollBatchByPeriod({ payPeriod: selectedPeriod });
 
-      if (existingPayroll.data?.status === 'PENDING_APPROVAL') {
+      if (existingPayroll.data?.status?.toUpperCase() === 'PENDING_APPROVAL') {
         toast.error('Error', {
           description: 'There is a payroll batch pending approval for this period. Kindly clear the pending batch and try again',
         });
@@ -351,7 +349,7 @@ export default function Payroll() {
                 {new Date(currentPeriod).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
               </span>
               <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-                {payrollRecords.filter((r) => r.payPeriod === currentPeriod).length} records
+                {periodTotal} records
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -481,6 +479,15 @@ export default function Payroll() {
                     })}
                 </TableBody>
               </Table>
+              <div className="p-4 my-4">
+                <PaginationIconsOnly
+                  currentPage={currentPage}
+                  pages={pages}
+                  setRows={setRows}
+                  setCurrentPage={setCurrentPage}
+                  rows={rows}
+                />
+              </div>
             </div>
 
             {payrollRecords.filter((r) => r.payPeriod === currentPeriod).length === 0 ? (
