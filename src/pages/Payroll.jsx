@@ -55,7 +55,7 @@ export default function Payroll() {
   const loadPeriodPayroll = useCallback(async () => {
     setLoading(true);
     try {
-      const payrollData = await payrollService.getPayrollByPeriod({ payPeriod: currentPeriod });
+      const payrollData = await payrollService.getPayrollByPeriod({ payPeriod: currentPeriod, rows, page: currentPage });
       setPayrollRecords(payrollData.data);
       setPeriodPayrollMeta({
         count: payrollData?.pagination?.total,
@@ -71,7 +71,7 @@ export default function Payroll() {
     } finally {
       setLoading(false);
     }
-  }, [currentPeriod]);
+  }, [currentPage, currentPeriod, rows]);
 
   const loadData = useCallback(async () => {
     try {
