@@ -3,7 +3,8 @@ import { format } from 'date-fns';
 export const getStatusColor = (status) => {
   const colors = {
     pending: 'bg-yellow-100 text-yellow-700',
-    pending_approval: 'bg-yellow-100 text-yellow-700',
+    pending_review: 'bg-yellow-100 text-yellow-800',
+    pending_approval: 'bg-yellow-300 text-yellow-900',
     approved: 'bg-green-100 text-green-700',
     rejected: 'bg-red-100 text-red-700',
     authorized: 'bg-blue-100 text-blue-700',
@@ -20,6 +21,10 @@ export const getStatusColor = (status) => {
     terminated: 'bg-red-100 text-red-700',
     paid_off: 'bg-blue-100 text-blue-700',
     pending_disbursement: 'bg-green-100 text-yellow-700',
+    generated: 'bg-blue-100 text-blue-700',
+    processed: 'bg-green-100 text-green-700',
+    paid: 'bg-emerald-100 text-emerald-700',
+    failed: 'bg-red-100 text-red-700',
   };
   return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-700';
 };
@@ -32,9 +37,9 @@ export const getTransactionProps = (transaction, moduleName) => {
 
   switch (moduleName) {
     case 'loans':
-      type = transaction.loanType;
+      type = transaction?.loanType?.name;
       description = `${transaction.employee.firstName} - ${transaction.principalAmount}`;
-      initiator = transaction?.initiator?.firstName;
+      initiator = transaction?.reviewer?.firstName;
       break;
     case 'payrolls':
       type = 'Monthly Salaries';

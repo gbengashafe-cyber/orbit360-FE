@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Banknote, Download, Plus, RefreshCw } from 'lucide-react';
+import { logger } from '@/utils';
+import { Banknote, Download, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { getStatusColor } from '../authorization-center/authorization-center.util';
@@ -18,6 +19,8 @@ export function EmployeeCooperative() {
   const [rows, setRows] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
   const [pages, setPages] = useState(1);
+  const [loanTypes, setLoanTypes] = useState([]);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -47,6 +50,20 @@ export function EmployeeCooperative() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const loadLoanTypes = useCallback(async () => {
+    try {
+      const response = await loanService.getLoanTypes();
+      setLoanTypes(response.data || []);
+    } catch (error) {
+      logger.error({ caller: 'Load loan types', payload: error });
+      toast.error('Error', { description: error.message ?? 'Unable to load loan types' });
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLoanTypes();
+  }, [loadLoanTypes]);
 
   const downloadRepaymentSchedule = (loan) => {
     const employeeName = loan.employee ? `${loan.employee.firstName} ${loan.employee.lastName}` : 'Unknown';
@@ -129,6 +146,19 @@ export function EmployeeCooperative() {
     window.URL.revokeObjectURL(url);
   };
 
+  const cancelLoanRequest = async (loanId) => {
+    setIsCancelling(true);
+    try {
+      await loanService.cancelLoanRequest(loanId);
+      loadData();
+    } catch (error) {
+      logger.error({ caller: 'Cancel loan', payload: error });
+      toast.error('Error', { description: error.message ?? 'Unable to cancel loan' });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const handleCreate = () => {
     setShowLoanForm(true);
   };
@@ -163,7 +193,9 @@ export function EmployeeCooperative() {
             </Button>
           </div>
         </div>
-        {showLoanForm ? <EmployeeLoanForm open={showLoanForm} onOpenChange={setShowLoanForm} onSuccess={loadData} /> : null}
+        {showLoanForm ? (
+          <EmployeeLoanForm loanTypes={loanTypes} open={showLoanForm} onOpenChange={setShowLoanForm} onSuccess={loadData} />
+        ) : null}
 
         <Card>
           <CardHeader>
@@ -186,7 +218,7 @@ export function EmployeeCooperative() {
               <TableBody>
                 {loans.map((loan) => (
                   <TableRow key={loan.id}>
-                    <TableCell className="capitalize">{loan.loanType?.replace('_', ' ')}</TableCell>
+                    <TableCell className="capitalize">{loan.loanType?.name?.toUpperCase()}</TableCell>
                     <TableCell>₦{loan.principalAmount?.toLocaleString()}</TableCell>
                     <TableCell>₦{loan.monthlyDeduction?.toLocaleString()}</TableCell>
                     <TableCell>{new Date(loan.startDate).toLocaleDateString()}</TableCell>
@@ -196,10 +228,22 @@ export function EmployeeCooperative() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => downloadRepaymentSchedule(loan)}>
-                          <Download className="w-4 h-4 mr-1" />
-                          Schedule
-                        </Button>
+                        {loan?.status === 'PENDING_APPROVAL' ? (
+                          <Button
+                            variant="destructive"
+                            disabled={isCancelling}
+                            size="sm"
+                            onClick={() => cancelLoanRequest(loan.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        ) : null}
+                        {['ACTIVE'].includes(loan?.status?.toUpperCase()) ? (
+                          <Button variant="outline" size="sm" onClick={() => downloadRepaymentSchedule(loan)}>
+                            <Download className="w-4 h-4 mr-1" />
+                            Schedule
+                          </Button>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>

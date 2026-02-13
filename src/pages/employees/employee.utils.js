@@ -36,8 +36,8 @@ export class EmployeeUtil {
   };
 
   static calculateRentRelief = (annualRentAmount) => {
-    const annualRentRelief = parseFloat(annualRentAmount * 0.2).toFixed(2);
-    return annualRentRelief <= 500000 ? annualRentRelief : parseFloat(500000).toFixed(2);
+    const annualRentRelief = annualRentAmount * 0.2;
+    return annualRentRelief <= 500000 ? annualRentRelief : 500000;
   };
 
   static calculatePAYE = (employee) => {

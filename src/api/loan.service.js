@@ -6,6 +6,10 @@ export const loanService = {
     return apiClient.get(`${ApiRoutes.GetLoans}?page=${page}&rows=${rows}`);
   },
 
+  async getLoanTypes() {
+    return apiClient.get(ApiRoutes.loans.loanTypes);
+  },
+
   async getMyLoans(options) {
     let endpoint = ApiRoutes.loans.getMyLoans;
 
@@ -19,6 +23,20 @@ export const loanService = {
     }
 
     return apiClient.get(endpoint);
+  },
+
+  async cancelLoanRequest(loanId) {
+    let endpoint = ApiRoutes.loans.cancelLoanRequest(loanId);
+
+    return apiClient.patch(endpoint);
+  },
+
+  async createLoanRequest(request) {
+    return apiClient.post(ApiRoutes.loans.createLoanRequest, request);
+  },
+
+  async reviewLoan(id, data) {
+    return apiClient.patch(ApiRoutes.loans.reviewLoanRequest(id), data);
   },
 
   async getLoanDashboard() {
@@ -42,10 +60,10 @@ export const loanService = {
   },
 
   async approveLoan(id) {
-    return apiClient.patch(ApiRoutes.loan.approve(id));
+    return apiClient.patch(ApiRoutes.loans.approve(id));
   },
 
   async rejectLoan(id) {
-    return apiClient.patch(ApiRoutes.loan.reject(id));
+    return apiClient.patch(ApiRoutes.loans.reject(id));
   },
 };

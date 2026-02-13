@@ -1,18 +1,24 @@
 import { addMonths } from 'date-fns';
+import Decimal from 'decimal.js';
 
 export class LoanUtil {
   static calculations = (loan) => {
-    const { principalAmount, interestRate, tenureMonths, startDate } = loan;
-    const principal = parseFloat(principalAmount);
-    const annualInterest = parseFloat(interestRate) / 100;
-    const tenure = parseInt(tenureMonths);
+    const principal = new Decimal(loan.principalAmount);
+    const annualRate = new Decimal(loan.interestRate).div(100);
+    const tenure = new Decimal(loan.tenureMonths);
 
-    const totalInterest = principal * annualInterest;
-    const totalRepayment = principal + totalInterest;
-    const monthlyDeduction = totalRepayment / tenure;
+    const monthlyRate = annualRate.div(12);
+    const totalInterest = principal.mul(monthlyRate).mul(tenure);
+    const totalRepayment = principal.plus(totalInterest);
 
-    const endDate = addMonths(new Date(startDate), tenure);
+    const monthlyDeduction = totalRepayment.div(tenure).toDecimalPlaces(2);
+    const endDate = addMonths(new Date(loan.startDate), Number(loan.tenureMonths));
 
-    return { monthlyDeduction, totalRepayment, totalInterest, endDate };
+    return {
+      monthlyDeduction: monthlyDeduction.toNumber(),
+      totalRepayment: totalRepayment.toDecimalPlaces(2).toNumber(),
+      totalInterest: totalInterest.toDecimalPlaces(2).toNumber(),
+      endDate,
+    };
   };
 }

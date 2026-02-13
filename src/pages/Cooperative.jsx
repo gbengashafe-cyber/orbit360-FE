@@ -12,9 +12,10 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useGlobalContext } from '@/state/context';
 import { logger } from '@/utils';
-import { Banknote, Download, Plus, RefreshCw, ThumbsDown, ThumbsUp, Trash2, TrendingUp, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Banknote, Download, Plus, RefreshCw, ThumbsDown, ThumbsUp, TrendingUp, Users, ViewIcon } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { getStatusColor } from './authorization-center/authorization-center.util';
 import { LoanForm } from './loans/loan-form';
 
 const LoanApprovalCard = ({ loans, onApprove, onReject, loading }) => {
@@ -89,11 +90,7 @@ export default function Cooperative() {
 
   const { currentUser } = useGlobalContext();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [loanDashboard, loansData, employeesData] = await Promise.all([
@@ -129,18 +126,11 @@ export default function Cooperative() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
 
-  const handleDeleteLoan = async (loanId) => {
-    if (window.confirm('Are you sure you want to delete this loan? This action cannot be undone.')) {
-      try {
-        await loanService.deleteLoan(loanId);
-        loadData();
-      } catch (error) {
-        alert(`Failed to delete loan: ${error.message ? error.message + '.' : ''} Please try again.`);
-      }
-    }
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const downloadRepaymentSchedule = (loan) => {
     const employeeName = loan.employee ? `${loan.employee.firstName} ${loan.employee.lastName}` : 'Unknown';
@@ -223,52 +213,19 @@ export default function Cooperative() {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleLoanSubmit = async (loanData) => {
-    try {
-      if (editingLoan) {
-        await loanService.updateLoan(editingLoan.id, loanData);
-      } else {
-        await loanService.createLoan(loanData);
-      }
-      setShowLoanForm(false);
-      setEditingLoan(null);
-      loadData();
-    } catch (error) {
-      logger.error({ caller: 'Error saving loan:', payload: error });
-      toast.error('Error', { description: error.message || 'Unable to complete your request. Kindly contact the system admin' });
-    }
-  };
-
   const handleEdit = (loan) => {
     setEditingLoan(loan);
     setShowLoanForm(true);
   };
 
-  const handleCreate = () => {
-    setEditingLoan(null);
-    setShowLoanForm(true);
-  };
+  // const handleCreate = () => {
+  //   setEditingLoan(null);
+  //   setShowLoanForm(true);
+  // };
 
   const getEmployeeName = (employeeId) => {
     const employee = employees.find((e) => e.id === employeeId);
     return employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown Employee';
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-200 text-green-700';
-      case 'paid_off':
-        return 'bg-blue-100 text-blue-700';
-      case 'pending_approval':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'pending_disbursement':
-        return 'bg-green-100 text-yellow-700';
-      case 'rejected':
-        return 'bg-red-100 text-red-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
   };
 
   const handleApproveLoan = async (loan) => {
@@ -344,13 +301,13 @@ export default function Cooperative() {
             <Button variant="outline" size="icon" onClick={loadData}>
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-            <Button
+            {/* <Button
               className="bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-lg shadow-blue-700/25"
               onClick={handleCreate}
             >
               <Plus className="w-4 h-4 mr-2" />
               Create Loan
-            </Button>
+            </Button> */}
           </div>
         </div>
 
@@ -361,17 +318,18 @@ export default function Cooperative() {
           loading={actionLoading}
         />
 
-        <LoanForm
-          key={editingLoan?.id ?? 'new'}
-          loan={editingLoan}
-          showForm={showLoanForm}
-          setShowForm={setShowLoanForm}
-          employees={employees}
-          onSubmit={handleLoanSubmit}
-          onCancel={() => setShowLoanForm(false)}
-          setEditingLoan={setEditingLoan}
-          loadData={loadData}
-        />
+        {showLoanForm ? (
+          <LoanForm
+            key={editingLoan?.id ?? 'new'}
+            loan={editingLoan}
+            showForm={showLoanForm}
+            setShowForm={setShowLoanForm}
+            employees={employees}
+            onCancel={() => setShowLoanForm(false)}
+            setEditingLoan={setEditingLoan}
+            loadData={loadData}
+          />
+        ) : null}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
@@ -426,7 +384,7 @@ export default function Cooperative() {
                 {loans.map((loan) => (
                   <TableRow key={loan.id}>
                     <TableCell>{getEmployeeName(loan.employeeId)}</TableCell>
-                    <TableCell className="capitalize">{loan.loanType?.replace('_', ' ')}</TableCell>
+                    <TableCell className="capitalize">{loan.loanType?.name?.toUpperCase()}</TableCell>
                     <TableCell>₦{loan.principalAmount?.toLocaleString()}</TableCell>
                     <TableCell>₦{loan.monthlyDeduction?.toLocaleString()}</TableCell>
                     <TableCell>{new Date(loan.startDate).toLocaleDateString()}</TableCell>
@@ -437,19 +395,12 @@ export default function Cooperative() {
                     <TableCell>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleEdit(loan)}>
-                          Edit
+                          <ViewIcon />
+                          View
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => downloadRepaymentSchedule(loan)}>
                           <Download className="w-4 h-4 mr-1" />
                           Schedule
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteLoan(loan.id)}
-                          className="text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </TableCell>

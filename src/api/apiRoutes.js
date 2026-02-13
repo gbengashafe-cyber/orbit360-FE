@@ -40,11 +40,6 @@ export class ApiRoutes {
     reject: (id) => `/v1/employees/maintenance/${id}/rejection`,
   };
 
-  static loan = {
-    approve: (id) => `/v1/loans/${id}/approve`,
-    reject: (id) => `/v1/loans/${id}/reject`,
-  };
-
   // Departments
   static GetDepartments = '/v1/departments';
   static GetDepartmentById = (id) => `/v1/departments/${id}`;
@@ -159,7 +154,13 @@ export class ApiRoutes {
   static DeleteLoan = (id) => `/v1/loans/${id}`;
 
   static loans = {
-    getMyLoans: `/v1/employees/loans`,
+    createLoanRequest: '/v1/employees/loans',
+    cancelLoanRequest: (loanId) => `/v1/employees/loans/${loanId}/cancellation`,
+    reviewLoanRequest: (loanId) => `/v1/employees/loans/${loanId}/reviews`,
+    getMyLoans: '/v1/employees/loans',
+    approve: (id) => `/v1/loans/${id}/approve`,
+    reject: (id) => `/v1/loans/${id}/reject`,
+    loanTypes: '/v1/loans/types',
   };
 
   // Complaints

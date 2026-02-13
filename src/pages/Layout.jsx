@@ -114,6 +114,7 @@ const LayoutContent = ({ children }) => {
     await userService.logout();
     LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
     LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN_EXPIRES_AT);
+    LocalStorageUtil.delete(localStorageKeys.CURRENT_USER);
     window.location.href = '/login';
   };
 

@@ -4,7 +4,7 @@ import { getStatusColor } from '@/pages/authorization-center/authorization-cente
 import { format } from 'date-fns';
 import { LoanUtil } from '../cooperative/loan.utils';
 
-const FieldDisplay = ({ label, value, fullWidth = false }) => (
+export const FieldDisplay = ({ label, value, fullWidth = false }) => (
   <div className={fullWidth ? 'col-span-2' : ''}>
     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</div>
     <div className="text-sm text-gray-900">{value ?? 'N/A'}</div>
