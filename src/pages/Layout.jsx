@@ -70,7 +70,7 @@ const hrNav = [
 const employeePortalNav = [
   { title: 'My Payslips', url: createPageUrl('my-payslips'), icon: FileText },
   { title: 'Appraisals', url: createPageUrl('Appraisals'), icon: BookCopy },
-  { title: 'Cooperative & Loans', url: createPageUrl('employee-cooperative'), icon: HandCoins },
+  { title: 'Loan Requests', url: createPageUrl('employee-cooperative'), icon: HandCoins },
   { title: 'Leave Management', url: createPageUrl('leave-management'), icon: PlaneTakeoff },
   { title: 'Exit Management', url: createPageUrl('ExitManagement'), icon: UserRoundX },
   { title: 'Document Hub', url: createPageUrl('CompanyDocuments'), icon: FileBox },

@@ -26,17 +26,17 @@ export const loanService = {
   },
 
   async cancelLoanRequest(loanId) {
-    let endpoint = ApiRoutes.loans.cancelLoanRequest(loanId);
+    let endpoint = ApiRoutes.loans.cancelRequest(loanId);
 
     return apiClient.patch(endpoint);
   },
 
   async createLoanRequest(request) {
-    return apiClient.post(ApiRoutes.loans.createLoanRequest, request);
+    return apiClient.post(ApiRoutes.loans.createRequest, request);
   },
 
   async reviewLoan(id, data) {
-    return apiClient.patch(ApiRoutes.loans.reviewLoanRequest(id), data);
+    return apiClient.patch(ApiRoutes.loans.reviewRequest(id), data);
   },
 
   async getLoanDashboard() {
@@ -59,11 +59,11 @@ export const loanService = {
     return apiClient.delete(ApiRoutes.DeleteLoan(id));
   },
 
-  async approveLoan(id) {
-    return apiClient.patch(ApiRoutes.loans.approve(id));
+  async approveLoan(id, data) {
+    return apiClient.patch(ApiRoutes.loans.approve(id), data);
   },
 
-  async rejectLoan(id) {
-    return apiClient.patch(ApiRoutes.loans.reject(id));
+  async rejectLoan(id, data) {
+    return apiClient.patch(ApiRoutes.loans.reject(id), data);
   },
 };

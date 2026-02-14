@@ -11,10 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useGlobalContext } from '@/state/context';
-import { logger } from '@/utils';
-import { Banknote, Download, Plus, RefreshCw, ThumbsDown, ThumbsUp, TrendingUp, Users, ViewIcon } from 'lucide-react';
+import { Banknote, Download, RefreshCw, ThumbsDown, ThumbsUp, TrendingUp, Users, ViewIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { getStatusColor } from './authorization-center/authorization-center.util';
 import { LoanForm } from './loans/loan-form';
 
@@ -326,7 +324,6 @@ export default function Cooperative() {
             setShowForm={setShowLoanForm}
             employees={employees}
             onCancel={() => setShowLoanForm(false)}
-            setEditingLoan={setEditingLoan}
             loadData={loadData}
           />
         ) : null}

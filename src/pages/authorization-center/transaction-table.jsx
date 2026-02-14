@@ -19,7 +19,7 @@ export function TransactionsTable({ moduleName, transactions, setViewingItem, is
             <TableHead>Title/Description</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created Date</TableHead>
-            <TableHead>Created By</TableHead>
+            <TableHead>{['LOANS'].includes(moduleName?.toUpperCase()) ? 'Reviewed By' : 'Created By'}</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>

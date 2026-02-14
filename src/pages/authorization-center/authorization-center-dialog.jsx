@@ -2,6 +2,8 @@
 import { RequestDetailsView } from '@/components/authorization/request-details-view';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { PENDING_STATES } from '@/constants/pendingState';
 import { DialogDescription } from '@radix-ui/react-dialog';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
@@ -13,6 +15,8 @@ export const AuthorizationViewDialog = ({
   canAuthorize,
   handleAuthorize,
   authorizing,
+  setApprovalNote,
+  approverNote,
 }) => {
   return (
     <Dialog open={!!viewingItem} onOpenChange={onOpenChange}>
@@ -26,6 +30,14 @@ export const AuthorizationViewDialog = ({
             <div className="space-y-6">
               <RequestDetailsView item={viewingItem} moduleName={moduleName} />
 
+              {/* Notes */}
+              <form>
+                <div className="space-y-2">
+                  <Label htmlFor="reviewerNote">Notes</Label>
+                  <Textarea id="reviewerNote" value={approverNote} onChange={(e) => setApprovalNote(e.target.value)} />
+                </div>
+              </form>
+
               <div className="pt-4 border-t space-y-3 bg-gray-50 p-4 rounded-lg -mx-6">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -33,9 +45,11 @@ export const AuthorizationViewDialog = ({
                     <p className="text-gray-900">{new Date(viewingItem.createdAt).toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Created By</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Created By/Reviewed By</p>
                     <p className="text-gray-900">
-                      {viewingItem.initiator?.firstName} {viewingItem.initiator?.lastName}
+                      {['LOANS'].includes(moduleName?.toUpperCase())
+                        ? `${viewingItem.reviewer?.firstName} ${viewingItem.reviewer?.lastName}`
+                        : `${viewingItem.initiator?.firstName} ${viewingItem.initiator?.lastName}`}
                     </p>
                   </div>
                   {viewingItem.approvedBy && (

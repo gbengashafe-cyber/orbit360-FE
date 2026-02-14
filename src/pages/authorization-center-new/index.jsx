@@ -30,6 +30,7 @@ export default function AuthorizationCenterWIP() {
   const [pendingItems, setPendingItems] = useState({});
   const [pendingItemsPagination, setPendingItemsPagination] = useState({});
   const [rows, setRows] = useState(25);
+  const [approverNote, setApprovalNote] = useState('');
 
   const getPendingCount = useCallback(async () => {
     try {
@@ -107,8 +108,8 @@ export default function AuthorizationCenterWIP() {
       switch (moduleName) {
         case 'loans':
           action === 'approve'
-            ? (responsePayload = await loanService.approveLoan(item.id))
-            : (responsePayload = await loanService.rejectLoan(item.id));
+            ? (responsePayload = await loanService.approveLoan(item.id, { approverNote }))
+            : (responsePayload = await loanService.rejectLoan(item.id, { approverNote }));
           break;
         case 'payrolls':
           action === 'approve'
@@ -188,9 +189,7 @@ export default function AuthorizationCenterWIP() {
   };
 
   const canAuthorize =
-    currentUser?.role === 'admin' ||
-    currentUser?.jobRole?.toLowerCase().includes('head') ||
-    currentUser?.jobRole?.toLowerCase().includes('manager');
+    currentUser?.jobRole?.toLowerCase().includes('head') || currentUser?.jobRole?.toLowerCase().includes('manager');
 
   if (loading) {
     return (
@@ -254,15 +253,20 @@ export default function AuthorizationCenterWIP() {
                         setRows={setRows}
                         isLoading={tabIsLoading}
                       />
-                      <PaginationIconsOnly
-                        currentPage={pendingItemsPagination[activeModule]?.page}
-                        pages={pendingItemsPagination[activeModule]?.pages || 1}
-                        setRows={setRows}
-                        setCurrentPage={(val) =>
-                          setPendingItemsPagination((prev) => ({ ...prev, [activeModule]: { ...prev[activeModule], page: val } }))
-                        }
-                        rows={rows}
-                      />
+                      <div className="my-6 mt-14">
+                        <PaginationIconsOnly
+                          currentPage={pendingItemsPagination[activeModule]?.page}
+                          pages={pendingItemsPagination[activeModule]?.pages || 1}
+                          setRows={setRows}
+                          setCurrentPage={(val) =>
+                            setPendingItemsPagination((prev) => ({
+                              ...prev,
+                              [activeModule]: { ...prev[activeModule], page: val },
+                            }))
+                          }
+                          rows={rows}
+                        />
+                      </div>
                     </TabsContent>
                   ))
                 : null}
@@ -277,6 +281,7 @@ export default function AuthorizationCenterWIP() {
           handleAuthorize={handleAuthorize}
           authorizing={authorizing}
           moduleName={activeModule}
+          setApprovalNote={setApprovalNote}
         />
       </div>
     </div>

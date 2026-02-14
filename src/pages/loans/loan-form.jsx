@@ -4,18 +4,17 @@ import { LoanUtil } from '@/components/cooperative/loan.utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/utils';
 import { format } from 'date-fns';
-import { Save } from 'lucide-react';
+import { BanIcon, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-export const LoanForm = ({ showForm, setShowForm, onCancel, loan, setEditingLoan, loadData }) => {
+export const LoanForm = ({ showForm, setShowForm, onCancel, loan, loadData }) => {
   const [submitError, setSubmitError] = useState('');
   const [formData, setFormData] = useState({
-    reviewerDecision: loan?.reviewerDecision || '',
+    reviewerDecision: '',
     reviewerNote: loan?.reviewerNote || '',
   });
 
@@ -44,11 +43,16 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, loan, setEditingLoan
     try {
       e.preventDefault();
 
+      if (!formData.reviewerNote && formData.reviewerDecision?.toLowerCase() === 'reject') {
+        setSubmitError('Kindly provide rejection reason');
+
+        return;
+      }
+
       const response = await loanService.reviewLoan(loan.id, formData);
 
       toast.success('Success', { description: response.message ?? 'Request submitted successfully' });
       setShowForm(false);
-      setEditingLoan(null);
       loadData();
     } catch (error) {
       logger.error({ caller: 'Error saving loan:', payload: error });
@@ -112,23 +116,6 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, loan, setEditingLoan
               </div>
             </div>
 
-            <div className="bg-gray-200 p-4 rounded-lg space-y-2">
-              <Label htmlFor="reviewerDecision">Decision *</Label>
-              <Select
-                value={formData.reviewerDecision}
-                onValueChange={(value) => handleInputChange('reviewerDecision', value)}
-                required
-              >
-                <SelectTrigger className="border-gray-500 bg-white">
-                  <SelectValue placeholder="Select decision" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="approve">Approve</SelectItem>
-                  <SelectItem value="reject">Reject</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="reviewerNote">Notes</Label>
               <Textarea
@@ -140,14 +127,25 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, loan, setEditingLoan
 
             {submitError ? <div className="flex gap-3 py-2 px-3 rounded-lg text-red-800 bg-red-100">{submitError}</div> : null}
 
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-between gap-3 pt-4">
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button type="submit">
-                <Save className="w-4 h-4 mr-1" />
-                Submit
-              </Button>
+              <div className="flex gap-3">
+                {loan?.status?.toUpperCase() === 'PENDING_REVIEW' ? (
+                  <>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setFormData((prev) => ({ ...prev, reviewerDecision: 'reject' }))}
+                    >
+                      <BanIcon className="w-4 h-4 mr-1" /> Reject
+                    </Button>
+                    <Button type="submit" onClick={() => setFormData((prev) => ({ ...prev, reviewerDecision: 'approve' }))}>
+                      <Save className="w-4 h-4 mr-1" /> Send for Approval
+                    </Button>
+                  </>
+                ) : null}
+              </div>
             </div>
           </form>
         </div>

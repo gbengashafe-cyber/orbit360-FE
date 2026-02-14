@@ -154,9 +154,9 @@ export class ApiRoutes {
   static DeleteLoan = (id) => `/v1/loans/${id}`;
 
   static loans = {
-    createLoanRequest: '/v1/employees/loans',
-    cancelLoanRequest: (loanId) => `/v1/employees/loans/${loanId}/cancellation`,
-    reviewLoanRequest: (loanId) => `/v1/employees/loans/${loanId}/reviews`,
+    createRequest: '/v1/employees/loans',
+    cancelRequest: (loanId) => `/v1/loans/${loanId}/cancellation`,
+    reviewRequest: (loanId) => `/v1/loans/${loanId}/reviews`,
     getMyLoans: '/v1/employees/loans',
     approve: (id) => `/v1/loans/${id}/approve`,
     reject: (id) => `/v1/loans/${id}/reject`,
