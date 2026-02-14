@@ -178,7 +178,14 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
 
     // FIXED: Use business days calculator that excludes weekends
     const calculateDays = (startDate, endDate, period) => {
-        return calculateBusinessDays(startDate, endDate, period);
+      const result = calculateBusinessDays(startDate, endDate, period);
+      // Debug: Log calculation to verify it's working
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        console.log(`[Leave Calc] ${start.toDateString()} → ${end.toDateString()} = ${result} days (${period})`);
+      }
+      return result;
     };
 
     // FIXED: Enhanced form submission with leave type formatting and proper validation
