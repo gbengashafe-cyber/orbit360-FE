@@ -199,6 +199,7 @@ export default function LeaveManagementPage() {
         setSelectedEmployeeId(employeeId);
         setLoading(true);
         if (employeeId === 'self') {
+            // awai loadDataForEmployee(selfEmployeeRecord);
             await loadDataForEmployee(selfEmployeeRecord);
         } else {
             const targetEmployee = allEmployees.find(e => e.id === employeeId);

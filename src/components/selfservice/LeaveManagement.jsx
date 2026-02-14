@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { leaveService, employeeService } from '@/api';
 import { showToast } from '@/utils/toast';
-import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay, calculateRemainingDays } from '@/utils/leaveCalculator';
+import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay } from '@/utils/leaveCalculator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     Calendar,
     Plus,
-    FileText,
     Clock,
     CheckCircle,
     XCircle,
@@ -178,14 +177,14 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
 
     // FIXED: Use business days calculator that excludes weekends
     const calculateDays = (startDate, endDate, period) => {
-      const result = calculateBusinessDays(startDate, endDate, period);
-      // Debug: Log calculation to verify it's working
-      if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        console.log(`[Leave Calc] ${start.toDateString()} → ${end.toDateString()} = ${result} days (${period})`);
-      }
-      return result;
+        const result = calculateBusinessDays(startDate, endDate, period);
+        // Debug: Log calculation to verify it's working
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            console.log(`[Leave Calc] ${start.toDateString()} → ${end.toDateString()} = ${result} days (${period})`);
+        }
+        return result;
     };
 
     // FIXED: Enhanced form submission with leave type formatting and proper validation

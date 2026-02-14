@@ -25,6 +25,7 @@ import HRDashboard from './HRDashboard';
 import InstallApp from './InstallApp';
 import KPIManagement from './KPIManagement';
 import Layout from './Layout.jsx';
+import LeaveApprovals from './LeaveApprovals';
 import LeaveManagement from './LeaveManagement';
 import LoginPage from './login/Login';
 import MeetingManager from './MeetingManager';
@@ -93,6 +94,8 @@ const PAGES = {
   MeetingManager: MeetingManager,
 
   LeaveManagement: LeaveManagement,
+
+  LeaveApprovals: LeaveApprovals,
 
   Appraisals: Appraisals,
 
@@ -202,6 +205,8 @@ function PagesContent() {
         <Route path="/MeetingManager" element={<MeetingManager />} />
 
         <Route path="/leave-management" element={<LeaveManagement />} />
+
+        <Route path="/leave-approvals" element={<LeaveApprovals />} />
 
         <Route path="/Appraisals" element={<Appraisals />} />
 
