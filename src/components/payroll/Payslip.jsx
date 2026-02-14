@@ -135,7 +135,7 @@ const Payslip = ({ payrollRecord, employee }) => {
       {/* Net Pay */}
       <div className="text-right">
         <p className="text-gray-600 font-semibold">NET PAY</p>
-        <p className="text-3xl font-bold text-gray-900">{EmployeeUtil.formatCurrency(payrollRecord.netSalary)}</p>
+        <p className="text-3xl font-bold text-gray-900">₦ {EmployeeUtil.formatCurrency(payrollRecord.netSalary)}</p>
       </div>
 
       {/* <Separator className="my-6" /> */}

@@ -48,10 +48,6 @@ export const payrollService = {
     return apiClient.delete(ApiRoutes.payroll.delete(id));
   },
 
-  async processPayroll(id) {
-    return apiClient.post(ApiRoutes.payroll.process(id));
-  },
-
   async payPayroll(id) {
     return apiClient.post(ApiRoutes.payroll.pay(id));
   },

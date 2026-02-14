@@ -184,19 +184,6 @@ export default function Payroll() {
     }
   };
 
-  const processPayroll = async (recordId) => {
-    try {
-      await payrollService.updatePayrollStatus(recordId, {
-        status: 'processed',
-        paymentDate: new Date().toISOString().split('T')[0],
-      });
-      loadData();
-      toast.success('Payroll record updated successfully');
-    } catch (error) {
-      toast.error('Error processing payroll', { description: `${error.message ? error.message : ''}` });
-    }
-  };
-
   const downloadPayrollReport = async (payPeriod) => {
     const currentPeriodRecords = await payrollService.getPayrollByPeriod({ payPeriod, rows: 3000 });
 
@@ -454,15 +441,6 @@ export default function Payroll() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col sm:flex-row gap-2">
-                              {record.status === 'generated' && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => processPayroll(record.id)}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1"
-                                >
-                                  Process
-                                </Button>
-                              )}
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -659,7 +637,7 @@ export default function Payroll() {
 export const DialogPrintContent = ({ children, className }) => {
   return (
     <DialogContent
-      className={`print:shadow-none max-w-4xl p-0 border-0 print:border-0 print:absolute print:top-0 print:left-0 print:translate-x-0 print:translate-y-0 print:[&_button]:hidden max-h-[80vh] overflow-y-auto ${className}`}
+      className={`print:shadow-none max-w-[95%] lg:max-w-4xl p-0 border-0 print:border-0 print:absolute print:top-0 print:left-0 print:translate-x-0 print:translate-y-0 print:[&_button]:hidden max-h-[80vh] overflow-y-auto ${className}`}
     >
       {children}
     </DialogContent>
