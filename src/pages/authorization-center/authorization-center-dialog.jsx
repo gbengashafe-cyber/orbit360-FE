@@ -14,6 +14,7 @@ export const AuthorizationViewDialog = ({
   viewingItem,
   canAuthorize,
   handleAuthorize,
+  authorizeError,
   authorizing,
   setApprovalNote,
   approverNote,
@@ -37,6 +38,8 @@ export const AuthorizationViewDialog = ({
                   <Textarea id="reviewerNote" value={approverNote} onChange={(e) => setApprovalNote(e.target.value)} />
                 </div>
               </form>
+
+              {authorizeError ? <div className="text-red-900 bg-red-100 rounded-lg py-2 px-3">{authorizeError}</div> : null}
 
               <div className="pt-4 border-t space-y-3 bg-gray-50 p-4 rounded-lg -mx-6">
                 <div className="grid grid-cols-2 gap-4 text-sm">

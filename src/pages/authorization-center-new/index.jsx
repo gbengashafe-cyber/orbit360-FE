@@ -31,6 +31,7 @@ export default function AuthorizationCenterWIP() {
   const [pendingItemsPagination, setPendingItemsPagination] = useState({});
   const [rows, setRows] = useState(25);
   const [approverNote, setApprovalNote] = useState('');
+  const [authorizeError, setAuthorizeError] = useState('');
 
   const getPendingCount = useCallback(async () => {
     try {
@@ -180,6 +181,7 @@ export default function AuthorizationCenterWIP() {
       await loadData();
     } catch (error) {
       logger.error({ caller: 'Handle item authorization', payload: error });
+      setAuthorizeError(error.message || 'Unable to process this request. Kindly contact the system administrator');
       toast.error('Error', {
         description: error.message || 'Unable to process this request. Kindly contact the system administrator',
       });
@@ -275,6 +277,7 @@ export default function AuthorizationCenterWIP() {
         </Card>
 
         <AuthorizationViewDialog
+          authorizeError={authorizeError}
           viewingItem={viewingItem}
           onOpenChange={() => setViewingItem(null)}
           canAuthorize={canAuthorize}
