@@ -43,6 +43,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
           dob: '',
           nationality: 'Nigerian',
           address: '',
+          companyId: '',
           departmentName: 'hr',
           jobRole: '',
           status: 'active',
@@ -273,6 +274,21 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                   onChange={(e) => handleInputChange('hireDate', e.target.value)}
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyId">Company</Label>
+                <Select value={formData.companyId} onValueChange={(value) => handleInputChange('companyId', value)}>
+                  <SelectTrigger id="companyId">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allDepartments.map((_company) => (
+                      <SelectItem key={_company.id} value={_company.name}>
+                        {_company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="departmentName">Department</Label>
