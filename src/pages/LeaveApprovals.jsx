@@ -22,7 +22,7 @@ export default function LeaveApprovalsPage() {
     const [leaveRequests, setLeaveRequests] = useState([]);
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedLeave, setSelectedLeave] = useState(null);
+  const [selectedLeave, setSelectedLeave] = useState(null);
     const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
