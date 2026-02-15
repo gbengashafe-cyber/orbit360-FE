@@ -34,7 +34,7 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
       loanTypeId: '',
       principalAmount: '',
       tenureMonths: '',
-      startDate: '',
+      startDate: new Date().toJSON().split('T')[0],
       employeeNote: '',
       loanTypeMaxTenure: 0,
     },
