@@ -5,11 +5,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addDays, endOfMonth, format, startOfMonth, subMonths } from 'date-fns';
-import { Briefcase, Calendar as CalendarIcon, Filter, UserMinus, Users } from 'lucide-react';
+import { Briefcase, Calendar as CalendarIcon, Coins, Filter, UserMinus, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Cell,
   Legend,
@@ -95,7 +93,6 @@ const ChartCard = ({ title, subtitle, children, actions }) => (
   </div>
 );
 
-// Main Dashboard Component
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ employees: [], leaves: [], expenses: [], budgets: [] });
@@ -334,6 +331,13 @@ export default function Dashboard() {
             value={`${metrics?.overview?.attritionRate || '0%'}`}
             icon={UserMinus}
             color={MATERIAL_COLORS.error}
+          />
+
+          <MetricCard
+            title="Pending Loan Requests"
+            value={`${metrics?.overview?.pendingLoanRequests || '0'}`}
+            icon={Coins}
+            color={MATERIAL_COLORS.info}
           />
         </div>
 
