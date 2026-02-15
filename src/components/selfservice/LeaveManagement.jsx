@@ -364,7 +364,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                             </div>
                             <div>
                                 <p className="text-sm text-gray-600">Total Entitlement</p>
-                                <p className="text-2xl font-bold text-gray-900">{employee?.annual_leave_entitlement || 20} days</p>
+                                <p className="text-2xl font-bold text-gray-900">{employee?.annual_leave_entitlement || 15} days</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
