@@ -170,13 +170,22 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
               )}
             />
 
+            <p className="text-sm text-red-700 italic">
+              By submitting this request, you confirm that you agree to the terms for requesting an employee loan. You understand
+              that submission does not guarantee approval and that repayment will be made through payroll deductions.
+            </p>
+
             {apiError && <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-xl">{apiError}</div>}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading} className="rounded-2xl">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Loan
               </Button>
