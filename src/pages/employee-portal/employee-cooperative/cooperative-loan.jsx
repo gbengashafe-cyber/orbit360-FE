@@ -228,7 +228,7 @@ export function EmployeeCooperative() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {loan?.status === 'PENDING_APPROVAL' ? (
+                        {['PENDING_APPROVAL', 'PENDING_REVIEW'].includes(loan?.status?.toUpperCase()) ? (
                           <Button
                             variant="destructive"
                             disabled={isCancelling}
