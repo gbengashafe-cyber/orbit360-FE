@@ -12,7 +12,7 @@ import Dashboard from './dashboard/Dashboard';
 import Deals from './Deals';
 import DocumentManagement from './DocumentManagement';
 import EmailCenter from './EmailCenter';
-import { EmployeeCooperative } from './employee-cooperative/cooperative-loan';
+import { EmployeeCooperative } from './employee-portal/employee-cooperative/cooperative-loan';
 import { Employees } from './employees/employees-page';
 import ExitManagement from './ExitManagement';
 import ExpenseApprovals from './ExpenseApprovals';
