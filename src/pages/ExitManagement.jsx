@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Employee } from '@/api/entities';
+import { userService, employeeService } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText } from 'lucide-react';
@@ -29,29 +29,46 @@ export default function ExitManagementPage() {
   const loadBaseData = async () => {
     setLoading(true);
     try {
-      const user = await User.me();
+      // Get current user
+      const userResponse = await userService.getCurrentUser();
+      const user = userResponse?.data || userResponse;
       setCurrentUser(user);
 
+      // Get all employees (always load all for finding user and admin dropdown)
+      const employeesResponse = await employeeService.getEmployees({ page: 1, rows: 500 });
+      const allEmpsData = Array.isArray(employeesResponse?.data) ? employeesResponse.data : Array.isArray(employeesResponse) ? employeesResponse : [];
+      
+      const userEmployeeRecord = allEmpsData.find(e => e.email === user.email) || null;
+
+      // Check if HR admin
       const userIsHrAdmin = user.role && ['admin', 'admin_officer'].includes(user.role);
       setIsHrAdmin(userIsHrAdmin);
 
+      // Set all employees for HR admin to view others
       if (userIsHrAdmin) {
-        const allEmps = await Employee.list();
-        setAllEmployees(allEmps);
+        setAllEmployees(allEmpsData);
       }
 
-      const employees = await Employee.filter({ email: user.email });
-      if (employees.length > 0) {
-        const selfRecord = employees[0];
-        setSelfEmployeeRecord(selfRecord);
+      // Set self employee record and load data
+      if (userEmployeeRecord) {
+        setSelfEmployeeRecord(userEmployeeRecord);
         if (selectedEmployeeId === 'self') {
-          await loadDataForEmployee(selfRecord);
+          await loadDataForEmployee(userEmployeeRecord);
         } else {
-          const targetEmployee = allEmployees.find(e => e.id === selectedEmployeeId);
+          const targetEmployee = allEmpsData.find(e => String(e.id) === String(selectedEmployeeId));
           await loadDataForEmployee(targetEmployee);
         }
       } else {
-        const basicEmployeeData = { id: user.id, first_name: user.full_name?.split(' ')[0] || 'User', last_name: user.full_name?.split(' ').slice(1).join(' ') || '', email: user.email, department: user.department || 'general', position: 'Employee', employment_status: 'active' };
+        // Fallback if employee record not found
+        const basicEmployeeData = {
+          id: user.id,
+          firstName: user.full_name?.split(' ')[0] || 'User',
+          lastName: user.full_name?.split(' ').slice(1).join(' ') || '',
+          email: user.email,
+          departmentName: user.department || 'general',
+          jobRole: 'Employee',
+          status: 'active'
+        };
         setSelfEmployeeRecord(basicEmployeeData);
         if (selectedEmployeeId === 'self') {
           setCurrentEmployeeData(basicEmployeeData);
@@ -67,13 +84,18 @@ export default function ExitManagementPage() {
   const handleEmployeeSwitch = async (employeeId) => {
     setSelectedEmployeeId(employeeId);
     setLoading(true);
-    if (employeeId === 'self') {
-      await loadDataForEmployee(selfEmployeeRecord);
-    } else {
-      const targetEmployee = allEmployees.find(e => e.id === employeeId);
-      await loadDataForEmployee(targetEmployee);
+    try {
+      if (employeeId === 'self') {
+        await loadDataForEmployee(selfEmployeeRecord);
+      } else {
+        const targetEmployee = allEmployees.find(e => String(e.id) === employeeId);
+        await loadDataForEmployee(targetEmployee);
+      }
+    } catch (error) {
+      console.error('Error switching employee:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
   
   if (loading) {
@@ -104,8 +126,8 @@ export default function ExitManagementPage() {
                 <Select value={selectedEmployeeId} onValueChange={handleEmployeeSwitch}>
                     <SelectTrigger className="bg-white"><SelectValue placeholder="View as..." /></SelectTrigger>
                     <SelectContent>
-                        {selfEmployeeRecord && <SelectItem value="self">View My Portal ({selfEmployeeRecord.first_name} {selfEmployeeRecord.last_name})</SelectItem>}
-                        {allEmployees.map(emp => (<SelectItem key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} ({emp.employee_id})</SelectItem>))}
+                        {selfEmployeeRecord && <SelectItem value="self">View My Portal ({selfEmployeeRecord.firstName} {selfEmployeeRecord.lastName})</SelectItem>}
+                        {allEmployees.map(emp => (<SelectItem key={emp.id} value={String(emp.id)}>{emp.firstName} {emp.lastName} ({emp.staffId || 'N/A'})</SelectItem>))}
                     </SelectContent>
                 </Select>
             </div>

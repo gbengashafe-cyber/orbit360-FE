@@ -205,7 +205,7 @@ export default function LeaveManagementPage() {
             const targetEmployee = allEmployees.find(e => e.id === employeeId);
             await loadDataForEmployee(targetEmployee);
         }
-        setLoading(false);
+        setLoading(false);hhjyuhjuyhjuiuuy7u8u8y69oo9
     };
 
     if (loading) {
