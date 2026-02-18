@@ -7,9 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { logger } from '@/utils';
 import { showToast } from '@/utils/toast';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const LEAVE_TYPES = ['vacation', 'sick', 'personal', 'maternity', 'paternity', 'bereavement', 'unpaid', 'other'];
+const LEAVE_TYPES = ['annual', 'compassionate', 'study', 'unpaid', 'vacation', 'sick', 'personal', 'maternity', 'paternity'];
 
 export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
   const [formData, setFormData] = useState({
@@ -21,10 +21,77 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
   });
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [leaveBalance, setLeaveBalance] = useState({
+    allocatedDays: 0,
+    calculatedDays: 0,
+    remainingDays: 0,
+  });
+  const [calculating, setCalculating] = useState(false);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  // Fetch leave balance when employee and leave type are selected
+  const fetchLeaveBalance = async (employeeId, leaveType) => {
+    if (!employeeId || !leaveType) return;
+    
+    try {
+      const response = await leaveService.getLeaveBalance(employeeId);
+      if (response?.data) {
+        const balance = response.data.find(b => b.leaveType === leaveType);
+        if (balance) {
+          setLeaveBalance({
+            allocatedDays: balance.totalDays || 0,
+            calculatedDays: 0,
+            remainingDays: balance.remainingDays || 0,
+          });
+        }
+      }
+    } catch (error) {
+      logger.error({ caller: 'Error fetching leave balance', payload: error });
+    }
+  };
+
+  // Auto-calculate days when dates change
+  useEffect(() => {
+    const calculateDays = async () => {
+      if (!formData.employeeId || !formData.type || !formData.startDate || !formData.endDate) {
+        setLeaveBalance(prev => ({ ...prev, calculatedDays: 0, remainingDays: prev.allocatedDays }));
+        return;
+      }
+
+      setCalculating(true);
+      try {
+        const response = await leaveService.calculateLeaveDays({
+          employeeId: parseInt(formData.employeeId),
+          type: formData.type,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+        });
+
+        if (response?.data) {
+          setLeaveBalance({
+            allocatedDays: response.data.allocatedDays || 0,
+            calculatedDays: response.data.calculatedDays || 0,
+            remainingDays: response.data.remainingDays || 0,
+          });
+        }
+      } catch (error) {
+        logger.error({ caller: 'Error calculating leave days', payload: error });
+      } finally {
+        setCalculating(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(calculateDays, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [formData.employeeId, formData.type, formData.startDate, formData.endDate]);
+
+  // Fetch balance when employee or type changes
+  useEffect(() => {
+    fetchLeaveBalance(formData.employeeId, formData.type);
+  }, [formData.employeeId, formData.type]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -132,6 +199,32 @@ export default function LeaveRequestForm({ onSubmit, onCancel, employees }) {
           placeholder="Reason for leave request..."
         />
       </div>
+
+      {(formData.employeeId && formData.type) && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-700">Total Allocated Days:</span>
+            <span className="text-sm font-semibold text-blue-600">{leaveBalance.allocatedDays} days</span>
+          </div>
+          {(formData.startDate && formData.endDate) && (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">Days Selected:</span>
+                <span className="flex items-center gap-2">
+                  {calculating && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+                  <span className="text-sm font-semibold text-green-600">{leaveBalance.calculatedDays} days</span>
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">Remaining Days:</span>
+                <span className={`text-sm font-semibold ${leaveBalance.remainingDays >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {leaveBalance.remainingDays} days
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <DialogFooter>
         <DialogClose asChild>

@@ -37,4 +37,8 @@ export const leaveService = {
   async updateLeaveStatus(id, status) {
     return apiClient.patch(ApiRoutes.UpdateLeaveStatus(id), { action: status });
   },
+
+  async calculateLeaveDays(data) {
+    return apiClient.post(ApiRoutes.CalculateLeaveDays, data);
+  },
 };

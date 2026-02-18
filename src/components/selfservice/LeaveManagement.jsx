@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { leaveService, employeeService } from '@/api';
 import { showToast } from '@/utils/toast';
-import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay, calculateRemainingDays } from '@/utils/leaveCalculator';
+import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay } from '@/utils/leaveCalculator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     Calendar,
     Plus,
-    FileText,
     Clock,
     CheckCircle,
     XCircle,
@@ -103,15 +102,16 @@ FileUploader.propTypes = {
 };
 
 export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, leaveBalance: preLoadedBalance }) {
-    const [leaveRequests, setLeaveRequests] = useState(preLoadedLeaves || []);
-    const [employees, setEmployees] = useState([]);
-    const [leaveBalance, setLeaveBalance] = useState(preLoadedBalance || 0);
-    const [showForm, setShowForm] = useState(false);
-    const [loading, setLoading] = useState(!preLoadedLeaves);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isUploading] = useState(false);
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [leaveToDelete, setLeaveToDelete] = useState(null);
+     const [leaveRequests, setLeaveRequests] = useState(preLoadedLeaves || []);
+     const [employees, setEmployees] = useState([]);
+     const [leaveBalance, setLeaveBalance] = useState(preLoadedBalance || 0);
+     const [leaveBalanceByType, setLeaveBalanceByType] = useState([]);
+     const [showForm, setShowForm] = useState(false);
+     const [loading, setLoading] = useState(!preLoadedLeaves);
+     const [isSubmitting, setIsSubmitting] = useState(false);
+     const [isUploading] = useState(false);
+     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+     const [leaveToDelete, setLeaveToDelete] = useState(null);
 
     const [handoverFiles, setHandoverFiles] = useState([]);
     const [supportingFiles, setSupportingFiles] = useState([]);
@@ -141,26 +141,31 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                     const days = calculateBusinessDays(curr.startDate || curr.start_date, curr.endDate || curr.end_date, curr.leave_period);
                     return acc + days;
                 }, 0);
-            const entitlement = employee?.annual_leave_entitlement || 20;
+            const entitlement = employee?.leaveEntitlement || 0;
             const remaining = entitlement - approvedAnnualLeave;
             setLeaveBalance(Math.max(0, remaining));
-        },
-        [employee?.annual_leave_entitlement],
+            },
+            [employee?.leaveEntitlement],
     );
 
     const loadData = React.useCallback(async () => {
         setLoading(true);
         try {
-            const [leavesData, allEmployeesData] = await Promise.all([
+            const [leavesData, allEmployeesData, balanceData] = await Promise.all([
                 leaveService.getLeaves(1, 100),
                 employeeService.getEmployees({ page: 1, rows: 100 }),
+                employee?.id ? leaveService.getLeaveBalance(employee.id) : Promise.resolve({ data: [] }),
             ]);
 
             const requests = leavesData?.data || leavesData || [];
             const allEmps = allEmployeesData?.data || allEmployeesData || [];
+            const balances = balanceData?.data || balanceData || [];
 
             setLeaveRequests(requests);
             setEmployees(allEmps);
+            setLeaveBalanceByType(balances);
+            
+            // Calculate total balance for backward compatibility
             if (employee?.annual_leave_entitlement) {
                 calculateLeaveBalance(requests);
             }
@@ -170,7 +175,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         } finally {
             setLoading(false);
         }
-    }, [calculateLeaveBalance, employee?.annual_leave_entitlement]);
+    }, [calculateLeaveBalance, employee?.annual_leave_entitlement, employee?.id]);
 
     useEffect(() => {
         loadData();
@@ -178,70 +183,75 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
 
     // FIXED: Use business days calculator that excludes weekends
     const calculateDays = (startDate, endDate, period) => {
-      const result = calculateBusinessDays(startDate, endDate, period);
-      // Debug: Log calculation to verify it's working
-      if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        console.log(`[Leave Calc] ${start.toDateString()} → ${end.toDateString()} = ${result} days (${period})`);
-      }
-      return result;
+        const result = calculateBusinessDays(startDate, endDate, period);
+        // Debug: Log calculation to verify it's working
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            console.log(`[Leave Calc] ${start.toDateString()} → ${end.toDateString()} = ${result} days (${period})`);
+        }
+        return result;
     };
 
     // FIXED: Enhanced form submission with leave type formatting and proper validation
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setFormError('');
+     const handleSubmit = async (e) => {
+         e.preventDefault();
+         setFormError('');
+    
+         // Validate leave type is selected
+         if (!formData.leave_type) {
+             setFormError('Please select a leave type');
+             return;
+         }
+    
+         const daysRequested = calculateDays(formData.start_date, formData.end_date, formData.leave_period);
+    
+         // Only check balance for leave types with entitlement
+         const leaveTypesWithBalance = ['annual', 'vacation'];
+         if (leaveTypesWithBalance.includes(formData.leave_type) && daysRequested > leaveBalance) {
+             setFormError(`Insufficient leave balance. Available: ${leaveBalance} days, Requested: ${daysRequested} days.`);
+             return;
+         }
+    
+         setIsSubmitting(true);
+    
+         try {
+             // Format leave type to match API expectations
+             const leaveType = formatLeaveType(formData.leave_type);
+    
+             const leaveData = {
+                 employeeId: employee.id,
+                 type: leaveType,
+                 startDate: formData.start_date,
+                 endDate: formData.end_date,
+                 reason: formData.reason,
+                 leave_period: formData.leave_period,
+             };
+    
+             const response = await leaveService.createLeave(leaveData);
+             
+             // Verify response was successful
+             if (!response || (response.error && response.error !== false)) {
+                 throw new Error(response?.message || 'Failed to create leave request');
+             }
 
-        // Validate leave type is selected
-        if (!formData.leave_type) {
-            setFormError('Please select a leave type');
-            return;
-        }
+             // Backend automatically sends emails to supervisor, HR, and employee
+             // No need to send emails from frontend
+             
+             showToast.success('Leave request submitted successfully! Notification emails have been sent to your supervisor and HR.', 'Success');
+             setShowForm(false);
+             resetForm();
+             loadData();
+             if (onUpdate) onUpdate();
+         } catch (error) {
+             logger.error({ caller: 'Error submitting leave request:', payload: error });
+             setFormError(error.response?.data?.message || error.message || 'Failed to submit leave request');
+         } finally {
+             setIsSubmitting(false);
+         }
+     };
 
-        const daysRequested = calculateDays(formData.start_date, formData.end_date, formData.leave_period);
 
-        // Only check balance for leave types with entitlement
-        const leaveTypesWithBalance = ['annual', 'vacation'];
-        if (leaveTypesWithBalance.includes(formData.leave_type) && daysRequested > leaveBalance) {
-            setFormError(`Insufficient leave balance. Available: ${leaveBalance} days, Requested: ${daysRequested} days.`);
-            return;
-        }
-
-        setIsSubmitting(true);
-
-        try {
-            // Format leave type to match API expectations
-            const leaveType = formatLeaveType(formData.leave_type);
-
-            const leaveData = {
-                employeeId: employee.id,
-                type: leaveType,
-                startDate: formData.start_date,
-                endDate: formData.end_date,
-                reason: formData.reason,
-                leave_period: formData.leave_period,
-            };
-
-            const response = await leaveService.createLeave(leaveData);
-
-            // Verify response was successful
-            if (!response || (response.error && response.error !== false)) {
-                throw new Error(response?.message || 'Failed to create leave request');
-            }
-
-            showToast.success('Leave request submitted successfully!', 'Success');
-            setShowForm(false);
-            resetForm();
-            loadData();
-            if (onUpdate) onUpdate();
-        } catch (error) {
-            logger.error({ caller: 'Error submitting leave request:', payload: error });
-            setFormError(error.response?.data?.message || error.message || 'Failed to submit leave request');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     const resetForm = () => {
         setFormData({
@@ -355,45 +365,75 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                 </Dialog>
             </div>
 
-            {/* FIXED: Leave Balance Summary - Shows total, used, and remaining days */}
-            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
-                <CardContent className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-100 rounded-lg">
-                                <Calendar className="w-6 h-6 text-blue-600" />
+            {/* Leave Balance Summary - By Type */}
+            {leaveBalanceByType.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {leaveBalanceByType.map((balance) => {
+                        const usagePercentage = (balance.usedDays / balance.totalDays) * 100;
+                        // Color coding for usage: Red (>50% used), Yellow (20-50% used), Green (<20% used)
+                        const getProgressBarColor = () => {
+                            if (usagePercentage > 50) return 'bg-red-500';
+                            if (usagePercentage > 20) return 'bg-yellow-500';
+                            return 'bg-blue-600';
+                        };
+                        return (
+                            <Card key={balance.id} className="bg-white/90 backdrop-blur-sm">
+                                <CardContent className="p-4 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-semibold text-gray-700 capitalize">{balance.leaveType}</p>
+                                        <span className="text-lg font-bold text-gray-900">{balance.totalDays}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded h-2.5 overflow-hidden">
+                                        <div
+                                            className={`${getProgressBarColor()} h-2.5 rounded transition-all duration-300`}
+                                            style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+                                        ></div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
+            ) : (
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+                    <CardContent className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-100 rounded-lg">
+                                    <Calendar className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-600">Total Entitlement</p>
+                                    <p className="text-2xl font-bold text-gray-900">{employee?.annual_leave_entitlement || 15} days</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Total Entitlement</p>
-                                <p className="text-2xl font-bold text-gray-900">{employee?.annual_leave_entitlement || 20} days</p>
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-orange-100 rounded-lg">
+                                    <Clock className="w-6 h-6 text-orange-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-600">Used (Approved)</p>
+                                    <p className="text-2xl font-bold text-gray-900">
+                                        {leaveRequests
+                                            .filter((r) => r.status === 'approved' && (r.type === 'vacation' || r.type === 'annual'))
+                                            .reduce((acc, curr) => acc + calculateBusinessDays(curr.startDate || curr.start_date, curr.endDate || curr.end_date, curr.leave_period), 0)}{' '}
+                                        days
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-green-100 rounded-lg">
+                                    <CheckCircle className="w-6 h-6 text-green-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-600">Balance Remaining</p>
+                                    <p className="text-2xl font-bold text-green-600">{leaveBalance} days</p>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-orange-100 rounded-lg">
-                                <Clock className="w-6 h-6 text-orange-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Used (Approved)</p>
-                                <p className="text-2xl font-bold text-gray-900">
-                                    {leaveRequests
-                                        .filter((r) => r.status === 'approved' && (r.type === 'vacation' || r.type === 'annual'))
-                                        .reduce((acc, curr) => acc + calculateBusinessDays(curr.startDate || curr.start_date, curr.endDate || curr.end_date, curr.leave_period), 0)}{' '}
-                                    days
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-green-100 rounded-lg">
-                                <CheckCircle className="w-6 h-6 text-green-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Balance Remaining</p>
-                                <p className="text-2xl font-bold text-green-600">{leaveBalance} days</p>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            )}
 
             <Card className="bg-white/90 backdrop-blur-sm">
                 <CardHeader>
@@ -508,12 +548,43 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                             </CardContent>
                         </Card>
 
-                        <Alert variant="info" className="bg-blue-50 border-blue-200">
-                            <Info className="h-4 w-4 text-blue-600" />
-                            <AlertDescription className="text-blue-800">
-                                Your current annual leave balance is <strong>{leaveBalance} days</strong>.
-                            </AlertDescription>
-                        </Alert>
+                        {leaveBalanceByType.length > 0 ? (
+                            <div className="space-y-3">
+                                <h3 className="font-semibold text-lg border-b pb-2">Leave Balance by Type</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {leaveBalanceByType.map((balance) => {
+                                        const usagePercentage = (balance.usedDays / balance.totalDays) * 100;
+                                        // Color coding for usage: Red (>50% used), Yellow (20-50% used), Green (<20% used)
+                                        const getProgressBarColor = () => {
+                                            if (usagePercentage > 50) return 'bg-red-500';
+                                            if (usagePercentage > 20) return 'bg-yellow-500';
+                                            return 'bg-blue-600';
+                                        };
+                                        return (
+                                            <div key={balance.id} className="space-y-1.5">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-sm font-medium text-gray-700 capitalize">{balance.leaveType}</p>
+                                                    <span className="text-sm font-bold text-gray-900">{balance.totalDays}</span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded h-2 overflow-hidden">
+                                                    <div
+                                                        className={`${getProgressBarColor()} h-2 rounded transition-all duration-300`}
+                                                        style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ) : (
+                            <Alert variant="info" className="bg-blue-50 border-blue-200">
+                                <Info className="h-4 w-4 text-blue-600" />
+                                <AlertDescription className="text-blue-800">
+                                    Your current annual leave balance is <strong>{leaveBalance} days</strong>.
+                                </AlertDescription>
+                            </Alert>
+                        )}
 
                         <div className="space-y-2">
                             <h3 className="font-semibold text-lg border-b pb-2">Leave Details</h3>
