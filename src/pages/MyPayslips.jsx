@@ -24,6 +24,13 @@ export default function MyPayslips() {
   const showEmployeeList = location.pathname === '/payslips';
 
   useEffect(() => {
+    return () => {
+      setEmployeeData(null);
+      setPayrollRecords([]);
+    };
+  }, [location]);
+
+  useEffect(() => {
     const loadAllData = async () => {
       try {
         if (showEmployeeList) {
@@ -178,7 +185,7 @@ export default function MyPayslips() {
                               <DialogTitle></DialogTitle>
                               <DialogDescription></DialogDescription>
                             </DialogHeader>
-                            <Payslip payrollRecord={selectedRecord} employee={employeeData} />
+                            <Payslip payrollRecord={selectedRecord} employee={selectedRecord?.employee} />
                             <div className="sticky bottom-0 py-6 px-4 bg-gray-200 flex justify-end no-print">
                               <Button onClick={handlePrint}>
                                 <Printer className="w-4 h-4 mr-2" />

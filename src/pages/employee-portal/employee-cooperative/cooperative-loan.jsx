@@ -9,8 +9,8 @@ import { logger } from '@/utils';
 import { Banknote, Download, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { getStatusColor } from '../authorization-center/authorization-center.util';
 import EmployeeLoanForm from './loan-request-form';
+import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
 
 export function EmployeeCooperative() {
   const [loans, setLoans] = useState([]);
@@ -228,7 +228,7 @@ export function EmployeeCooperative() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {loan?.status === 'PENDING_APPROVAL' ? (
+                        {['PENDING_APPROVAL', 'PENDING_REVIEW'].includes(loan?.status?.toUpperCase()) ? (
                           <Button
                             variant="destructive"
                             disabled={isCancelling}

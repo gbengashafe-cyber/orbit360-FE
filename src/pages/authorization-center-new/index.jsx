@@ -107,11 +107,16 @@ export default function AuthorizationCenterWIP() {
 
       // Update based on transaction type
       switch (moduleName) {
-        case 'loans':
+        case 'loans': {
+          if (action === 'reject' && !approverNote) {
+            setAuthorizeError('Note is required if action is `Reject`');
+            return;
+          }
           action === 'approve'
             ? (responsePayload = await loanService.approveLoan(item.id, { approverNote }))
             : (responsePayload = await loanService.rejectLoan(item.id, { approverNote }));
           break;
+        }
         case 'payrolls':
           action === 'approve'
             ? (responsePayload = await payrollService.approvePayrollBatch(item.id))
@@ -126,16 +131,6 @@ export default function AuthorizationCenterWIP() {
           action === 'approve'
             ? (responsePayload = await leaveService.updateLeaveStatus(item.id, 'APPROVED'))
             : (responsePayload = await leaveService.updateLeaveStatus(item.id, 'REJECTED'));
-          break;
-        case 'Training Request':
-          await base44.entities.TrainingRequest.update(item.id, updateData);
-          break;
-        case 'Disciplinary Case':
-          await base44.entities.DisciplinaryAction.update(item.id, {
-            ...updateData,
-            status: action === 'approve' ? 'penalty_applied' : 'closed',
-            approved_by: currentUser.email,
-          });
           break;
         case 'Appraisal':
           await base44.entities.Appraisal.update(item.id, {

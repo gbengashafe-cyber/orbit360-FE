@@ -4,12 +4,29 @@ import { LoanUtil } from '@/components/cooperative/loan.utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/utils';
 import { format } from 'date-fns';
-import { BanIcon, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import z from 'zod';
+
+const loanReviewSchema = z
+  .object({
+    reviewerDecision: z.preprocess(
+      (val) => (typeof val === 'string' ? val.toUpperCase() : val),
+      z.enum(['APPROVE', 'REJECT'], 'Invalid decision was provided'),
+    ),
+    reviewerNote: z.string().max(300),
+  })
+  .refine(
+    ({ reviewerDecision, reviewerNote }) => {
+      return !(reviewerDecision.toUpperCase() === 'REJECT' && reviewerNote.length < 2);
+    },
+    { message: 'Note is required if recommendation is `Reject`', path: ['reviewerNote'] },
+  );
 
 export const LoanForm = ({ showForm, setShowForm, onCancel, loan, loadData }) => {
   const [submitError, setSubmitError] = useState('');
@@ -40,12 +57,14 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, loan, loadData }) =>
   };
 
   const handleLoanSubmit = async (e) => {
+    setSubmitError('');
     try {
       e.preventDefault();
 
-      if (!formData.reviewerNote && formData.reviewerDecision?.toLowerCase() === 'reject') {
-        setSubmitError('Kindly provide rejection reason');
-
+      try {
+        loanReviewSchema.parse(formData);
+      } catch (error) {
+        setSubmitError(JSON.parse(error.message)[0].message);
         return;
       }
 
@@ -117,6 +136,25 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, loan, loadData }) =>
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="reviewerDecision">Recommendation</Label>
+              <Select onValueChange={(val) => handleInputChange('reviewerDecision', val)} value={formData.reviewerDecision}>
+                <SelectTrigger className="" id="select-rows-per-page">
+                  <SelectValue placeholder="Select recommendation" />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  <SelectItem value="approve">Approve</SelectItem>
+                  <SelectItem value="reject">Reject</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {loan?.approverNote ? (
+              <div className="text-sm space-y-2 bg-slate-100 py-2 px-3 rounded-lg">
+                <p className="font-semibold">Approver Note:</p>
+                <p className="italic">{loan?.approverNote}</p>
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
               <Label htmlFor="reviewerNote">Notes</Label>
               <Textarea
                 id="reviewerNote"
@@ -127,25 +165,15 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, loan, loadData }) =>
 
             {submitError ? <div className="flex gap-3 py-2 px-3 rounded-lg text-red-800 bg-red-100">{submitError}</div> : null}
 
-            <div className="flex justify-between gap-3 pt-4">
+            <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel
               </Button>
-              <div className="flex gap-3">
-                {loan?.status?.toUpperCase() === 'PENDING_REVIEW' ? (
-                  <>
-                    <Button
-                      variant="destructive"
-                      onClick={() => setFormData((prev) => ({ ...prev, reviewerDecision: 'reject' }))}
-                    >
-                      <BanIcon className="w-4 h-4 mr-1" /> Reject
-                    </Button>
-                    <Button type="submit" onClick={() => setFormData((prev) => ({ ...prev, reviewerDecision: 'approve' }))}>
-                      <Save className="w-4 h-4 mr-1" /> Send for Approval
-                    </Button>
-                  </>
-                ) : null}
-              </div>
+              {loan?.status?.toUpperCase() === 'PENDING_REVIEW' ? (
+                <Button type="submit">
+                  <Save className="w-4 h-4 mr-1" /> Submit
+                </Button>
+              ) : null}
             </div>
           </form>
         </div>

@@ -19,7 +19,7 @@ export const loanSchema = {
         { label: 'Interest Rate', path: 'interestRate', type: 'percentage' },
         { label: 'Tenure (Months)', path: 'tenureMonths', type: 'number' },
         { label: 'Start Date', path: 'startDate', type: 'date' },
-        { label: 'Status', path: 'status', type: 'badge' },
+        { label: 'Reviewer Recommendation', path: 'reviewerDecision', type: 'string' },
       ],
     },
   ],
