@@ -1,15 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
-import { HRDocument, HRFolder } from '@/api/entities';
+import { apiClient, apiRoutes } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Folder, File, ArrowLeft, Home, FileText, Loader2, FileBox } from 'lucide-react'; // Changed BookCopy to FileBox
+import { Folder, File, ArrowLeft, Home, FileText, Loader2, FileBox, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function CompanyDocuments() {
   const [folders, setFolders] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [currentFolder, setCurrentFolder] = useState(null); // null is root
 
   useEffect(() => {
@@ -18,81 +19,182 @@ export default function CompanyDocuments() {
 
   const loadData = async () => {
     setLoading(true);
+    setError('');
     try {
-      const [foldersData, documentsData] = await Promise.all([
-        HRFolder.list(),
-        HRDocument.filter({ access_level: 'public' })
+      const [foldersRes, docsRes] = await Promise.all([
+        apiClient.get(apiRoutes.GetFolders),
+        apiClient.get(apiRoutes.GetDocuments),
       ]);
+
+      const foldersData = Array.isArray(foldersRes.data) ? foldersRes.data : (Array.isArray(foldersRes) ? foldersRes : []);
+      const docsData = Array.isArray(docsRes.data) ? docsRes.data : (Array.isArray(docsRes) ? docsRes : []);
+
       setFolders(foldersData);
-      setDocuments(documentsData);
+      setDocuments(docsData);
     } catch (error) {
-      console.error("Error loading company document data:", error);
+      console.error('Error loading company document data:', error);
+      setError('Failed to load documents. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
-  const currentFolderName = currentFolder ? folders.find(f => f.id === currentFolder)?.name : 'Root';
-  const parentFolderId = currentFolder ? folders.find(f => f.id === currentFolder)?.parent_folder_id : null;
+  const currentFolderName = currentFolder 
+    ? folders.find(f => f.id === currentFolder)?.name 
+    : 'Root';
+  const parentFolderId = currentFolder 
+    ? folders.find(f => f.id === currentFolder)?.parent_folder_id 
+    : null;
 
   const displayedFolders = folders.filter(f => f.parent_folder_id === currentFolder);
   const displayedDocuments = documents.filter(d => d.folder_id === currentFolder);
 
+  const handleDownload = (doc) => {
+    if (doc.file_url.startsWith('data:')) {
+      const link = document.createElement('a');
+      link.href = doc.file_url;
+      link.download = doc.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      window.open(doc.file_url, '_blank');
+    }
+  };
+
+  const getDocumentIcon = (docType) => {
+    const icons = {
+      contract: '📋',
+      policy: '📖',
+      memo: '📝',
+      performance_review: '⭐',
+      other: '📄',
+    };
+    return icons[docType] || '📄';
+  };
+
+  const getDocumentBadgeColor = (docType) => {
+    const colors = {
+      contract: 'bg-blue-100 text-blue-800',
+      policy: 'bg-green-100 text-green-800',
+      memo: 'bg-yellow-100 text-yellow-800',
+      performance_review: 'bg-purple-100 text-purple-800',
+      other: 'bg-gray-100 text-gray-800',
+    };
+    return colors[docType] || 'bg-gray-100 text-gray-800';
+  };
+
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
+    <div className="p-4 lg:p-8 min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
         <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-              <FileBox className="w-6 h-6 text-white" /> {/* Changed BookCopy to FileBox */}
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Document Hub</h1> {/* Renamed to Document Hub */}
-              <p className="text-gray-600">Access public company policies, handbooks, and documents.</p>
-            </div>
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
+            <FileBox className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Document Hub</h1>
+            <p className="text-gray-600">Access public company policies, handbooks, and documents.</p>
+          </div>
         </div>
 
-        <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Navigation */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-2">
               {currentFolder && (
-                 <Button variant="ghost" size="icon" onClick={() => setCurrentFolder(parentFolderId)} title="Go to parent folder"><ArrowLeft className="w-4 h-4" /></Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setCurrentFolder(parentFolderId)}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
               )}
-               <Button variant="ghost" size="icon" onClick={() => setCurrentFolder(null)} title="Go to Root"><Home className="w-4 h-4" /></Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setCurrentFolder(null)}
+              >
+                <Home className="w-4 h-4" />
+              </Button>
               <CardTitle>Current Folder: {currentFolderName}</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
-            {loading ? (
-               <div className="text-center p-12"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-700" /></div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {displayedFolders.map(folder => (
-                  <div key={folder.id} onClick={() => setCurrentFolder(folder.id)} className="p-4 border rounded-lg text-center cursor-pointer hover:bg-gray-50 flex flex-col items-center justify-center transition-all hover:shadow-lg hover:-translate-y-1 h-36">
-                    <Folder className="w-12 h-12 text-yellow-500 mb-2" />
-                    <span className="text-sm font-medium break-words w-full">{folder.name}</span>
-                  </div>
-                ))}
-                 {displayedDocuments.map(doc => (
-                  <a key={doc.id} href={doc.file_url} target="_blank" rel="noopener noreferrer" className="p-4 border rounded-lg text-center cursor-pointer hover:bg-gray-50 flex flex-col items-center justify-center transition-all hover:shadow-lg hover:-translate-y-1 h-36">
-                    {doc.name.toLowerCase().includes("template") || (doc.folder_id && folders.find(f=>f.id === doc.folder_id)?.name === "Templates") ? (
-                      <FileText className="w-12 h-12 text-purple-500 mb-2" />
-                    ) : (
-                      <File className="w-12 h-12 text-blue-500 mb-2" />
-                    )}
-                    <span className="text-sm font-medium break-words w-full">{doc.name}</span>
-                    <span className="text-xs text-gray-500 capitalize mt-1">{doc.document_type.replace('_', ' ')}</span>
-                  </a>
-                ))}
-              </div>
-            )}
-             {!loading && displayedFolders.length === 0 && displayedDocuments.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                    <Folder className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p>This folder is empty.</p>
-                </div>
-            )}
-          </CardContent>
         </Card>
+
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+        ) : displayedFolders.length === 0 && displayedDocuments.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Folder className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">This folder is empty</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Folders */}
+            {displayedFolders.map(folder => (
+              <Card 
+                key={folder.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => setCurrentFolder(folder.id)}
+              >
+                <CardContent className="p-4 flex items-center gap-4">
+                  <Folder className="w-8 h-8 text-blue-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{folder.name}</p>
+                    <p className="text-sm text-gray-500">Folder</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Documents */}
+            {displayedDocuments.map(doc => (
+              <Card key={doc.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="text-2xl flex-shrink-0">
+                      {getDocumentIcon(doc.document_type)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p 
+                        className="font-medium text-gray-900 truncate" 
+                        title={doc.name}
+                      >
+                        {doc.name}
+                      </p>
+                      <Badge className={`${getDocumentBadgeColor(doc.document_type)} text-xs mt-1`}>
+                        {doc.document_type}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => handleDownload(doc)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
