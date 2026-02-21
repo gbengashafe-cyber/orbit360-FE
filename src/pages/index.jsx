@@ -11,6 +11,7 @@ import Contacts from './Contacts';
 import Dashboard from './dashboard/Dashboard';
 import Deals from './Deals';
 import DocumentManagement from './DocumentManagement';
+import EmployeeDocuments from './EmployeeDocuments';
 import EmailCenter from './EmailCenter';
 import { EmployeeCooperative } from './employee-portal/employee-cooperative/cooperative-loan';
 import { Employees } from './employees/employees-page';
@@ -72,6 +73,8 @@ const PAGES = {
   HRDashboard: HRDashboard,
 
   DocumentManagement: DocumentManagement,
+
+  EmployeeDocuments: EmployeeDocuments,
 
   Performance: Performance,
 
@@ -183,6 +186,8 @@ function PagesContent() {
         <Route path="/HRDashboard" element={<HRDashboard />} />
 
         <Route path="/DocumentManagement" element={<DocumentManagement />} />
+
+        <Route path="/EmployeeDocuments" element={<EmployeeDocuments />} />
 
         <Route path="/Performance" element={<Performance />} />
 

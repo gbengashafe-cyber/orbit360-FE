@@ -57,31 +57,11 @@ export default function DocumentManagement() {
 
     const initializeDefaultStructure = useCallback(async () => {
         try {
-            const createdFolders = {};
-            for (const folderName of defaultFolders) {
-                const res = await apiClient.post(apiRoutes.CreateFolder, { name: folderName, parent_folder_id: null });
-                const newFolder = res.data || res;
-                createdFolders[folderName] = newFolder.id;
-            }
-
-            // Create dummy template files
-            for (const template of documentTemplates) {
-                const dummyFile = new Blob([template.content], { type: 'text/plain' });
-                const file = new File([dummyFile], `${template.name}.txt`, { type: 'text/plain' });
-
-                // Note: Replace with actual file upload endpoint if available
-                const file_url = `data:text/plain;base64,${btoa(template.content)}`;
-
-                await apiClient.post(apiRoutes.CreateDocument, {
-                    name: template.name,
-                    file_url: file_url,
-                    document_type: template.type,
-                    folder_id: createdFolders[template.folderName],
-                    access_level: template.access_level || "public"
-                });
-            }
+            console.log("[initializeDefaultStructure] Calling backend to initialize default folders...");
+            const response = await apiClient.post(apiRoutes.InitializeDocuments, {});
+            console.log("[initializeDefaultStructure] Success:", response);
         } catch (error) {
-            console.error('Error initializing default structure:', error);
+            console.error('[initializeDefaultStructure] Error:', error);
         }
     }, []); // No dependencies for initializeDefaultStructure itself
 
@@ -91,39 +71,42 @@ export default function DocumentManagement() {
             const userResponse = await userService.getCurrentUser();
             const user = userResponse?.data || userResponse;
             setCurrentUser(user);
+            
+            console.log('[DocumentManagement] Current user:', { id: user?.id, email: user?.email, role: user?.role, jobRole: user?.jobRole });
 
-            // Gatekeeping
-            if (!['admin', 'human_resources_manager'].includes(user.role)) {
-                setError("You do not have permission to access this page.");
-                setLoading(false);
-                return;
-            }
-
-            const [foldersRes, documentsRes] = await Promise.all([
+            const [foldesRes, documentsRes] = await Promise.all([
                 apiClient.get(apiRoutes.GetFolders),
                 apiClient.get(apiRoutes.GetDocuments)
             ]);
 
-            const foldersData = foldersRes.data || foldersRes;
-            const documentsData = documentsRes.data || documentsRes;
+            const foldersData = Array.isArray(foldersRes.data) ? foldersRes.data : (Array.isArray(foldersRes) ? foldersRes : []);
+            const documentsData = Array.isArray(documentsRes.data) ? documentsRes.data : (Array.isArray(documentsRes) ? documentsRes : []);
 
-            if (isInitialLoad && foldersData.length === 0 && documentsData.length === 0) {
-                console.log("Initializing default folder structure and templates...");
+            console.log("Loaded folders:", foldersData.length, foldersData);
+            console.log("Loaded documents:", documentsData.length, documentsData);
+
+            if (isInitialLoad && foldersData.length === 0) {
+                console.log("No folders found, initializing default structure...");
                 await initializeDefaultStructure();
                 // Refetch data after initialization
                 const [newFoldersRes, newDocsRes] = await Promise.all([
                     apiClient.get(apiRoutes.GetFolders),
                     apiClient.get(apiRoutes.GetDocuments)
                 ]);
-                setFolders(newFoldersRes.data || newFoldersRes);
-                setDocuments(newDocsRes.data || newDocsRes);
+                const newFolders = Array.isArray(newFoldersRes.data) ? newFoldersRes.data : (Array.isArray(newFoldersRes) ? newFoldersRes : []);
+                const newDocs = Array.isArray(newDocsRes.data) ? newDocsRes.data : (Array.isArray(newDocsRes) ? newDocsRes : []);
+                console.log("After init - Folders:", newFolders.length, "Documents:", newDocs.length);
+                setFolders(newFolders);
+                setDocuments(newDocs);
             } else {
                 setFolders(foldersData);
                 setDocuments(documentsData);
             }
         } catch (error) {
+            const errorMsg = error?.response?.data?.message || error?.message || 'Failed to load document data.';
             console.error("Error loading document data:", error);
-            setError('Failed to load document data.');
+            console.error("Error details:", { status: error?.response?.status, data: error?.response?.data });
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
