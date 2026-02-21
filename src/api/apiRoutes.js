@@ -113,6 +113,19 @@ export class ApiRoutes {
   static GetExitsByEmployee = (employeeId) => `/v1/exits/employee/${employeeId}`;
   static ApproveExit = (id) => `/v1/exits/${id}/approve`;
 
+  // HR Documents
+  static InitializeDocuments = '/v1/hr-documents/initialize';
+  static GetDocuments = '/v1/hr-documents/documents';
+  static GetDocumentById = (id) => `/v1/hr-documents/documents/${id}`;
+  static CreateDocument = '/v1/hr-documents/documents';
+  static UpdateDocument = (id) => `/v1/hr-documents/documents/${id}`;
+  static DeleteDocument = (id) => `/v1/hr-documents/documents/${id}`;
+  static GetFolders = '/v1/hr-documents/folders';
+  static GetFolderById = (id) => `/v1/hr-documents/folders/${id}`;
+  static CreateFolder = '/v1/hr-documents/folders';
+  static UpdateFolder = (id) => `/v1/hr-documents/folders/${id}`;
+  static DeleteFolder = (id) => `/v1/hr-documents/folders/${id}`;
+
   // Onboarding
   static GetOnboardings = '/v1/onboardings';
   static GetOnboardingById = (id) => `/v1/onboardings/${id}`;
