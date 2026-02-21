@@ -44,13 +44,13 @@ export const GlobalContextProvider = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
-    if (currentUser?.employeeData?.jobRole) {
-      setIsMD(currentUser.employeeData.jobRole === 'Managing Director');
+    if (currentUser?.employeeData?.jobRole?.name) {
+      setIsMD(currentUser.employeeData.jobRole?.name?.toUpperCase() === 'MANAGING DIRECTOR');
     }
     if (currentUser?.role) {
       setIsAdmin(currentUser.role.toUpperCase() === 'ADMIN');
     }
-  }, [currentUser?.employeeData?.jobRole, currentUser?.role]);
+  }, [currentUser?.employeeData?.jobRole?.name, currentUser?.role]);
 
   useEffect(() => {
     if (location.pathname.startsWith('/login')) {
@@ -77,11 +77,10 @@ export const GlobalContextProvider = ({ children }) => {
           const enrichedUser = { ...userResponse?.data, employeeData: userEmployeeData?.data };
           storeCurrentUser(enrichedUser);
 
-          const isMDUser = userEmployeeData?.data?.jobRole === 'Managing Director';
+          setIsMD(enrichedUser.employeeData?.jobRole?.name?.toUpperCase() === 'MANAGING DIRECTOR');
           const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
 
           setIsAdmin(isAdmin);
-          setIsMD(isMDUser);
         } else {
           storeCurrentUser(userResponse?.data);
         }

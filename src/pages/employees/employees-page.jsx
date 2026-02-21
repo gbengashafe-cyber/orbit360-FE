@@ -1,10 +1,9 @@
 import { employeeService } from '@/api';
-import { jobRoleService } from '@/api/job-role.service';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAllDepartments } from '@/hooks/use-all-departments';
+import { useCompanies } from '@/hooks/use-all-companies';
 import { EmployeeBioDataTable } from '@/pages/employees/employee-bio-data-table';
 import { logger } from '@/utils';
 import { Plus, Users } from 'lucide-react';
@@ -21,13 +20,12 @@ export function Employees() {
   const [error, setError] = useState('');
   const [showWelcomeInfoDialog, setShowWelcomeInfoDialog] = useState(false);
   const [welcomeInfo, setWelcomeInfo] = useState({ email: '', instructions: '' });
-  const [jobRoles, setJobRoles] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState(25);
   const [pages, setPages] = useState(1);
   const [currentStatus, setCurrentStatus] = useState('active');
 
-  const { allDepartments } = useAllDepartments();
+  const { allCompanies } = useCompanies();
 
   const loadTerminatedEmployees = useCallback(async () => {
     setLoading(true);
@@ -67,19 +65,6 @@ export function Employees() {
   useEffect(() => {
     currentStatus === 'active' ? loadActiveEmployees() : loadTerminatedEmployees();
   }, [currentStatus, loadActiveEmployees, loadTerminatedEmployees]);
-
-  useEffect(() => {
-    loadJobRoles();
-  }, []);
-
-  const loadJobRoles = async () => {
-    try {
-      const jobRolesData = await jobRoleService.getJobRoles({ rows: 1000 });
-      setJobRoles(jobRolesData.data);
-    } catch (error) {
-      toast.error('Error', { description: `${error.message ? error.message : 'Unable to load job roles data.'}` });
-    }
-  };
 
   const handleFormSubmit = async (formData) => {
     const { employeeData, createUser } = formData;
@@ -123,6 +108,7 @@ export function Employees() {
       setEditingEmployee(null);
       loadTerminatedEmployees();
     } catch (error) {
+      logger.error({ caller: 'Employee page - handleSubmit', payload: error });
       setError(`${error.message || 'Unable to complete request. Kindly contact the administrator'}`);
     }
   };
@@ -251,15 +237,14 @@ export function Employees() {
       {showForm ? (
         <EmployeeForm
           showForm={showForm}
-          allDepartments={allDepartments}
           employee={editingEmployee}
-          jobRoles={jobRoles}
           onSubmit={handleFormSubmit}
           error={error}
           onCancel={() => {
             setShowForm(false);
             setEditingEmployee(null);
           }}
+          allCompanies={allCompanies}
         />
       ) : null}
       <WelcomeDialog shouldOpen={showWelcomeInfoDialog} setShouldOpen={setShowWelcomeInfoDialog} welcomeInfo={welcomeInfo} />

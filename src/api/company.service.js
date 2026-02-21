@@ -1,13 +1,22 @@
 import { apiClient, makeQueryParams } from './apiClient';
 import { ApiRoutes } from './apiRoutes';
 
-export const employeeService = {
-  async getEmployees({ page = 1, rows = 10, options } = { page: 1, rows: 10 }) {
+export const companyService = {
+  async getCompanies({ page = 1, rows = 25, options } = { page: 1, rows: 25 }) {
+    const endpoint = ApiRoutes.company.getCompanies;
+
     if (options) {
       const queryParams = makeQueryParams(options);
-      return apiClient.get(`${ApiRoutes.GetEmployees}?page=${page}&rows=${rows}&${queryParams}`);
+      return apiClient.get(`${endpoint}?page=${page}&rows=${rows}&${queryParams}`);
     }
-    return apiClient.get(`${ApiRoutes.GetEmployees}?page=${page}&rows=${rows}`);
+    return apiClient.get(`${endpoint}?page=${page}&rows=${rows}`);
+  },
+
+  async getCompanyDepartments(companyId, options) {
+    const endpoint = ApiRoutes.company.getCompanyDepartment(companyId);
+
+    const queryParams = makeQueryParams(options);
+    return apiClient.get(`${endpoint}?${queryParams}`);
   },
 
   async getActiveEmployees({ page = 1, rows = 25, options } = { page: 1, rows: 10 }) {
@@ -18,13 +27,6 @@ export const employeeService = {
       endpoint = endpoint + `&${queryParams}`;
     }
     return apiClient.get(endpoint);
-  },
-  async getActiveEmployeesV1({ options } = { page: 1, rows: 10 }, { signal }) {
-    let endpoint = ApiRoutes.employee.getActiveEmployees;
-
-    const queryParams = makeQueryParams(options);
-    endpoint = endpoint + `?${queryParams}`;
-    return apiClient.get(endpoint, { signal });
   },
 
   approveMaintenance: async (id) => {

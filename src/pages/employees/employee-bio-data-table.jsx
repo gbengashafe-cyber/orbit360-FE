@@ -20,46 +20,48 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onResendI
           </TableRow>
         </TableHeader>
         <TableBody>
-          {employees.map((employee) => (
-            <TableRow key={employee.id} className="hover:bg-gray-50/50 transition-colors">
-              <TableCell>
-                <div>
-                  <p className="font-semibold text-gray-900">
-                    {employee.firstName} {employee.lastName}
-                  </p>
-                  <p className="text-sm text-gray-500">{employee.email}</p>
-                </div>
-              </TableCell>
-              <TableCell className="capitalize">{employee.departmentName}</TableCell>
-              <TableCell>{employee?.jobRole.replace('_', ' ')}</TableCell>
-              <TableCell>
-                <Badge className={getStatusColor(employee.status)}>{employee.status.replace('_', ' ')}</Badge>
-              </TableCell>
-              <TableCell>{employee.hireDate ? new Date(employee.hireDate).toLocaleDateString() : 'N/A'}</TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="w-8 h-8">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEdit(employee)}>
-                      <Edit className="w-4 h-4 mr-2" /> Edit Employee Details
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onResendInstructions(employee)}>
-                      <Mail className="w-4 h-4 mr-2" /> Resend Login Instructions
-                    </DropdownMenuItem>
-                    {employee.status !== 'terminated' && (
-                      <DropdownMenuItem onClick={() => onTerminate(employee.id)} className="text-red-600">
-                        <UserX className="w-4 h-4 mr-2" /> Terminate
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
+          {employees?.length
+            ? employees.map((employee) => (
+                <TableRow key={employee.id} className="hover:bg-gray-50/50 transition-colors">
+                  <TableCell>
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {employee.firstName} {employee.lastName}
+                      </p>
+                      <p className="text-sm text-gray-500">{employee.email}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="capitalize">{employee.department?.name}</TableCell>
+                  <TableCell>{employee?.jobRole?.title}</TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(employee.status)}>{employee.status.replace('_', ' ')}</Badge>
+                  </TableCell>
+                  <TableCell>{employee.hireDate ? new Date(employee.hireDate).toLocaleDateString() : 'N/A'}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="w-8 h-8">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEdit(employee)}>
+                          <Edit className="w-4 h-4 mr-2" /> Edit Employee Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onResendInstructions(employee)}>
+                          <Mail className="w-4 h-4 mr-2" /> Resend Login Instructions
+                        </DropdownMenuItem>
+                        {employee.status !== 'terminated' && (
+                          <DropdownMenuItem onClick={() => onTerminate(employee.id)} className="text-red-600">
+                            <UserX className="w-4 h-4 mr-2" /> Terminate
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            : null}
         </TableBody>
       </Table>
       {employees.length === 0 && (

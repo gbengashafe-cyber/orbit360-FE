@@ -1,10 +1,11 @@
+import { employeeService } from '@/api';
 import { useDebounce } from '@/api/apiClient';
-import { departmentService } from '@/api/department.service';
+import { logger } from '@/utils';
 import { CanceledError } from 'axios';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-export function useSupervisorSearch({ departmentName, departments, query }) {
+export function useSupervisorSearch({ query }) {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -13,38 +14,35 @@ export function useSupervisorSearch({ departmentName, departments, query }) {
   useEffect(() => {
     const controller = new AbortController();
 
-    async function load() {
-      const department = departments.find((d) => d.name === departmentName);
-      if (!department) return;
-
+    const loadEmployees = async () => {
       setLoading(true);
 
       try {
-        const res = await departmentService.getDepartmentEmployees(
+        const response = await employeeService.getActiveEmployeesV1(
           {
-            id: department.id,
             rows: 25,
-            options: { search: debouncedQuery },
+            search: debouncedQuery,
           },
           { signal: controller.signal },
         );
 
-        setEmployees(res.data.employees);
+        setEmployees(response.data);
       } catch (error) {
         if (error instanceof CanceledError) {
           return;
         }
+        logger.error({ caller: 'Use supervisor search', payload: error });
         toast.error('Error:', {
-          description: `${error.message ? error.message : 'Could not load employees in this department.'}`,
+          description: error.message ?? 'Could not load employees.',
         });
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    load();
+    loadEmployees();
     return () => controller.abort();
-  }, [departmentName, debouncedQuery, departments]);
+  }, [debouncedQuery]);
 
   return { employees, loading };
 }

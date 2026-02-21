@@ -186,7 +186,8 @@ export default function AuthorizationCenterWIP() {
   };
 
   const canAuthorize =
-    currentUser?.jobRole?.toLowerCase().includes('head') || currentUser?.jobRole?.toLowerCase().includes('manager');
+    currentUser?.employeeData?.jobRole?.title?.toLowerCase().includes('head') ||
+    currentUser?.employeeData?.jobRole?.title?.toLowerCase().includes('manager');
 
   if (loading) {
     return (

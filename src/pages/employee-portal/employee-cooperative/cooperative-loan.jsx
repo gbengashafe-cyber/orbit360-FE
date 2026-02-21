@@ -5,22 +5,24 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
 import { logger } from '@/utils';
-import { Banknote, Download, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Banknote, Download, Plus, RefreshCw, Trash2, View } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import LoanRequestCancellationDialog from './loan-cancellation-dialog';
 import EmployeeLoanForm from './loan-request-form';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
 
 export function EmployeeCooperative() {
   const [loans, setLoans] = useState([]);
+  const [selectedLoan, setSelectedLoan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLoanForm, setShowLoanForm] = useState(false);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
   const [rows, setRows] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [loanTypes, setLoanTypes] = useState([]);
-  const [isCancelling, setIsCancelling] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -146,19 +148,6 @@ export function EmployeeCooperative() {
     window.URL.revokeObjectURL(url);
   };
 
-  const cancelLoanRequest = async (loanId) => {
-    setIsCancelling(true);
-    try {
-      await loanService.cancelLoanRequest(loanId);
-      loadData();
-    } catch (error) {
-      logger.error({ caller: 'Cancel loan', payload: error });
-      toast.error('Error', { description: error.message ?? 'Unable to cancel loan' });
-    } finally {
-      setIsCancelling(false);
-    }
-  };
-
   const handleCreate = () => {
     setShowLoanForm(true);
   };
@@ -194,7 +183,31 @@ export function EmployeeCooperative() {
           </div>
         </div>
         {showLoanForm ? (
-          <EmployeeLoanForm loanTypes={loanTypes} open={showLoanForm} onOpenChange={setShowLoanForm} onSuccess={loadData} />
+          <EmployeeLoanForm
+            loan={selectedLoan}
+            loanTypes={loanTypes}
+            open={showLoanForm}
+            onOpenChange={() => {
+              setShowLoanForm(false);
+              setSelectedLoan(null);
+            }}
+            onSuccess={loadData}
+          />
+        ) : null}
+
+        {showCancellationModal ? (
+          <LoanRequestCancellationDialog
+            loan={selectedLoan}
+            open={showCancellationModal}
+            onOpenChange={() => {
+              setShowCancellationModal(false);
+              setSelectedLoan(null);
+            }}
+            onSuccess={() => {
+              setShowCancellationModal(false);
+              loadData();
+            }}
+          />
         ) : null}
 
         <Card>
@@ -209,6 +222,7 @@ export function EmployeeCooperative() {
                   <TableHead>Type</TableHead>
                   <TableHead>Principal</TableHead>
                   <TableHead>Monthly Deduction</TableHead>
+                  <TableHead>Request Date</TableHead>
                   <TableHead>Start Date</TableHead>
                   <TableHead>End Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -221,6 +235,7 @@ export function EmployeeCooperative() {
                     <TableCell className="capitalize">{loan.loanType?.name?.toUpperCase()}</TableCell>
                     <TableCell>₦{loan.principalAmount?.toLocaleString()}</TableCell>
                     <TableCell>₦{loan.monthlyDeduction?.toLocaleString()}</TableCell>
+                    <TableCell>{new Date(loan?.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(loan.startDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(loan.endDate).toLocaleDateString()}</TableCell>
                     <TableCell>
@@ -228,14 +243,26 @@ export function EmployeeCooperative() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedLoan(loan);
+                            setShowLoanForm(true);
+                          }}
+                        >
+                          <View className="w-4 h-4" />
+                        </Button>
                         {['PENDING_APPROVAL', 'PENDING_REVIEW'].includes(loan?.status?.toUpperCase()) ? (
                           <Button
                             variant="destructive"
-                            disabled={isCancelling}
                             size="sm"
-                            onClick={() => cancelLoanRequest(loan.id)}
+                            onClick={() => {
+                              setSelectedLoan(loan);
+                              setShowCancellationModal(true);
+                            }}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" /> Cancel
                           </Button>
                         ) : null}
                         {['ACTIVE'].includes(loan?.status?.toUpperCase()) ? (

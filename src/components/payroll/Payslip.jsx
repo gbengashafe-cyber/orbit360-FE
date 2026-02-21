@@ -36,11 +36,11 @@ const Payslip = ({ payrollRecord, employee }) => {
         </div>
         <div>
           <span className="font-semibold text-gray-600 min-w-[130px] inline-block">Department: </span>
-          <span>{employee?.departmentName}</span>
+          <span>{employee?.department?.name}</span>
         </div>
         <div>
           <span className="font-semibold text-gray-600 min-w-[130px] inline-block">Job Role: </span>
-          <span>{employee?.jobRole?.replace('_', ' ')}</span>
+          <span>{employee?.jobRole?.title}</span>
         </div>
         {/* <div>
           <span className="font-semibold text-gray-600 min-w-[130px] inline-block">Payment Date: </span>

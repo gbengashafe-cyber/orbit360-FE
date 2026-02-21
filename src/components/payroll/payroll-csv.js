@@ -29,7 +29,7 @@ export const generatePayrollCSV = (currentPeriodRecords) => {
         `"${employee?.firstName || ''} ${employee?.lastName || ''}"`,
         employee?.employeeId || '',
         employee?.jobRole || '',
-        employee?.departmentName || '',
+        employee?.department?.name || '',
         (record.basicSalary || 0).toFixed(2),
         (record.housingAllowance || 0).toFixed(2),
         (record.transportAllowance || 0).toFixed(2),

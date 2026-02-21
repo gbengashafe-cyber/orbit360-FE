@@ -1,4 +1,5 @@
 import { loanService } from '@/api/loan.service';
+import { FormSubmitError } from '@/components/shared/submit-error';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -13,31 +14,42 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-const loanSchema = z.object({
-  loanTypeId: z.coerce.number('Select loan Type').min(1, 'Loan type is required'),
-  principalAmount: z.string().min(1, 'Amount is required').pipe(z.coerce.number().positive('Amount must be greater than 0')),
-  tenureMonths: z
-    .string()
-    .min(1, 'Loan tenure is required')
-    .pipe(z.coerce.number().int('Tenure must be a whole number').positive('Tenure must be greater than 0')),
-  startDate: z.string().min(1, 'Please select the required date'),
-  employeeNote: z.string().optional(),
-});
+const loanSchema = z
+  .object({
+    loanTypeId: z.coerce.number('Select loan Type').min(1, 'Loan type is required'),
+    principalAmount: z.coerce
+      .string('Invalid loan amount provided')
+      .min(1, 'Amount is required')
+      .pipe(z.coerce.number().positive('Amount must be greater than 0')),
+    tenureMonths: z.coerce
+      .string('Invalid loan tenure provided')
+      .min(1, 'Loan tenure is required')
+      .pipe(z.coerce.number().int('Tenure must be a whole number').positive('Tenure must be greater than 0')),
+    startDate: z.string().min(1, 'Please select the required date'),
+    employeeNote: z.string().optional(),
+    loanTypeMaxTenure: z.coerce.number().optional(),
+  })
+  .refine(({ loanTypeMaxTenure, tenureMonths }) => tenureMonths <= loanTypeMaxTenure, {
+    message: 'Loan tenure cannot exceed the allowed tenure for the selected loan type',
+    path: ['tenureMonths'],
+  });
 
-export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTypes }) {
+export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTypes, loan }) {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
   const form = useForm({
     resolver: zodResolver(loanSchema),
-    defaultValues: {
-      loanTypeId: '',
-      principalAmount: '',
-      tenureMonths: '',
-      startDate: new Date().toJSON().split('T')[0],
-      employeeNote: '',
-      loanTypeMaxTenure: 0,
-    },
+    defaultValues: loan
+      ? { ...loan, loanTypeMaxTenure: loan?.loanType?.maxTenureMonths || 0 }
+      : {
+          loanTypeId: '',
+          principalAmount: '',
+          tenureMonths: '',
+          startDate: new Date().toJSON().split('T')[0],
+          employeeNote: '',
+          loanTypeMaxTenure: 0,
+        },
     mode: 'all',
   });
 
@@ -53,9 +65,13 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
       setLoading(true);
       setApiError(null);
 
-      const response = await loanService.createLoanRequest(values);
-
-      toast.success('Success', { description: response?.message ?? 'Loan request initiated successfully' });
+      if (loan) {
+        const response = await loanService.updateLoanRequest(loan.id, values);
+        toast.success('Success', { description: response?.message ?? 'Loan request updated successfully' });
+      } else {
+        const response = await loanService.createLoanRequest(values);
+        toast.success('Success', { description: response?.message ?? 'Loan request initiated successfully' });
+      }
       onSuccess();
       onOpenChange(false);
       form.reset();
@@ -66,6 +82,8 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
       setLoading(false);
     }
   };
+
+  const lockFields = ['CANCELLED', 'REJECTED', 'PENDING_APPROVAL'].includes(loan?.status?.toUpperCase());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,15 +101,23 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
                 name="loanTypeId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Loan Type</FormLabel>
+                    <FormLabel>
+                      <div className="flex justify-between py-1">
+                        Loan Type{' '}
+                        {form.getValues('loanTypeMaxTenure') ? (
+                          <span className="italic font-normal">Max Tenure: {form.getValues('loanTypeMaxTenure')} months</span>
+                        ) : null}
+                      </div>
+                    </FormLabel>
                     <FormControl>
                       <Select
                         onValueChange={(val) => {
-                          const selectedLoanType = loanTypes.find((_loan) => _loan.id === Number(form.getValues('loanTypeId')));
+                          const selectedLoanType = loanTypes?.find((_loan) => _loan.id === Number(form.getValues('loanTypeId')));
                           form.setValue('loanTypeMaxTenure', selectedLoanType?.maxTenureMonths || 0);
                           form.setValue('loanTypeId', val);
                         }}
-                        value={field.value}
+                        value={Number(field.value)}
+                        disabled={lockFields}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Please select loan type" />
@@ -99,7 +125,7 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
                         <SelectContent>
                           {loanTypes?.length
                             ? loanTypes.map((_loanType) => (
-                                <SelectItem key={_loanType.id} value={String(_loanType.id)}>
+                                <SelectItem key={_loanType.id} value={Number(_loanType.id)}>
                                   {_loanType.name} - {_loanType.interestRate}%
                                 </SelectItem>
                               ))
@@ -118,7 +144,7 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
                   <FormItem>
                     <FormLabel>Loan Amount</FormLabel>
                     <FormControl>
-                      <Input type="number" min={0} step="0.01" {...field} />
+                      <Input type="number" min={0} step="0.01" disabled={lockFields} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -134,7 +160,7 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
                   <FormItem>
                     <FormLabel>Tenure (Months)</FormLabel>
                     <FormControl>
-                      <Input type="number" min={0} {...field} />
+                      <Input type="number" min={0} disabled={lockFields} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -148,7 +174,7 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
                   <FormItem>
                     <FormLabel>Date Needed</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" disabled={lockFields} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -163,7 +189,7 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
                 <FormItem>
                   <FormLabel>Note (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Brief description of the loan purpose" {...field} />
+                    <Textarea placeholder="Brief description of the loan purpose" disabled={lockFields} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -175,20 +201,21 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
               that submission does not guarantee approval and that repayment will be made through payroll deductions.
             </p>
 
-            {apiError && <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-xl">{apiError}</div>}
+            {apiError && <FormSubmitError>{apiError}</FormSubmitError>}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Loan
-              </Button>
+              {!['CANCELLED'].includes(loan?.status?.toUpperCase()) ? (
+                <Button
+                  disabled={loading}
+                  className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {loan ? 'Edit loan' : 'Create Loan'}
+                </Button>
+              ) : null}
             </DialogFooter>
           </form>
         </Form>

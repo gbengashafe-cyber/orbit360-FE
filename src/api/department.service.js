@@ -22,6 +22,15 @@ export const departmentService = {
     return apiClient.get(endpoint, { signal });
   },
 
+  async getDepartmentJobRoles(departmentId, options = { page: 1, rows: 10 }, { signal } = {}) {
+    let endpoint = ApiRoutes.department.jobRoles(departmentId);
+
+    const queryParams = makeQueryParams(options);
+    endpoint = `${endpoint}?${queryParams}`;
+
+    return apiClient.get(endpoint, { signal });
+  },
+
   async getDepartmentById(id) {
     return apiClient.get(ApiRoutes.GetDepartmentById(id));
   },

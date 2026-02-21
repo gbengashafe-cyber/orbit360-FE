@@ -34,6 +34,9 @@ export const loanService = {
   async createLoanRequest(request) {
     return apiClient.post(ApiRoutes.loans.createRequest, request);
   },
+  async updateLoanRequest(id, data) {
+    return apiClient.put(ApiRoutes.loans.updateRequest(id), data);
+  },
 
   async reviewLoan(id, data) {
     return apiClient.patch(ApiRoutes.loans.reviewRequest(id), data);
@@ -49,10 +52,6 @@ export const loanService = {
 
   async createLoan(data) {
     return apiClient.post(ApiRoutes.CreateLoan, data);
-  },
-
-  async updateLoan(id, data) {
-    return apiClient.put(ApiRoutes.UpdateLoan(id), data);
   },
 
   async deleteLoan(id) {

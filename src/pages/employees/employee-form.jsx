@@ -1,5 +1,7 @@
 import { employeeService } from '@/api';
 import { useDebounce } from '@/api/apiClient';
+import { companyService } from '@/api/company.service';
+import { departmentService } from '@/api/department.service';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -9,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils';
 import { Command } from 'cmdk';
 import { format, parseISO } from 'date-fns';
 import { Check, ChevronsUpDown, Loader2, UserPlus } from 'lucide-react';
@@ -21,11 +24,13 @@ import { EmployeeUtil } from './employee.utils';
 import { useEmployeeCompensation } from './hooks/use-employee-compensation';
 import { useSupervisorSearch } from './hooks/use-supervisor-search';
 
-export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, allDepartments = [], jobRoles = [] }) {
+export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, allCompanies = [] }) {
   const [employeeLoans, setEmployeeLoans] = useState([]);
   const [query, setQuery] = useState('');
   const [shouldCreateUser, setShouldCreateUser] = useState(true);
   const [open, setOpen] = useState(false);
+  const [companyDepartments, setCompanyDepartments] = useState([]);
+  const [departmentJobRoles, setDepartmentJobRoles] = useState([]);
   const [formData, setFormData] = useState(
     employee
       ? {
@@ -45,7 +50,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
           address: '',
           companyId: '',
           departmentName: 'hr',
-          jobRole: '',
+          jobRoleId: '',
           status: 'active',
           hireDate: '',
           supervisorId: '',
@@ -79,15 +84,13 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
 
   const debouncedQuery = useDebounce(query, 600);
   const { employees: departmentEmployees, loading: isLoading } = useSupervisorSearch({
-    departmentName: formData.departmentName,
-    departments: allDepartments,
     query: debouncedQuery,
   });
 
   const compensation = useEmployeeCompensation(formData, employeeLoans);
 
   useEffect(() => {
-    async function loadData() {
+    async function loadEmployeeLoans() {
       try {
         if (employee?.id) {
           const employeeData = await employeeService.getEmployeeById(employee.id);
@@ -95,15 +98,47 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
           setEmployeeLoans(activeLoans);
         }
       } catch (error) {
-        toast.log('Error', { description: `${error.message ? error.message : 'Unable to load employee loan data'}` });
+        logger.error({ caller: 'Employee form - load employee data', payload: error });
+        toast.error('Error', { description: error.message ?? 'Unable to load employee loan data' });
       }
     }
-    loadData();
+    loadEmployeeLoans();
   }, [employee?.id]);
+
+  useEffect(() => {
+    const loadCompanyDepartments = async () => {
+      try {
+        if (!formData.companyId) {
+          return;
+        }
+        const response = await companyService.getCompanyDepartments(formData.companyId);
+        setCompanyDepartments(response.data?.departments || []);
+      } catch (error) {
+        logger.error({ caller: 'Employee form - load company departments', payload: error });
+        toast.error('Error', { description: error.message ?? 'Error loading company departments' });
+      }
+    };
+
+    loadCompanyDepartments(formData.companyId);
+  }, [formData.companyId]);
+
+  useEffect(() => {
+    const loadDepartmentJobRoles = async () => {
+      try {
+        const response = await departmentService.getDepartmentJobRoles(formData.departmentId, { rows: 100 });
+        setDepartmentJobRoles(response.data?.departmentJobRoles || []);
+      } catch (error) {
+        logger.error({ caller: 'Employee form - load department job roles', payload: error });
+        toast.error('Error', { description: error.message ?? 'Unable to load job roles data.' });
+      }
+    };
+    loadDepartmentJobRoles();
+  }, [formData.departmentId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const totalGrossPay = compensation.totalGrossPay;
+    console.log('🚀 ~ handleSubmit ~ formData.annualBasicSalary:', formData.annualBasicSalary);
     const submissionData = {
       ...formData,
       annualBasicSalary: parseFloat(formData.annualBasicSalary) || 0,
@@ -147,7 +182,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
         supervisorId: selectedSupervisor.id,
         supervisorName: `${selectedSupervisor.firstName} ${selectedSupervisor.lastName}`,
         supervisorRole: selectedSupervisor.jobRole,
-        supervisorDepartment: selectedSupervisor.departmentName,
+        supervisorDepartment: selectedSupervisor.department?.name,
       }));
     } else {
       setFormData((prev) => ({
@@ -158,7 +193,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
   };
 
   const getSupervisorName = () => {
-    if (!departmentEmployees.length || !formData.supervisorId) {
+    if (!departmentEmployees?.length || !formData.supervisorId) {
       return '';
     }
 
@@ -266,6 +301,59 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
             {/* Employment Details Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
+                <Label htmlFor="companyId">SBU (Company)</Label>
+                <Select value={Number(formData.companyId)} onValueChange={(value) => handleInputChange('companyId', value)}>
+                  <SelectTrigger id="companyId">
+                    <SelectValue placeholder="Select company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allCompanies.map((_company) => {
+                      return (
+                        <SelectItem key={_company.id} value={_company.id}>
+                          {_company.name}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="departmentId">Department</Label>
+                <Select value={Number(formData.departmentId)} onValueChange={(value) => handleInputChange('departmentId', value)}>
+                  <SelectTrigger id="departmentId">
+                    <SelectValue placeholder="Select employee's department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companyDepartments.length
+                      ? companyDepartments.map((_department) => (
+                          <SelectItem key={_department.id} value={_department.id}>
+                            {_department.name}
+                          </SelectItem>
+                        ))
+                      : null}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="jobRoleId">Job Role</Label>
+                <Select value={Number(formData.jobRoleId)} onValueChange={(value) => handleInputChange('jobRoleId', value)}>
+                  <SelectTrigger id="jobRoleId">
+                    <SelectValue placeholder="Select job role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departmentJobRoles?.length
+                      ? departmentJobRoles.map((_jobRole) => {
+                          return (
+                            <SelectItem key={_jobRole.id} value={_jobRole.id}>
+                              {_jobRole.title}
+                            </SelectItem>
+                          );
+                        })
+                      : null}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="hireDate">Hire Date *</Label>
                 <Input
                   id="hireDate"
@@ -274,54 +362,6 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                   onChange={(e) => handleInputChange('hireDate', e.target.value)}
                   required
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="companyId">Company</Label>
-                <Select value={formData.companyId} onValueChange={(value) => handleInputChange('companyId', value)}>
-                  <SelectTrigger id="companyId">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allDepartments.map((_company) => (
-                      <SelectItem key={_company.id} value={_company.name}>
-                        {_company.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="departmentName">Department</Label>
-                <Select value={formData.departmentName} onValueChange={(value) => handleInputChange('departmentName', value)}>
-                  <SelectTrigger id="departmentName">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allDepartments.map((_department) => (
-                      <SelectItem key={_department.id} value={_department.name}>
-                        {_department.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="jobRole">Job Role</Label>
-
-                <Select value={formData.jobRole} onValueChange={(value) => handleInputChange('jobRole', value)}>
-                  <SelectTrigger id="jobRole">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {jobRoles.map((_jobRole) => {
-                      return (
-                        <SelectItem key={_jobRole.id} value={_jobRole.title}>
-                          {_jobRole.title}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
               </div>
               {formData.id ? (
                 <div className="space-y-2">
@@ -377,13 +417,13 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                             </div>
                           ) : (
                             <>
-                              {departmentEmployees.length === 0 && query.length > 0 ? (
+                              {departmentEmployees?.length === 0 && query.length > 0 ? (
                                 <CommandEmpty>No supervisor found.</CommandEmpty>
-                              ) : departmentEmployees.length === 0 ? (
+                              ) : departmentEmployees?.length === 0 ? (
                                 <div className="py-6 text-center text-sm text-muted-foreground">Start typing to search...</div>
                               ) : (
                                 <CommandGroup>
-                                  {departmentEmployees.map((emp) => (
+                                  {departmentEmployees?.map((emp) => (
                                     <CommandItem
                                       key={emp.id}
                                       value={emp.id}
@@ -406,7 +446,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                                         </span>
                                       </div>
                                       <span className="text-xs text-muted-foreground ml-6">
-                                        {emp.jobRole} • {emp.departmentName}
+                                        {emp.jobRole?.title} • {emp.department?.name}
                                       </span>
                                     </CommandItem>
                                   ))}

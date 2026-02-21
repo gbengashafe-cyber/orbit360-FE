@@ -8,8 +8,7 @@ export class logger {
       throw new Error('Error logger accepts only {caller, payload} arguments');
     }
     if (process.env.NODE_ENV === 'development') {
-      console.error(caller);
-      console.error(payload);
+      console.error(caller, payload);
     }
   };
 }

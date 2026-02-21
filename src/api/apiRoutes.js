@@ -48,6 +48,10 @@ export class ApiRoutes {
   static UpdateDepartment = (id) => `/v1/departments/${id}`;
   static DeleteDepartment = (id) => `/v1/departments/${id}`;
 
+  static department = {
+    jobRoles: (departmentId) => `/v1/departments/${departmentId}/job-roles`,
+  };
+
   // Job Roles/Positions
   static GetJobRoles = '/v1/job-roles';
   static GetJobRoleById = (id) => `/v1/job-roles/${id}`;
@@ -154,7 +158,8 @@ export class ApiRoutes {
 
   static loans = {
     createRequest: '/v1/employees/loans',
-    cancelRequest: (loanId) => `/v1/loans/${loanId}/cancellation`,
+    updateRequest: (id) => `/v1/employees/loans/${id}`,
+    cancelRequest: (loanId) => `/v1/employees/loans/${loanId}/cancellation`,
     reviewRequest: (loanId) => `/v1/loans/${loanId}/reviews`,
     getMyLoans: '/v1/employees/loans',
     approve: (id) => `/v1/loans/${id}/approve`,
@@ -194,12 +199,15 @@ export class ApiRoutes {
   static ReviewPerformanceAppraisal = (id) => `/v1/performance/appraisals/${id}/review`;
 
   // Companies
-  static GetCompanies = '/v1/companies';
-  static GetCompanyById = (id) => `/v1/companies/${id}`;
-  static CreateCompany = '/v1/companies';
-  static UpdateCompany = (id) => `/v1/companies/${id}`;
-  static DeleteCompany = (id) => `/v1/companies/${id}`;
 
+  static company = {
+    getCompanies: '/v1/companies',
+    getCompanyDepartment: (id) => `/v1/companies/${id}/departments`,
+    getCompanyById: (id) => `/v1/companies/${id}`,
+    createCompany: '/v1/companies',
+    updateCompany: (id) => `/v1/companies/${id}`,
+    deleteCompany: (id) => `/v1/companies/${id}`,
+  };
   // Health Check
   static Health = '/health';
 }

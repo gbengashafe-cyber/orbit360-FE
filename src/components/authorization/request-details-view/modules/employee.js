@@ -19,7 +19,7 @@ export const EmployeeSchema = {
       title: 'Employment Details',
       fields: [
         { label: 'Hire Date', path: 'employeeDraft.hireDate', type: 'date' },
-        { label: 'Department', path: 'employeeDraft.departmentName', type: 'string' },
+        { label: 'Department', path: 'employeeDraft.department.name', type: 'string' },
         { label: 'Job Role', path: 'employeeDraft.jobRole', type: 'string' },
       ],
     },
