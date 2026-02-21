@@ -98,9 +98,20 @@ export default function LeaveManagementPage() {
             const user = userResponse?.data || userResponse;
             setCurrentUser(user);
 
-            const employeesResponse = await employeeService.getEmployees({ page: 1, rows: 100 });
-            const allEmpsData = employeesResponse?.data || employeesResponse || [];
-            const userEmployeeRecord = allEmpsData.find(e => e.email === user.email) || null;
+            // Fetch current user's employee data instead of all employees
+            const myEmployeeResponse = await employeeService.getUserEmployeeData();
+            const userEmployeeRecord = myEmployeeResponse?.data || myEmployeeResponse || null;
+            
+            let allEmpsData = [];
+            // Only fetch all employees if user is HR admin
+            if (user.role && ['admin', 'admin_officer'].includes(user.role)) {
+                try {
+                    const employeesResponse = await employeeService.getEmployees({ page: 1, rows: 100 });
+                    allEmpsData = employeesResponse?.data || employeesResponse || [];
+                } catch (err) {
+                    console.warn('Could not fetch all employees:', err);
+                }
+            }
 
             const userIsHrAdmin = user.role && ['admin', 'admin_officer'].includes(user.role);
             setIsHrAdmin(userIsHrAdmin);
@@ -199,13 +210,12 @@ export default function LeaveManagementPage() {
         setSelectedEmployeeId(employeeId);
         setLoading(true);
         if (employeeId === 'self') {
-            // awai loadDataForEmployee(selfEmployeeRecord);
             await loadDataForEmployee(selfEmployeeRecord);
         } else {
             const targetEmployee = allEmployees.find(e => e.id === employeeId);
             await loadDataForEmployee(targetEmployee);
         }
-        setLoading(false);hhjyuhjuyhjuiuuy7u8u8y69oo9
+        setLoading(false);
     };
 
     if (loading) {
