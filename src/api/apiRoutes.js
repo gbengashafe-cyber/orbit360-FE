@@ -114,6 +114,7 @@ export class ApiRoutes {
   static ApproveExit = (id) => `/v1/exits/${id}/approve`;
 
   // HR Documents
+  static InitializeDocuments = '/v1/hr-documents/initialize';
   static GetDocuments = '/v1/hr-documents/documents';
   static GetDocumentById = (id) => `/v1/hr-documents/documents/${id}`;
   static CreateDocument = '/v1/hr-documents/documents';
