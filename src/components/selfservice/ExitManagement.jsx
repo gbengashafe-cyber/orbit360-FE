@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { ResignationRequest, User } from '@/api/entities';
-import { SendEmail } from '@/api/integrations';
+import { apiClient, apiRoutes } from '@/api';
+import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +57,8 @@ export default function ExitManagement({ employee, onUpdate }) {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState(null);
 
   const [formData, setFormData] = useState({
     last_working_date: '',
@@ -83,10 +85,12 @@ export default function ExitManagement({ employee, onUpdate }) {
 
   const loadData = async () => {
     try {
-      const requests = await ResignationRequest.filter({ employee_id: employee.id }, '-created_date');
-      setResignationRequests(requests);
+      const res = await apiClient.get(apiRoutes.GetExitsByEmployee(employee.id));
+      const data = res.data || res;
+      setResignationRequests(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error loading resignation data:', error);
+      setResignationRequests([]);
     } finally {
       setLoading(false);
     }
@@ -95,13 +99,13 @@ export default function ExitManagement({ employee, onUpdate }) {
   const handleDelete = async (requestId) => {
     if (window.confirm('Are you sure you want to delete this exit request? This action cannot be undone.')) {
       try {
-        await ResignationRequest.delete(requestId);
-        alert('Exit request deleted successfully');
+        await apiClient.delete(apiRoutes.DeleteExit(requestId));
+        showToast.success('Exit request deleted successfully', 'Success');
         loadData();
         if(onUpdate) onUpdate();
       } catch (error) {
         console.error('Error deleting exit request:', error);
-        alert('Failed to delete exit request. Please try again.');
+        showToast.error('Failed to delete exit request. Please try again.', 'Error');
       }
     }
   };
@@ -116,57 +120,60 @@ export default function ExitManagement({ employee, onUpdate }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (window.confirm('Are you sure you want to submit your resignation? This action cannot be undone.')) {
-      setIsSubmitting(true);
-      try {
-        const resignationDate = new Date().toISOString().split('T')[0];
-        const noticePeriod = formData.last_working_date ? calculateNoticePeriod(resignationDate, formData.last_working_date) : 0;
-        
-        const resignationData = {
-          employee_id: employee.id,
-          employee_name: `${employee.first_name} ${employee.last_name}`,
-          employee_department: employee.department,
-          employee_email: employee.email,
-          position: employee.position,
-          resignation_date: resignationDate,
-          notice_period: noticePeriod,
-          ...formData,
-          status: 'submitted',
-          employee_signature_date: new Date().toISOString().split('T')[0],
-        };
-        await ResignationRequest.create(resignationData);
+    const resignationDate = new Date().toISOString().split('T')[0];
+    const noticePeriod = formData.last_working_date ? calculateNoticePeriod(resignationDate, formData.last_working_date) : 0;
+    
+    const resignationData = {
+      employeeId: employee.id,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+      employeeDepartment: employee.departmentName,
+      employeeEmail: employee.email,
+      position: employee.jobRole,
+      resignationDate: resignationDate,
+      lastWorkingDate: formData.last_working_date,
+      noticePeriod: noticePeriod,
+      handoverStatus: formData.handover_status,
+      handoverDetails: formData.handover_details,
+      handoverRecipientName: formData.handover_recipient_name,
+      handoverRecipientContact: formData.handover_recipient_contact,
+      outstandingTasks: formData.outstanding_tasks,
+      outstandingApprovals: formData.outstanding_approvals,
+      assetsToReturn: formData.assets_to_return,
+      salaryBalanceNotes: formData.salary_balance_notes,
+      loanDeductionNotes: formData.loan_deduction_notes,
+      leaveEncashmentRequest: formData.leave_encashment_request,
+      pensionProcessingNotes: formData.pension_processing_notes,
+      overallExperienceRating: formData.overall_experience_rating,
+      positiveExperience: formData.positive_experience,
+      areasForImprovementOrg: formData.areas_for_improvement_org,
+      wouldRecommendOrg: formData.would_recommend_org,
+      status: 'submitted',
+      employeeSignatureDate: new Date().toISOString().split('T')[0],
+    };
+    
+    setPendingSubmitData(resignationData);
+    setShowConfirmModal(true);
+  };
 
-        try {
-          // Find HR users with the 'admin_officer' role to notify
-          const hrUsers = await User.filter({ role: 'admin_officer' });
-          if (hrUsers.length > 0) {
-            for (const hrUser of hrUsers) {
-              await SendEmail({
-                to: hrUser.email, // Send to the registered HR user's email
-                subject: `Resignation Submitted - ${employee.first_name} ${employee.last_name}`,
-                body: `<p>A resignation form has been submitted by ${employee.first_name} ${employee.last_name}. Please review it in the Orbit360 HR portal.</p>`,
-                from_name: "Orbit360 HR System"
-              });
-            }
-          } else {
-            console.warn("Resignation submitted, but no HR Officer (admin_officer) found to send a notification to.");
-          }
-        } catch (emailError) {
-          console.error("Failed to send resignation notification email:", emailError);
-          // Do not block the user, just log the error. The main resignation request was successful.
-        }
-
-        alert('Resignation submitted successfully. HR will be notified.');
-        setShowForm(false);
-        resetForm();
-        loadData();
-        if(onUpdate) onUpdate();
-      } catch (error) {
-        console.error('Error submitting resignation:', error);
-        alert(`Failed to submit resignation. Please check the details and try again. Error: ${error.message}`);
-      } finally {
-        setIsSubmitting(false);
-      }
+  const confirmSubmit = async () => {
+    if (!pendingSubmitData) return;
+    
+    setIsSubmitting(true);
+    try {
+      await apiClient.post(apiRoutes.CreateExit, pendingSubmitData);
+      setShowConfirmModal(false);
+      setShowForm(false);
+      resetForm();
+      loadData();
+      showToast.success('Resignation submitted successfully. HR will be notified.', 'Success');
+      if(onUpdate) onUpdate();
+    } catch (error) {
+      console.error('Error submitting resignation:', error);
+      const errorMsg = error?.response?.data?.message || error.message || 'Failed to submit resignation';
+      showToast.error(errorMsg, 'Error');
+    } finally {
+      setIsSubmitting(false);
+      setPendingSubmitData(null);
     }
   };
 
@@ -225,10 +232,10 @@ export default function ExitManagement({ employee, onUpdate }) {
                 
                 <FormSection title="Personal / Identification Details" icon={<UserIcon className="text-blue-600"/>}>
                   <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div><Label>Full Name:</Label><p>{employee.first_name} {employee.last_name}</p></div>
-                    <div><Label>Employee ID:</Label><p>{employee.employee_id || 'N/A'}</p></div>
-                    <div><Label>Department:</Label><p>{employee.department}</p></div>
-                    <div><Label>Job Title:</Label><p>{employee.position}</p></div>
+                    <div><Label>Full Name:</Label><p>{employee.firstName} {employee.lastName}</p></div>
+                    <div><Label>Employee ID:</Label><p>{employee.staffId || 'N/A'}</p></div>
+                    <div><Label>Department:</Label><p>{employee.departmentName}</p></div>
+                    <div><Label>Job Title:</Label><p>{employee.jobRole}</p></div>
                   </div>
                 </FormSection>
 
@@ -301,27 +308,27 @@ export default function ExitManagement({ employee, onUpdate }) {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="p-4 border rounded-lg">
                     <h3 className="font-semibold text-lg mb-2">Key Dates</h3>
-                    <p><strong>Submitted On:</strong> {new Date(activeRequest.resignation_date).toLocaleDateString()}</p>
-                    <p><strong>Proposed Last Day:</strong> {new Date(activeRequest.last_working_date).toLocaleDateString()}</p>
-                    <p><strong>Notice Period:</strong> {activeRequest.notice_period} days</p>
+                    <p><strong>Submitted On:</strong> {new Date(activeRequest.resignationDate).toLocaleDateString()}</p>
+                    <p><strong>Proposed Last Day:</strong> {new Date(activeRequest.lastWorkingDate).toLocaleDateString()}</p>
+                    <p><strong>Notice Period:</strong> {activeRequest.noticePeriod} days</p>
                 </div>
                 <div className="p-4 border rounded-lg">
                     <h3 className="font-semibold text-lg mb-2">Handover</h3>
-                    <p><strong>Status:</strong> {activeRequest.handover_status}</p>
-                    <p><strong>Recipient:</strong> {activeRequest.handover_recipient_name}</p>
+                    <p><strong>Status:</strong> {activeRequest.handoverStatus}</p>
+                    <p><strong>Recipient:</strong> {activeRequest.handoverRecipientName}</p>
                 </div>
                  <div className="p-4 border rounded-lg">
                     <h3 className="font-semibold text-lg mb-2">Feedback</h3>
-                    <p><strong>Experience Rating:</strong> {activeRequest.overall_experience_rating}/5</p>
+                    <p><strong>Experience Rating:</strong> {activeRequest.overallExperienceRating}/5</p>
                 </div>
             </div>
              <Card>
                 <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5"/>Approval & Clearance Status</CardTitle></CardHeader>
                 <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-                    <ApprovalStatusDisplay title="Supervisor" status={activeRequest.supervisor_approval_status} date={activeRequest.supervisor_approval_date} comments={activeRequest.supervisor_comments} />
-                    <ApprovalStatusDisplay title="HR Department" status={activeRequest.hr_approval_status} date={activeRequest.hr_approval_date} comments={activeRequest.hr_comments} />
-                    <ApprovalStatusDisplay title="IT / Assets" status={activeRequest.it_clearance_status} date={activeRequest.it_clearance_date} comments={activeRequest.it_comments} />
-                    <ApprovalStatusDisplay title="Final Approval" status={activeRequest.final_approval_status} date={activeRequest.final_approval_date} comments={`By: ${activeRequest.final_approval_by || 'N/A'}`} />
+                    <ApprovalStatusDisplay title="Supervisor" status={activeRequest.supervisorApprovalStatus} date={activeRequest.supervisorApprovalDate} comments={activeRequest.supervisorComments} />
+                    <ApprovalStatusDisplay title="HR Department" status={activeRequest.hrApprovalStatus} date={activeRequest.hrApprovalDate} comments={activeRequest.hrComments} />
+                    <ApprovalStatusDisplay title="IT / Assets" status={activeRequest.itClearanceStatus} date={activeRequest.itClearanceDate} comments={activeRequest.itComments} />
+                    <ApprovalStatusDisplay title="Final Approval" status={activeRequest.finalApprovalStatus} date={activeRequest.finalApprovalDate} comments={`By: ${activeRequest.finalApprovalBy || 'N/A'}`} />
                 </CardContent>
             </Card>
           </CardContent>
@@ -338,6 +345,39 @@ export default function ExitManagement({ employee, onUpdate }) {
             </Card>
         )
       )}
+
+      {/* Confirmation Modal */}
+      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Resignation Submission</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-gray-700">
+              Are you sure you want to submit your resignation? This action cannot be undone.
+            </p>
+            <p className="text-sm text-gray-500">
+              Your resignation will be submitted to HR and relevant approvers will be notified.
+            </p>
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowConfirmModal(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmSubmit}
+              disabled={isSubmitting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isSubmitting ? 'Submitting...' : 'Confirm Submission'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

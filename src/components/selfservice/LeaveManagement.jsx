@@ -1,42 +1,42 @@
-import { employeeService, leaveService } from '@/api';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { leaveService, employeeService } from '@/api';
+import { showToast } from '@/utils/toast';
+import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay } from '@/utils/leaveCalculator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
-import { logger } from '@/utils';
-import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay } from '@/utils/leaveCalculator';
-import { showToast } from '@/utils/toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  AlertCircle,
-  Briefcase,
   Calendar,
-  CheckCircle,
-  Clock,
-  Info,
-  Loader2,
-  Paperclip,
   Plus,
-  Upload,
-  User,
-  UserCheck,
+  Clock,
+  CheckCircle,
   XCircle,
+  Briefcase,
+  User,
+  Info,
+  UserCheck,
+  AlertCircle,
+  Upload,
+  Paperclip,
+  Loader2,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React, { useEffect, useState } from 'react';
+import { logger } from '@/utils';
 
 const FileUploader = ({ files, setFiles, title, description, id }) => {
   const handleFileChange = (e) => {
@@ -105,6 +105,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
   const [leaveRequests, setLeaveRequests] = useState(preLoadedLeaves || []);
   const [employees, setEmployees] = useState([]);
   const [leaveBalance, setLeaveBalance] = useState(preLoadedBalance || 0);
+  const [leaveBalanceByType, setLeaveBalanceByType] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(!preLoadedLeaves);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,26 +141,31 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
           const days = calculateBusinessDays(curr.startDate || curr.start_date, curr.endDate || curr.end_date, curr.leave_period);
           return acc + days;
         }, 0);
-      const entitlement = employee?.annual_leave_entitlement || 20;
+      const entitlement = employee?.leaveEntitlement || 0;
       const remaining = entitlement - approvedAnnualLeave;
       setLeaveBalance(Math.max(0, remaining));
     },
-    [employee?.annual_leave_entitlement],
+    [employee?.leaveEntitlement],
   );
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const [leavesData, allEmployeesData] = await Promise.all([
+      const [leavesData, allEmployeesData, balanceData] = await Promise.all([
         leaveService.getLeaves(1, 100),
         employeeService.getEmployees({ page: 1, rows: 100 }),
+        employee?.id ? leaveService.getLeaveBalance(employee.id) : Promise.resolve({ data: [] }),
       ]);
 
       const requests = leavesData?.data || leavesData || [];
       const allEmps = allEmployeesData?.data || allEmployeesData || [];
+      const balances = balanceData?.data || balanceData || [];
 
       setLeaveRequests(requests);
       setEmployees(allEmps);
+      setLeaveBalanceByType(balances);
+
+      // Calculate total balance for backward compatibility
       if (employee?.annual_leave_entitlement) {
         calculateLeaveBalance(requests);
       }
@@ -169,7 +175,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     } finally {
       setLoading(false);
     }
-  }, [calculateLeaveBalance, employee?.annual_leave_entitlement]);
+  }, [calculateLeaveBalance, employee?.annual_leave_entitlement, employee?.id]);
 
   useEffect(() => {
     loadData();
@@ -229,7 +235,13 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         throw new Error(response?.message || 'Failed to create leave request');
       }
 
-      showToast.success('Leave request submitted successfully!', 'Success');
+      // Backend automatically sends emails to supervisor, HR, and employee
+      // No need to send emails from frontend
+
+      showToast.success(
+        'Leave request submitted successfully! Notification emails have been sent to your supervisor and HR.',
+        'Success',
+      );
       setShowForm(false);
       resetForm();
       loadData();
@@ -354,54 +366,84 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         </Dialog>
       </div>
 
-      {/* FIXED: Leave Balance Summary - Shows total, used, and remaining days */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Calendar className="w-6 h-6 text-blue-600" />
+      {/* Leave Balance Summary - By Type */}
+      {leaveBalanceByType.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {leaveBalanceByType.map((balance) => {
+            const usagePercentage = (balance.usedDays / balance.totalDays) * 100;
+            // Color coding for usage: Red (>50% used), Yellow (20-50% used), Green (<20% used)
+            const getProgressBarColor = () => {
+              if (usagePercentage > 50) return 'bg-red-500';
+              if (usagePercentage > 20) return 'bg-yellow-500';
+              return 'bg-blue-600';
+            };
+            return (
+              <Card key={balance.id} className="bg-white/90 backdrop-blur-sm">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-700 capitalize">{balance.leaveType}</p>
+                    <span className="text-lg font-bold text-gray-900">{balance.totalDays}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded h-2.5 overflow-hidden">
+                    <div
+                      className={`${getProgressBarColor()} h-2.5 rounded transition-all duration-300`}
+                      style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+                    ></div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <Calendar className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total Entitlement</p>
+                  <p className="text-2xl font-bold text-gray-900">{employee?.annual_leave_entitlement || 15} days</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Entitlement</p>
-                <p className="text-2xl font-bold text-gray-900">{employee?.annual_leave_entitlement || 20} days</p>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <Clock className="w-6 h-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Used (Approved)</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {leaveRequests
+                      .filter((r) => r.status === 'approved' && (r.type === 'vacation' || r.type === 'annual'))
+                      .reduce(
+                        (acc, curr) =>
+                          acc +
+                          calculateBusinessDays(
+                            curr.startDate || curr.start_date,
+                            curr.endDate || curr.end_date,
+                            curr.leave_period,
+                          ),
+                        0,
+                      )}{' '}
+                    days
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Balance Remaining</p>
+                  <p className="text-2xl font-bold text-green-600">{leaveBalance} days</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <Clock className="w-6 h-6 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Used (Approved)</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {leaveRequests
-                    .filter((r) => r.status === 'approved' && (r.type === 'vacation' || r.type === 'annual'))
-                    .reduce(
-                      (acc, curr) =>
-                        acc +
-                        calculateBusinessDays(
-                          curr.startDate || curr.start_date,
-                          curr.endDate || curr.end_date,
-                          curr.leave_period,
-                        ),
-                      0,
-                    )}{' '}
-                  days
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Balance Remaining</p>
-                <p className="text-2xl font-bold text-green-600">{leaveBalance} days</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="bg-white/90 backdrop-blur-sm">
         <CardHeader>
@@ -520,12 +562,43 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
               </CardContent>
             </Card>
 
-            <Alert variant="info" className="bg-blue-50 border-blue-200">
-              <Info className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
-                Your current annual leave balance is <strong>{leaveBalance} days</strong>.
-              </AlertDescription>
-            </Alert>
+            {leaveBalanceByType.length > 0 ? (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Leave Balance by Type</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {leaveBalanceByType.map((balance) => {
+                    const usagePercentage = (balance.usedDays / balance.totalDays) * 100;
+                    // Color coding for usage: Red (>50% used), Yellow (20-50% used), Green (<20% used)
+                    const getProgressBarColor = () => {
+                      if (usagePercentage > 50) return 'bg-red-500';
+                      if (usagePercentage > 20) return 'bg-yellow-500';
+                      return 'bg-blue-600';
+                    };
+                    return (
+                      <div key={balance.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-700 capitalize">{balance.leaveType}</p>
+                          <span className="text-sm font-bold text-gray-900">{balance.totalDays}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded h-2 overflow-hidden">
+                          <div
+                            className={`${getProgressBarColor()} h-2 rounded transition-all duration-300`}
+                            style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <Alert variant="info" className="bg-blue-50 border-blue-200">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  Your current annual leave balance is <strong>{leaveBalance} days</strong>.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="space-y-2">
               <h3 className="font-semibold text-lg border-b pb-2">Leave Details</h3>
@@ -630,7 +703,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                     {employees.map((emp) => (
                       <SelectItem key={emp.id} value={String(emp.id)}>
                         {emp.firstName || emp.first_name} {emp.lastName || emp.last_name} -{' '}
-                        {emp.jobRole || emp.position || emp.department?.name || 'N/A'}
+                        {emp.jobRole || emp.position || emp.departmentName || 'N/A'}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -672,7 +745,8 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                 <SelectContent>
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={String(emp.id)}>
-                      {emp.firstName || emp.first_name} {emp.lastName || emp.last_name} - {emp.department?.name || 'N/A'}
+                      {emp.firstName || emp.first_name} {emp.lastName || emp.last_name} -{' '}
+                      {emp.departmentName || emp.department || 'N/A'}
                     </SelectItem>
                   ))}
                 </SelectContent>

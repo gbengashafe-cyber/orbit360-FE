@@ -101,6 +101,7 @@ export class ApiRoutes {
   static GetLeavesByEmployee = (employeeId) => `/v1/leaves/employee/${employeeId}`;
   static GetLeaveTypes = '/v1/leaves/types';
   static GetLeaveBalance = (employeeId) => `/v1/leaves/balance/${employeeId}`;
+  static CalculateLeaveDays = '/v1/leave/calculate/days';
   static UpdateLeaveStatus = (id) => `/v1/leaves/${id}/status`;
 
   // Exit Management
