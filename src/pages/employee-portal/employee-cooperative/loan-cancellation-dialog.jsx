@@ -30,17 +30,18 @@ export default function LoanRequestCancellationDialog({ open, onOpenChange, onSu
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Cancel Loan Request</DialogTitle>
+          <DialogTitle>Confirm Cancellation</DialogTitle>
           <DialogDescription></DialogDescription>
         </DialogHeader>
-        Confirm you want to cancel this loan request.
+        You are about to cancel this loan request. This action cannot be undone. If you still need the loan, you will have to
+        submit a new request. Do you wish to continue?
         {apiError ? <FormSubmitError>{apiError}</FormSubmitError> : null}
         <DialogFooter>
           <Button variant="outline" disabled={isCancelling} onClick={onOpenChange}>
-            Cancel
+            Close
           </Button>
           <Button variant="destructive" disabled={isCancelling} onClick={() => cancelLoanRequest(loan.id)}>
-            Yes
+            Confirm Cancellation
           </Button>
         </DialogFooter>
       </DialogContent>
