@@ -102,16 +102,16 @@ FileUploader.propTypes = {
 };
 
 export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, leaveBalance: preLoadedBalance }) {
-     const [leaveRequests, setLeaveRequests] = useState(preLoadedLeaves || []);
-     const [employees, setEmployees] = useState([]);
-     const [leaveBalance, setLeaveBalance] = useState(preLoadedBalance || 0);
-     const [leaveBalanceByType, setLeaveBalanceByType] = useState([]);
-     const [showForm, setShowForm] = useState(false);
-     const [loading, setLoading] = useState(!preLoadedLeaves);
-     const [isSubmitting, setIsSubmitting] = useState(false);
-     const [isUploading] = useState(false);
-     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-     const [leaveToDelete, setLeaveToDelete] = useState(null);
+    const [leaveRequests, setLeaveRequests] = useState(preLoadedLeaves || []);
+    const [employees, setEmployees] = useState([]);
+    const [leaveBalance, setLeaveBalance] = useState(preLoadedBalance || 0);
+    const [leaveBalanceByType, setLeaveBalanceByType] = useState([]);
+    const [showForm, setShowForm] = useState(false);
+    const [loading, setLoading] = useState(!preLoadedLeaves);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUploading] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [leaveToDelete, setLeaveToDelete] = useState(null);
 
     const [handoverFiles, setHandoverFiles] = useState([]);
     const [supportingFiles, setSupportingFiles] = useState([]);
@@ -144,8 +144,8 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             const entitlement = employee?.leaveEntitlement || 0;
             const remaining = entitlement - approvedAnnualLeave;
             setLeaveBalance(Math.max(0, remaining));
-            },
-            [employee?.leaveEntitlement],
+        },
+        [employee?.leaveEntitlement],
     );
 
     const loadData = React.useCallback(async () => {
@@ -164,7 +164,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             setLeaveRequests(requests);
             setEmployees(allEmps);
             setLeaveBalanceByType(balances);
-            
+
             // Calculate total balance for backward compatibility
             if (employee?.annual_leave_entitlement) {
                 calculateLeaveBalance(requests);
@@ -194,62 +194,62 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     };
 
     // FIXED: Enhanced form submission with leave type formatting and proper validation
-     const handleSubmit = async (e) => {
-         e.preventDefault();
-         setFormError('');
-    
-         // Validate leave type is selected
-         if (!formData.leave_type) {
-             setFormError('Please select a leave type');
-             return;
-         }
-    
-         const daysRequested = calculateDays(formData.start_date, formData.end_date, formData.leave_period);
-    
-         // Only check balance for leave types with entitlement
-         const leaveTypesWithBalance = ['annual', 'vacation'];
-         if (leaveTypesWithBalance.includes(formData.leave_type) && daysRequested > leaveBalance) {
-             setFormError(`Insufficient leave balance. Available: ${leaveBalance} days, Requested: ${daysRequested} days.`);
-             return;
-         }
-    
-         setIsSubmitting(true);
-    
-         try {
-             // Format leave type to match API expectations
-             const leaveType = formatLeaveType(formData.leave_type);
-    
-             const leaveData = {
-                 employeeId: employee.id,
-                 type: leaveType,
-                 startDate: formData.start_date,
-                 endDate: formData.end_date,
-                 reason: formData.reason,
-                 leave_period: formData.leave_period,
-             };
-    
-             const response = await leaveService.createLeave(leaveData);
-             
-             // Verify response was successful
-             if (!response || (response.error && response.error !== false)) {
-                 throw new Error(response?.message || 'Failed to create leave request');
-             }
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setFormError('');
 
-             // Backend automatically sends emails to supervisor, HR, and employee
-             // No need to send emails from frontend
-             
-             showToast.success('Leave request submitted successfully! Notification emails have been sent to your supervisor and HR.', 'Success');
-             setShowForm(false);
-             resetForm();
-             loadData();
-             if (onUpdate) onUpdate();
-         } catch (error) {
-             logger.error({ caller: 'Error submitting leave request:', payload: error });
-             setFormError(error.response?.data?.message || error.message || 'Failed to submit leave request');
-         } finally {
-             setIsSubmitting(false);
-         }
-     };
+        // Validate leave type is selected
+        if (!formData.leave_type) {
+            setFormError('Please select a leave type');
+            return;
+        }
+
+        const daysRequested = calculateDays(formData.start_date, formData.end_date, formData.leave_period);
+
+        // Only check balance for leave types with entitlement
+        const leaveTypesWithBalance = ['annual', 'vacation'];
+        if (leaveTypesWithBalance.includes(formData.leave_type) && daysRequested > leaveBalance) {
+            setFormError(`Insufficient leave balance. Available: ${leaveBalance} days, Requested: ${daysRequested} days.`);
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            // Format leave type to match API expectations
+            const leaveType = formatLeaveType(formData.leave_type);
+
+            const leaveData = {
+                employeeId: employee.id,
+                type: leaveType,
+                startDate: formData.start_date,
+                endDate: formData.end_date,
+                reason: formData.reason,
+                leave_period: formData.leave_period,
+            };
+
+            const response = await leaveService.createLeave(leaveData);
+
+            // Verify response was successful
+            if (!response || (response.error && response.error !== false)) {
+                throw new Error(response?.message || 'Failed to create leave request');
+            }
+
+            // Backend automatically sends emails to supervisor, HR, and employee
+            // No need to send emails from frontend
+
+            showToast.success('Leave request submitted successfully! Notification emails have been sent to your supervisor and HR.', 'Success');
+            setShowForm(false);
+            resetForm();
+            loadData();
+            if (onUpdate) onUpdate();
+        } catch (error) {
+            logger.error({ caller: 'Error submitting leave request:', payload: error });
+            setFormError(error.response?.data?.message || error.message || 'Failed to submit leave request');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
 
 
@@ -285,10 +285,15 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     };
 
     const getSupervisorName = () => {
+        // Check if supervisor relationship is loaded
+        if (employee?.supervisor) {
+            return `${employee.supervisor.firstName || employee.supervisor.first_name} ${employee.supervisor.lastName || employee.supervisor.last_name}`;
+        }
+        // Fallback to looking in employees array
         if (employee?.supervisor_name) return employee.supervisor_name;
-        if (employee?.supervisor_id && employees.length > 0) {
-            const supervisor = employees.find((e) => e.id === employee.supervisor_id);
-            if (supervisor) return `${supervisor.first_name} ${supervisor.last_name}`;
+        if (employee?.supervisorId && employees.length > 0) {
+            const supervisor = employees.find((e) => e.id === employee.supervisorId);
+            if (supervisor) return `${supervisor.firstName || supervisor.first_name} ${supervisor.lastName || supervisor.last_name}`;
         }
         return 'N/A';
     };
@@ -365,20 +370,20 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                 </Dialog>
             </div>
 
-            {/* Leave Balance Summary - By Type */}
-            {leaveBalanceByType.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {leaveBalanceByType.map((balance) => {
-                        const usagePercentage = (balance.usedDays / balance.totalDays) * 100;
-                        // Color coding for usage: Red (>50% used), Yellow (20-50% used), Green (<20% used)
-                        const getProgressBarColor = () => {
-                            if (usagePercentage > 50) return 'bg-red-500';
-                            if (usagePercentage > 20) return 'bg-yellow-500';
-                            return 'bg-blue-600';
-                        };
-                        return (
-                            <Card key={balance.id} className="bg-white/90 backdrop-blur-sm">
-                                <CardContent className="p-4 space-y-2">
+            {/* Leave Balance Summary - By Type (if available) */}
+            {leaveBalanceByType && leaveBalanceByType.length > 0 && (
+                <div className="border border-gray-200 rounded-lg shadow-sm p-6">
+                    <div className="grid grid-cols-3 gap-4">
+                        {leaveBalanceByType.map((balance) => {
+                            const usagePercentage = balance.totalDays > 0 ? (balance.usedDays / balance.totalDays) * 100 : 0;
+                            // Color coding for usage: Red (>50% used), Yellow (20-50% used), Green (<20% used)
+                            const getProgressBarColor = () => {
+                                if (usagePercentage > 50) return 'bg-red-500';
+                                if (usagePercentage > 20) return 'bg-yellow-500';
+                                return 'bg-blue-600';
+                            };
+                            return (
+                                <div key={balance.id} className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <p className="text-sm font-semibold text-gray-700 capitalize">{balance.leaveType}</p>
                                         <span className="text-lg font-bold text-gray-900">{balance.totalDays}</span>
@@ -389,12 +394,15 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                             style={{ width: `${Math.min(usagePercentage, 100)}%` }}
                                         ></div>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-            ) : (
+            )}
+
+            {/* Fallback: Leave Balance Summary - Default View */}
+            {(!leaveBalanceByType || leaveBalanceByType.length === 0) && (
                 <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
                     <CardContent className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -539,7 +547,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                 </div>
                                 <div>
                                     <span className="font-medium">Department:</span>
-                                    <p className="capitalize">{employee?.department || 'N/A'}</p>
+                                    <p className="capitalize">{employee?.departmentName || employee?.department || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <span className="font-medium">Supervisor:</span>
@@ -548,12 +556,12 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                             </CardContent>
                         </Card>
 
-                        {leaveBalanceByType.length > 0 ? (
+                        {leaveBalanceByType && leaveBalanceByType.length > 0 ? (
                             <div className="space-y-3">
                                 <h3 className="font-semibold text-lg border-b pb-2">Leave Balance by Type</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {leaveBalanceByType.map((balance) => {
-                                        const usagePercentage = (balance.usedDays / balance.totalDays) * 100;
+                                        const usagePercentage = balance.totalDays > 0 ? (balance.usedDays / balance.totalDays) * 100 : 0;
                                         // Color coding for usage: Red (>50% used), Yellow (20-50% used), Green (<20% used)
                                         const getProgressBarColor = () => {
                                             if (usagePercentage > 50) return 'bg-red-500';
