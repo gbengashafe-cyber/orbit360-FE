@@ -1,4 +1,5 @@
-import { employeeService, recruitmentService, userService } from '@/api';
+import { employeeService, recruitmentService, userService, departmentService } from '@/api';
+import { useGlobalContext } from '@/state/context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { showToast } from '@/utils/toast';
-import { Briefcase, Calendar, Check, Copy, Linkedin, Plus, TrendingUp, Users, X } from 'lucide-react';
+import { Briefcase, Calendar, Check, Copy, Linkedin, Plus, TrendingUp, Users, X, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import ApplicationPipeline from '../components/recruitment/ApplicationPipeline';
@@ -27,72 +28,111 @@ export default function Recruitment() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isMD, setIsMD] = useState(false);
   const [copiedJobId, setCopiedJobId] = useState(null);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadCurrentUser();
     loadData();
   }, []);
 
-  const loadCurrentUser = async () => {
-    try {
-      const user = await userService.getCurrentUser();
-      setCurrentUser(user?.data || user);
+  const { currentUser: contextUser } = useGlobalContext();
 
-      // Check if user is a Managing Director
-      const employees = await employeeService.getEmployees(1, 100);
-      const currentEmployee = employees?.data?.find((e) => e.email === (user?.data?.email || user?.email));
-      const isMDUser = currentEmployee?.position === 'Managing Director';
-      console.log('Current user:', user?.data?.email || user?.email);
-      console.log('Current employee:', currentEmployee?.position);
-      console.log('Is Managing Director:', isMDUser);
-      setIsMD(isMDUser);
-    } catch (error) {
-      console.error('Error loading current user:', error);
-    }
-  };
+  const loadCurrentUser = async () => {
+     try {
+       const user = await userService.getCurrentUser();
+       setCurrentUser(user?.data || user);
+
+       // Check if user is a Managing Director - use context employee data
+       const currentEmployee = contextUser?.employeeData;
+       
+       const isMDUser = currentEmployee?.position === 'Managing Director' || currentEmployee?.jobRole?.title === 'MANAGING DIRECTOR';
+       console.log('Current user:', user?.data?.email || user?.email);
+       console.log('Current employee:', currentEmployee?.position || currentEmployee?.jobRole?.title);
+       console.log('Is Managing Director:', isMDUser);
+       setIsMD(isMDUser);
+     } catch (error) {
+       console.error('Error loading current user:', error);
+     }
+   };
 
   const loadData = async () => {
-    console.log('loadData called');
-    setLoading(true);
-    try {
-      // Fetch recruitment data without authentication
-      const [jobsResponse, applicationsResponse, statsResponse] = await Promise.all([
-        recruitmentService.getJobPostings(1, 100),
-        recruitmentService.getJobApplications(1, 100),
-        recruitmentService.getDashboardStats(),
-      ]);
+     console.log('loadData called');
+     setLoading(true);
+     setAccessDenied(false);
+     setErrorMessage('');
+     try {
+       // Fetch recruitment data without authentication
+       const [jobsResponse, applicationsResponse, statsResponse] = await Promise.all([
+         recruitmentService.getJobPostings(1, 100),
+         recruitmentService.getJobApplications(1, 100),
+         recruitmentService.getDashboardStats(),
+       ]);
 
-      // Set job postings
-      const jobs = Array.isArray(jobsResponse) ? jobsResponse : jobsResponse?.data || [];
-      setJobPostings(jobs);
+       // Set job postings
+       const jobs = Array.isArray(jobsResponse) ? jobsResponse : jobsResponse?.data || [];
+       setJobPostings(jobs);
 
-      // Set applications
-      const applications = Array.isArray(applicationsResponse) ? applicationsResponse : applicationsResponse?.data || [];
-      setApplications(applications);
+       // Set applications
+       const applications = Array.isArray(applicationsResponse) ? applicationsResponse : applicationsResponse?.data || [];
+       setApplications(applications);
 
-      // Set dashboard stats from API
-      const stats = statsResponse?.data || statsResponse || {};
-      setDashboardStats({
-        activeJobs: stats.activeJobs || 0,
-        totalApplications: stats.totalApplications || 0,
-        pendingInterviews: stats.pendingInterviews || 0,
-        hireRate: stats.hireRate || 0,
-      });
+       // Set dashboard stats from API
+       const stats = statsResponse?.data || statsResponse || {};
+       setDashboardStats({
+         activeJobs: stats.activeJobs || 0,
+         totalApplications: stats.totalApplications || 0,
+         pendingInterviews: stats.pendingInterviews || 0,
+         hireRate: stats.hireRate || 0,
+       });
 
-      console.log('Recruitment data loaded successfully');
-    } catch (error) {
-      console.error('Error loading recruitment data:', error);
-      showToast.error('Failed to load recruitment data', 'Error');
-    } finally {
-      setLoading(false);
-    }
-  };
+       console.log('Recruitment data loaded successfully');
+     } catch (error) {
+       console.error('Error loading recruitment data:', error);
+       if (error?.response?.status === 403) {
+         setAccessDenied(true);
+         setErrorMessage('Only HR personnel can access the Recruitment module.');
+       } else {
+         setErrorMessage(error?.message || 'Failed to load recruitment data');
+       }
+     } finally {
+       setLoading(false);
+     }
+   };
 
   const getManagingDirectorEmails = async () => {
-    const response = await employeeService.getEmployees(1, 100);
-    const employees = response.data || [];
-    return employees.filter((e) => e.position === 'Managing Director').map((e) => e.email);
-  };
+     try {
+       const response = await employeeService.getEmployees(1, 100);
+       const employees = response?.data || response || [];
+       return employees.filter((e) => e.position === 'Managing Director' || e.jobRole?.title === 'MANAGING DIRECTOR').map((e) => e.email);
+     } catch (error) {
+       console.warn('Could not fetch Managing Directors:', error);
+       return [];
+     }
+   };
+
+  if (accessDenied || errorMessage) {
+    return (
+      <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
+        <div className="max-w-7xl mx-auto">
+          <Card className="bg-red-50 border-red-200 shadow-xl">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-red-900">Access Denied</h2>
+                  <p className="text-red-700 mt-2">{errorMessage || 'Only HR personnel can access the Recruitment module.'}</p>
+                  <p className="text-red-600 text-sm mt-2">If you believe you should have access, please contact your HR administrator.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   // Helper function to create public page PATH segments (e.g., "/PublicJobView?id=...")
   // This is a placeholder; in a real app, this might come from a router utility
