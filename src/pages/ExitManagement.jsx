@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { userService, employeeService } from '@/api';
+import { userService, employeeService, departmentService } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText } from 'lucide-react';
@@ -34,20 +34,29 @@ export default function ExitManagementPage() {
       const user = userResponse?.data || userResponse;
       setCurrentUser(user);
 
-      // Get all employees (always load all for finding user and admin dropdown)
-      const employeesResponse = await employeeService.getEmployees({ page: 1, rows: 500 });
-      const allEmpsData = Array.isArray(employeesResponse?.data) ? employeesResponse.data : Array.isArray(employeesResponse) ? employeesResponse : [];
-      
-      const userEmployeeRecord = allEmpsData.find(e => e.email === user.email) || null;
+      // Get employee record to find department
+      let userEmployeeRecord = null;
+      let allEmpsData = [];
+      const userIsHrAdmin = user.role && ['admin', 'admin_officer'].includes(user.role);
+
+      // If HR admin, fetch all employees from all departments using pagination
+      if (userIsHrAdmin) {
+        const employeesResponse = await employeeService.getEmployees({ page: 1, rows: 500 });
+        allEmpsData = Array.isArray(employeesResponse?.data) ? employeesResponse.data : Array.isArray(employeesResponse) ? employeesResponse : [];
+        userEmployeeRecord = allEmpsData.find(e => e.email === user.email) || null;
+        setAllEmployees(allEmpsData);
+      } else {
+        // For regular employees, use the user service to get their employee data
+        try {
+          const empData = await employeeService.getUserEmployeeData();
+          userEmployeeRecord = empData?.data || empData;
+        } catch (err) {
+          console.warn('Could not fetch user employee data:', err);
+        }
+      }
 
       // Check if HR admin
-      const userIsHrAdmin = user.role && ['admin', 'admin_officer'].includes(user.role);
       setIsHrAdmin(userIsHrAdmin);
-
-      // Set all employees for HR admin to view others
-      if (userIsHrAdmin) {
-        setAllEmployees(allEmpsData);
-      }
 
       // Set self employee record and load data
       if (userEmployeeRecord) {

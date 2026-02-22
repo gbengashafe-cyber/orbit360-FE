@@ -74,13 +74,11 @@ export default function DocumentManagement() {
             
             console.log('[DocumentManagement] Current user:', { id: user?.id, email: user?.email, role: user?.role, jobRole: user?.jobRole });
 
-            const [foldesRes, documentsRes] = await Promise.all([
-                apiClient.get(apiRoutes.GetFolders),
-                apiClient.get(apiRoutes.GetDocuments)
-            ]);
+            const foldersRes = await apiClient.get(apiRoutes.GetFolders);
+            const documentsRes = await apiClient.get(apiRoutes.GetDocuments);
 
-            const foldersData = Array.isArray(foldersRes.data) ? foldersRes.data : (Array.isArray(foldersRes) ? foldersRes : []);
-            const documentsData = Array.isArray(documentsRes.data) ? documentsRes.data : (Array.isArray(documentsRes) ? documentsRes : []);
+            const foldersData = foldersRes?.data?.data || foldersRes?.data || [];
+            const documentsData = documentsRes?.data?.data || documentsRes?.data || [];
 
             console.log("Loaded folders:", foldersData.length, foldersData);
             console.log("Loaded documents:", documentsData.length, documentsData);
@@ -89,12 +87,11 @@ export default function DocumentManagement() {
                 console.log("No folders found, initializing default structure...");
                 await initializeDefaultStructure();
                 // Refetch data after initialization
-                const [newFoldersRes, newDocsRes] = await Promise.all([
-                    apiClient.get(apiRoutes.GetFolders),
-                    apiClient.get(apiRoutes.GetDocuments)
-                ]);
-                const newFolders = Array.isArray(newFoldersRes.data) ? newFoldersRes.data : (Array.isArray(newFoldersRes) ? newFoldersRes : []);
-                const newDocs = Array.isArray(newDocsRes.data) ? newDocsRes.data : (Array.isArray(newDocsRes) ? newDocsRes : []);
+                const newFoldersRes = await apiClient.get(apiRoutes.GetFolders);
+                const newDocsRes = await apiClient.get(apiRoutes.GetDocuments);
+                
+                const newFolders = newFoldersRes?.data?.data || newFoldersRes?.data || [];
+                const newDocs = newDocsRes?.data?.data || newDocsRes?.data || [];
                 console.log("After init - Folders:", newFolders.length, "Documents:", newDocs.length);
                 setFolders(newFolders);
                 setDocuments(newDocs);
@@ -204,7 +201,8 @@ export default function DocumentManagement() {
     const displayedFolders = folders.filter(f => f.parent_folder_id === currentFolder);
     const displayedDocuments = documents.filter(d => d.folder_id === currentFolder);
 
-    const canManage = currentUser && ['admin', 'human_resources_manager'].includes(currentUser.role);
+    const canManage = currentUser && (currentUser.role === 'admin' || currentUser.permissions?.includes('MANAGE_DOCUMENTS'));
+    const canView = currentUser && (canManage || true); // All authenticated users can view (with filtering applied server-side)
 
     if (loading) {
         return (
@@ -214,11 +212,11 @@ export default function DocumentManagement() {
         );
     }
 
-    if (!canManage) {
+    if (!canView) {
         return (
             <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
                 <Alert variant="destructive">
-                    <AlertDescription>{error || "Access Denied: You do not have permission to manage documents."}</AlertDescription>
+                    <AlertDescription>{error || "Access Denied: You do not have permission to view documents."}</AlertDescription>
                 </Alert>
             </div>
         );
@@ -230,8 +228,11 @@ export default function DocumentManagement() {
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Document Management</h1>
-                        <p className="text-gray-600">Securely store and manage HR files and documents.</p>
+                        <p className="text-gray-600">
+                            {canManage ? 'Securely store and manage HR files and documents.' : 'View HR documents and resources.'}
+                        </p>
                     </div>
+                    {canManage && (
                     <div className="flex gap-3">
                         <Dialog open={showFolderForm} onOpenChange={setShowFolderForm}>
                             <DialogTrigger asChild>
@@ -285,6 +286,7 @@ export default function DocumentManagement() {
                             </DialogContent>
                         </Dialog>
                     </div>
+                    )}
                 </div>
 
                 {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
@@ -313,6 +315,7 @@ export default function DocumentManagement() {
                                 ))}
                                 {displayedDocuments.map(doc => (
                                     <div key={doc.id} className="relative group p-4 border rounded-lg text-center flex flex-col items-center justify-between transition-all hover:shadow-lg h-40">
+                                        {canManage && (
                                         <div className="absolute top-1 right-1">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -337,6 +340,7 @@ export default function DocumentManagement() {
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>
+                                        )}
                                         <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center cursor-pointer w-full mt-4">
                                             {doc.name.toLowerCase().includes("template") || (doc.folder_id && folders.find(f => f.id === doc.folder_id)?.name === "Templates") ? (
                                                 <FileText className="w-12 h-12 text-purple-500 mb-2" />

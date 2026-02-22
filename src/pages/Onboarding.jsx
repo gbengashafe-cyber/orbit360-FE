@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { employeeService, onboardingService } from '@/api';
+import { employeeService, onboardingService, departmentService } from '@/api';
+import { useGlobalContext } from '@/state/context';
 import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,27 +38,43 @@ export default function Onboarding() {
     loadData();
   }, []);
 
+  const { currentUser } = useGlobalContext();
+
   const loadData = async () => {
-    setLoading(true);
-    setAccessDenied(false);
-    try {
-      const [empData, onboardingData] = await Promise.all([
-        employeeService.getEmployees(1, 100),
-        onboardingService.getOnboardings(1, 100)
-      ]);
-      
-      console.log('Employee data:', empData);
-      console.log('Onboarding data:', onboardingData);
-      
-      const employees = empData?.data || empData || [];
-      const onboardingDocs = onboardingData?.data || onboardingData || [];
-      
-      console.log('Processed employees:', employees);
-      
-      setEmployees(employees);
-      setOnboardingDocs(onboardingDocs);
-    } catch (error) {
-      console.error("Error loading data:", error);
+     setLoading(true);
+     setAccessDenied(false);
+     try {
+       const onboardingData = await onboardingService.getOnboardings(1, 100);
+       
+       // Fetch employees from department endpoint
+       let empData = [];
+       const deptId = currentUser?.employeeData?.departmentId;
+       
+       if (deptId) {
+         try {
+           const deptEmps = await departmentService.getDepartmentEmployees({
+             id: deptId,
+             page: 1,
+             rows: 100
+           }, { signal: null });
+           empData = deptEmps?.data?.employees || deptEmps?.employees || [];
+         } catch (deptError) {
+           console.warn('Could not fetch department employees:', deptError);
+         }
+       }
+       
+       console.log('Employee data:', empData);
+       console.log('Onboarding data:', onboardingData);
+       
+       const employees = Array.isArray(empData) ? empData : [];
+       const onboardingDocs = onboardingData?.data || onboardingData || [];
+       
+       console.log('Processed employees:', employees);
+       
+       setEmployees(employees);
+       setOnboardingDocs(onboardingDocs);
+     } catch (error) {
+       console.error("Error loading data:", error);
       if (error?.response?.status === 403 || error?.code === 403) {
         setAccessDenied(true);
       } else {

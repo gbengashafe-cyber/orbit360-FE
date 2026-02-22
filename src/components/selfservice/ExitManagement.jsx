@@ -128,7 +128,7 @@ export default function ExitManagement({ employee, onUpdate }) {
       employeeName: `${employee.firstName} ${employee.lastName}`,
       employeeDepartment: employee.departmentName,
       employeeEmail: employee.email,
-      position: employee.jobRole,
+      position: typeof employee.jobRole === 'object' ? employee.jobRole?.title : employee.jobRole,
       resignationDate: resignationDate,
       lastWorkingDate: formData.last_working_date,
       noticePeriod: noticePeriod,
@@ -235,7 +235,7 @@ export default function ExitManagement({ employee, onUpdate }) {
                     <div><Label>Full Name:</Label><p>{employee.firstName} {employee.lastName}</p></div>
                     <div><Label>Employee ID:</Label><p>{employee.staffId || 'N/A'}</p></div>
                     <div><Label>Department:</Label><p>{employee.departmentName}</p></div>
-                    <div><Label>Job Title:</Label><p>{employee.jobRole}</p></div>
+                    <div><Label>Job Title:</Label><p>{typeof employee.jobRole === 'object' ? employee.jobRole?.title : employee.jobRole}</p></div>
                   </div>
                 </FormSection>
 

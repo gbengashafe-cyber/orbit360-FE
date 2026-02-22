@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { leaveService, employeeService } from '@/api';
+import { leaveService, departmentService } from '@/api';
 import { showToast } from '@/utils/toast';
 import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay } from '@/utils/leaveCalculator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -151,14 +151,25 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     const loadData = React.useCallback(async () => {
         setLoading(true);
         try {
-            const [leavesData, allEmployeesData, balanceData] = await Promise.all([
+            // Use department-specific endpoint to get employees
+            const deptId = employee?.departmentId;
+            const promisesToAwait = [
                 leaveService.getLeaves(1, 100),
-                employeeService.getEmployees({ page: 1, rows: 100 }),
                 employee?.id ? leaveService.getLeaveBalance(employee.id) : Promise.resolve({ data: [] }),
-            ]);
+            ];
+
+            // Only fetch employees if we have a department ID
+            if (deptId) {
+                promisesToAwait.splice(1, 0, departmentService.getDepartmentEmployees({ id: deptId, page: 1, rows: 100 }, { signal: null }));
+            }
+
+            const results = await Promise.all(promisesToAwait);
+            const leavesData = results[0];
+            const allEmployeesData = deptId ? results[1] : null;
+            const balanceData = deptId ? results[2] : results[1];
 
             const requests = leavesData?.data || leavesData || [];
-            const allEmps = allEmployeesData?.data || allEmployeesData || [];
+            const allEmps = allEmployeesData?.data?.employees || allEmployeesData?.employees || [];
             const balances = balanceData?.data || balanceData || [];
 
             setLeaveRequests(requests);
@@ -171,11 +182,17 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             }
         } catch (error) {
             console.error('Error loading leave data:', error);
-            showToast.error('Failed to load leave requests', 'Error');
+            if (error?.response?.status === 403) {
+              showToast.error('You do not have permission to view leave data', 'Access Denied');
+            } else if (error?.message?.includes('departmentId')) {
+              showToast.error('Unable to load department information. Please refresh the page.', 'Error');
+            } else {
+              showToast.error(error?.message || 'Failed to load leave requests', 'Error');
+            }
         } finally {
             setLoading(false);
         }
-    }, [calculateLeaveBalance, employee?.annual_leave_entitlement, employee?.id]);
+    }, [calculateLeaveBalance, employee?.annual_leave_entitlement, employee?.id, employee?.departmentId]);
 
     useEffect(() => {
         loadData();
@@ -286,15 +303,10 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     };
 
     const getSupervisorName = () => {
-        // Check if supervisor relationship is loaded
-        if (employee?.supervisor) {
-            return `${employee.supervisor.firstName || employee.supervisor.first_name} ${employee.supervisor.lastName || employee.supervisor.last_name}`;
-        }
-        // Fallback to looking in employees array
         if (employee?.supervisor_name) return employee.supervisor_name;
-        if (employee?.supervisorId && employees.length > 0) {
-            const supervisor = employees.find((e) => e.id === employee.supervisorId);
-            if (supervisor) return `${supervisor.firstName || supervisor.first_name} ${supervisor.lastName || supervisor.last_name}`;
+        if (employee?.supervisor_id && employees.length > 0) {
+            const supervisor = employees.find((e) => e.id === employee.supervisor_id);
+            if (supervisor) return `${supervisor.first_name} ${supervisor.last_name}`;
         }
         return 'N/A';
     };
@@ -361,14 +373,13 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                     <h2 className="text-2xl font-bold text-gray-900">Leave Management</h2>
                     <p className="text-gray-600">Manage your leave and view approvals</p>
                 </div>
-                <Dialog open={showForm} onOpenChange={handleFormOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="bg-gradient-to-r from-blue-700 to-blue-800">
-                            <Plus className="w-4 h-4 mr-2" />
-                            New Leave Request
-                        </Button>
-                    </DialogTrigger>
-                </Dialog>
+                <button
+                    onClick={() => setShowForm(true)}
+                    className="bg-gradient-to-r from-blue-700 to-blue-800 text-white rounded px-4 py-2 flex items-center gap-2 hover:from-blue-800 hover:to-blue-900"
+                >
+                    <Plus className="w-4 h-4" />
+                    New Leave Request
+                </button>
             </div>
 
             {/* Leave Balance Summary - By Type (if available) */}
@@ -557,9 +568,9 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                     <p>{employee?.id || employee?.employee_id}</p>
                                 </div>
                                 <div>
-                                    <span className="font-medium">Department:</span>
-                                    <p className="capitalize">{employee?.departmentName || employee?.department || 'N/A'}</p>
-                                </div>
+                                     <span className="font-medium">Department:</span>
+                                     <p className="capitalize">{employee?.departmentName || employee?.department?.name || 'N/A'}</p>
+                                 </div>
                                 <div>
                                     <span className="font-medium">Supervisor:</span>
                                     <p>{getSupervisorName()}</p>
