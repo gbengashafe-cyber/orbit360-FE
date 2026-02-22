@@ -286,15 +286,10 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     };
 
     const getSupervisorName = () => {
-        // Check if supervisor relationship is loaded
-        if (employee?.supervisor) {
-            return `${employee.supervisor.firstName || employee.supervisor.first_name} ${employee.supervisor.lastName || employee.supervisor.last_name}`;
-        }
-        // Fallback to looking in employees array
         if (employee?.supervisor_name) return employee.supervisor_name;
-        if (employee?.supervisorId && employees.length > 0) {
-            const supervisor = employees.find((e) => e.id === employee.supervisorId);
-            if (supervisor) return `${supervisor.firstName || supervisor.first_name} ${supervisor.lastName || supervisor.last_name}`;
+        if (employee?.supervisor_id && employees.length > 0) {
+            const supervisor = employees.find((e) => e.id === employee.supervisor_id);
+            if (supervisor) return `${supervisor.first_name} ${supervisor.last_name}`;
         }
         return 'N/A';
     };
