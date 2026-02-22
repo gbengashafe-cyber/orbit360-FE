@@ -271,17 +271,18 @@ export default function AuthorizationCenterWIP() {
             </Tabs>
           </CardContent>
         </Card>
-
-        <AuthorizationViewDialog
-          authorizeError={authorizeError}
-          viewingItem={viewingItem}
-          onOpenChange={() => setViewingItem(null)}
-          canAuthorize={canAuthorize}
-          handleAuthorize={handleAuthorize}
-          authorizing={authorizing}
-          moduleName={activeModule}
-          setApprovalNote={setApprovalNote}
-        />
+        {viewingItem ? (
+          <AuthorizationViewDialog
+            authorizeError={authorizeError}
+            viewingItem={viewingItem}
+            onOpenChange={() => setViewingItem(null)}
+            canAuthorize={canAuthorize}
+            handleAuthorize={handleAuthorize}
+            authorizing={authorizing}
+            moduleName={activeModule}
+            setApprovalNote={setApprovalNote}
+          />
+        ) : null}
       </div>
     </div>
   );

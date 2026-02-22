@@ -77,7 +77,7 @@ export const GlobalContextProvider = ({ children }) => {
           const enrichedUser = { ...userResponse?.data, employeeData: userEmployeeData?.data };
           storeCurrentUser(enrichedUser);
 
-          setIsMD(enrichedUser.employeeData?.jobRole?.name?.toUpperCase() === 'MANAGING DIRECTOR');
+          setIsMD(enrichedUser.employeeData?.jobRole?.title?.toUpperCase() === 'MANAGING DIRECTOR');
           const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
 
           setIsAdmin(isAdmin);
