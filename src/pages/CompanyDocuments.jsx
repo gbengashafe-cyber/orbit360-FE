@@ -21,16 +21,15 @@ export default function CompanyDocuments() {
     setLoading(true);
     setError('');
     try {
-      const [foldersRes, docsRes] = await Promise.all([
-        apiClient.get(apiRoutes.GetFolders),
-        apiClient.get(apiRoutes.GetDocuments),
-      ]);
+      const foldersRes = await apiClient.get(apiRoutes.GetFolders);
+      const docsRes = await apiClient.get(apiRoutes.GetDocuments);
 
-      const foldersData = Array.isArray(foldersRes.data) ? foldersRes.data : (Array.isArray(foldersRes) ? foldersRes : []);
-      const docsData = Array.isArray(docsRes.data) ? docsRes.data : (Array.isArray(docsRes) ? docsRes : []);
+      // Handle nested data structure from API response
+      const foldersData = foldersRes?.data?.data || foldersRes?.data || [];
+      const docsData = docsRes?.data?.data || docsRes?.data || [];
 
-      setFolders(foldersData);
-      setDocuments(docsData);
+      setFolders(Array.isArray(foldersData) ? foldersData : []);
+      setDocuments(Array.isArray(docsData) ? docsData : []);
     } catch (error) {
       console.error('Error loading company document data:', error);
       setError('Failed to load documents. Please try again later.');
