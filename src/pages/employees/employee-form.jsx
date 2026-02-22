@@ -49,7 +49,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
           nationality: 'Nigerian',
           address: '',
           companyId: '',
-          departmentName: 'hr',
+          departmentId: '',
           jobRoleId: '',
           status: 'active',
           hireDate: '',
@@ -132,13 +132,12 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
         toast.error('Error', { description: error.message ?? 'Unable to load job roles data.' });
       }
     };
-    loadDepartmentJobRoles();
+    formData.departmentId && loadDepartmentJobRoles();
   }, [formData.departmentId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const totalGrossPay = compensation.totalGrossPay;
-    console.log('🚀 ~ handleSubmit ~ formData.annualBasicSalary:', formData.annualBasicSalary);
     const submissionData = {
       ...formData,
       annualBasicSalary: parseFloat(formData.annualBasicSalary) || 0,
