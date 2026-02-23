@@ -273,8 +273,8 @@ export default function LeaveApprovalsPage() {
                                                 </TableCell>
                                                 {(filterStatus === 'approved' || filterStatus === 'all') && (
                                                     <TableCell>
-                                                        {request.updated_at
-                                                            ? new Date(request.updated_at).toLocaleDateString()
+                                                        {request.status === 'approved' && request.updatedAt
+                                                            ? new Date(request.updatedAt).toLocaleDateString()
                                                             : '-'}
                                                     </TableCell>
                                                 )}
