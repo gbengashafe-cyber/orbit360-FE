@@ -132,6 +132,17 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
 
     const [formError, setFormError] = useState('');
 
+    // Log form data changes
+    React.useEffect(() => {
+        console.log('📋 Leave Form Data:', {
+            formData,
+            supportingFiles: supportingFiles.map(f => ({ name: f.name, size: f.size })),
+            handoverFiles: handoverFiles.map(f => ({ name: f.name, size: f.size })),
+            supportingFilesCount: supportingFiles.length,
+            handoverFilesCount: handoverFiles.length,
+        });
+    }, [formData, supportingFiles, handoverFiles]);
+
     // FIXED: Calculate leave balance using business days (excluding weekends)
     const calculateLeaveBalance = React.useCallback(
         (requests) => {
@@ -232,9 +243,33 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
 
         setIsSubmitting(true);
 
+        console.log('🚀 Submitting Leave Request with data:', {
+            formData,
+            supportingFilesCount: supportingFiles.length,
+            handoverFilesCount: handoverFiles.length,
+        });
+
         try {
             // Format leave type to match API expectations
             const leaveType = formatLeaveType(formData.leave_type);
+
+            // Convert files to document metadata (just names for now)
+            const convertFilesToDocuments = (files) => {
+                return files.map(file => ({
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    uploaded_at: new Date().toISOString()
+                }));
+            };
+
+            const supportingDocs = supportingFiles.length > 0 ? convertFilesToDocuments(supportingFiles) : null;
+            const handoverDocs = handoverFiles.length > 0 ? convertFilesToDocuments(handoverFiles) : null;
+
+            console.log('📄 Converted Documents:', {
+                supportingDocs,
+                handoverDocs,
+            });
 
             const leaveData = {
                 employeeId: employee.id,
@@ -243,7 +278,16 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                 endDate: formData.end_date,
                 reason: formData.reason,
                 leave_period: formData.leave_period,
+                selected_supervisor_id: formData.selected_supervisor_id ? parseInt(formData.selected_supervisor_id) : null,
+                covering_employee_id: formData.covering_employee_id ? parseInt(formData.covering_employee_id) : null,
+                handover_notes: formData.handover_notes || null,
+                emergency_contact: formData.emergency_contact || null,
+                alternative_email: formData.alternative_email || null,
+                supporting_documents: supportingDocs,
+                handover_documents: handoverDocs,
             };
+
+            console.log('📤 Final Leave Data Payload:', leaveData);
 
             const response = await leaveService.createLeave(leaveData);
 
@@ -385,10 +429,29 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             {/* Leave Balance Summary - By Type (if available) */}
             {leaveBalanceByType && leaveBalanceByType.length > 0 ? (
                 <div className="border border-gray-200 rounded-lg shadow-sm p-6">
+                    <h3 className="font-semibold text-lg mb-4">Leave Balance by Type</h3>
                     <div className="grid grid-cols-3 gap-4">
                         {leaveBalanceByType.map((balance) => {
-                            const usagePercentage = balance.totalDays > 0 ? (balance.usedDays / balance.totalDays) * 100 : 0;
-                            // Color coding for usage: Red (>50% used), Yellow (20-50% used), Green (<20% used)
+                            // Calculate approved days for this leave type
+                            const approvedDaysForType = leaveRequests
+                                .filter(req => {
+                                    const reqType = req.type || req.leave_type;
+                                    const isApproved = req.status === 'approved';
+                                    const typeMatches = reqType === balance.leaveType || 
+                                       reqType?.toLowerCase() === balance.leaveType?.toLowerCase();
+                                    return isApproved && typeMatches;
+                                })
+                                .reduce((total, req) => {
+                                    const days = calculateBusinessDays(
+                                        req.startDate || req.start_date,
+                                        req.endDate || req.end_date,
+                                        req.leave_period
+                                    );
+                                    return total + days;
+                                }, 0);
+
+                            const usagePercentage = balance.totalDays > 0 ? (approvedDaysForType / balance.totalDays) * 100 : 0;
+                            // Color coding for usage: Red (>50% used), Yellow (20-50% used), Blue (<20% used)
                             const getProgressBarColor = () => {
                                 if (usagePercentage > 50) return 'bg-red-500';
                                 if (usagePercentage > 20) return 'bg-yellow-500';
@@ -398,9 +461,9 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                 <div key={balance.id} className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <p className="text-sm font-semibold text-gray-700 capitalize">{balance.leaveType}</p>
-                                        <span className="text-lg font-bold text-gray-900">{balance.totalDays}</span>
+                                        <span className="text-lg font-bold text-gray-900">{approvedDaysForType}/{balance.totalDays}</span>
                                     </div>
-                                    <div className="w-full bg-gray-200 rounded h-2.5 overflow-hidden">
+                                    <div className="w-full bg-gray-300 rounded h-2.5 overflow-hidden">
                                         <div
                                             className={`${getProgressBarColor()} h-2.5 rounded transition-all duration-300`}
                                             style={{ width: `${Math.min(usagePercentage, 100)}%` }}
@@ -583,22 +646,52 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                 <h3 className="font-semibold text-lg border-b pb-2">Leave Balance by Type</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {leaveBalanceByType.map((balance) => {
-                                        const usagePercentage = balance.totalDays > 0 ? (balance.usedDays / balance.totalDays) * 100 : 0;
-                                        // Color coding for usage: Red (>50% used), Yellow (20-50% used), Green (<20% used)
+                                        // Calculate approved days for this leave type
+                                        const approvedDaysForType = leaveRequests
+                                            .filter(req => {
+                                                const reqType = req.type || req.leave_type;
+                                                const isApproved = req.status === 'approved';
+                                                const typeMatches = reqType === balance.leaveType || 
+                                                   reqType?.toLowerCase() === balance.leaveType?.toLowerCase();
+                                                return isApproved && typeMatches;
+                                            })
+                                            .reduce((total, req) => {
+                                                const days = calculateBusinessDays(
+                                                    req.startDate || req.start_date,
+                                                    req.endDate || req.end_date,
+                                                    req.leave_period
+                                                );
+                                                return total + days;
+                                            }, 0);
+                                        
+                                        // Debug log
+                                        if (balance.leaveType === 'annual' && approvedDaysForType === 0) {
+                                            console.log(`Leave Balance Debug [${balance.leaveType}]:`, {
+                                                leaveType: balance.leaveType,
+                                                totalDays: balance.totalDays,
+                                                approvedDays: approvedDaysForType,
+                                                approvedRequests: leaveRequests.filter(r => r.status === 'approved')
+                                            });
+                                        }
+
+                                        const usagePercentage = balance.totalDays > 0 ? (approvedDaysForType / balance.totalDays) * 100 : 0;
+                                        
+                                        // Color coding for usage: Red (>50% used), Yellow (20-50% used), Blue (<20% used)
                                         const getProgressBarColor = () => {
                                             if (usagePercentage > 50) return 'bg-red-500';
                                             if (usagePercentage > 20) return 'bg-yellow-500';
                                             return 'bg-blue-600';
                                         };
+                                        
                                         return (
                                             <div key={balance.id} className="space-y-1.5">
                                                 <div className="flex items-center justify-between">
                                                     <p className="text-sm font-medium text-gray-700 capitalize">{balance.leaveType}</p>
-                                                    <span className="text-sm font-bold text-gray-900">{balance.totalDays}</span>
+                                                    <span className="text-sm font-bold text-gray-900">{approvedDaysForType}/{balance.totalDays}</span>
                                                 </div>
-                                                <div className="w-full bg-gray-200 rounded h-2 overflow-hidden">
+                                                <div className="w-full bg-gray-300 rounded h-2.5 overflow-hidden">
                                                     <div
-                                                        className={`${getProgressBarColor()} h-2 rounded transition-all duration-300`}
+                                                        className={`${getProgressBarColor()} h-2.5 rounded transition-all duration-300`}
                                                         style={{ width: `${Math.min(usagePercentage, 100)}%` }}
                                                     ></div>
                                                 </div>
@@ -787,6 +880,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                             description="Attach any files relevant to your handover. (Max 5MB per file)"
                             id="handover_document"
                         />
+
                         {formError ? <div className="px-4 py-3 bg-red-100 text-red-900 rounded-lg">{formError}</div> : null}
 
                         <div className="flex justify-end gap-3 pt-4 border-t">

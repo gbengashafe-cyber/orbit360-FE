@@ -15,15 +15,16 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle2, Loader2, Calendar } from 'lucide-react';
+import { CheckCircle2, Loader2, Calendar, ThumbsUp, ThumbsDown, Download, FileText } from 'lucide-react';
 import { calculateBusinessDays } from '@/utils/leaveCalculator';
 
 export default function LeaveApprovalsPage() {
     const [leaveRequests, setLeaveRequests] = useState([]);
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
-  const [selectedLeave, setSelectedLeave] = useState(null);
-    const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+    const [selectedLeave, setSelectedLeave] = useState(null);
+    const [viewDialogOpen, setViewDialogOpen] = useState(false);
+    const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [filterStatus, setFilterStatus] = useState('pending');
@@ -38,6 +39,11 @@ export default function LeaveApprovalsPage() {
 
             const requests = leavesData?.data || leavesData || [];
             const emps = employeesData?.data || employeesData || [];
+
+            // Debug log to check the data structure
+            if (requests.length > 0) {
+                console.log('First leave request data:', requests[0]);
+            }
 
             setLeaveRequests(requests);
             setEmployees(emps);
@@ -66,9 +72,7 @@ export default function LeaveApprovalsPage() {
 
         setIsProcessing(true);
         try {
-            await leaveService.updateLeave(selectedLeave.id, {
-                status: 'approved',
-            });
+            await leaveService.updateLeaveStatus(selectedLeave.id, 'approved');
 
             showToast.success('Leave request approved successfully', 'Success');
             setApprovalDialogOpen(false);
@@ -82,21 +86,33 @@ export default function LeaveApprovalsPage() {
         }
     };
 
-    const confirmRejection = async () => {
-        if (!selectedLeave || !rejectionReason.trim()) {
-            showToast.error('Please provide a reason for rejection', 'Error');
-            return;
+    const confirmApprovalDirect = async (leave) => {
+        setIsProcessing(true);
+        try {
+            await leaveService.updateLeaveStatus(leave.id, 'approved');
+            showToast.success('Leave request approved successfully', 'Success');
+            loadData();
+        } catch (error) {
+            console.error('Error approving leave:', error);
+            showToast.error('Failed to approve leave request', 'Error');
+        } finally {
+            setIsProcessing(false);
         }
+    };
+
+    const confirmRejection = async () => {
+        if (!selectedLeave) return;
 
         setIsProcessing(true);
         try {
-            await leaveService.updateLeave(selectedLeave.id, {
-                status: 'rejected',
-                rejection_reason: rejectionReason,
-            });
+            await leaveService.updateLeaveStatus(
+                selectedLeave.id,
+                'rejected',
+                rejectionReason.trim() || null
+            );
 
             showToast.success('Leave request rejected', 'Success');
-            setApprovalDialogOpen(false);
+            setRejectionDialogOpen(false);
             setSelectedLeave(null);
             setRejectionReason('');
             loadData();
@@ -223,9 +239,9 @@ export default function LeaveApprovalsPage() {
                                         <TableHead>Leave Type</TableHead>
                                         <TableHead>Dates</TableHead>
                                         <TableHead>Days</TableHead>
-                                        <TableHead>Reason</TableHead>
                                         <TableHead>Status</TableHead>
-                                        <TableHead>Actions</TableHead>
+                                        {(filterStatus === 'approved' || filterStatus === 'all') && <TableHead>Approved On</TableHead>}
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -250,27 +266,56 @@ export default function LeaveApprovalsPage() {
                                                     {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
                                                 </TableCell>
                                                 <TableCell>{days} days</TableCell>
-                                                <TableCell className="text-sm text-gray-600 max-w-xs truncate">
-                                                    {request.reason || '-'}
-                                                </TableCell>
                                                 <TableCell>
                                                     <Badge className={getStatusBadge(request.status)}>
                                                         {request.status?.replaceAll('_', ' ').toUpperCase()}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="default"
-                                                        className="bg-transparent text-black hover:text-white border border-gray-400"
-                                                        onClick={() => {
-                                                            setSelectedLeave(request);
-                                                            setRejectionReason('');
-                                                            setApprovalDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        View Application
-                                                    </Button>
+                                                {(filterStatus === 'approved' || filterStatus === 'all') && (
+                                                    <TableCell>
+                                                        {request.updated_at
+                                                            ? new Date(request.updated_at).toLocaleDateString()
+                                                            : '-'}
+                                                    </TableCell>
+                                                )}
+                                                <TableCell className="text-right">
+                                                    <div className="flex gap-2 justify-end">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                setSelectedLeave(request);
+                                                                setViewDialogOpen(true);
+                                                            }}
+                                                        >
+                                                            View
+                                                        </Button>
+                                                        {request.status?.includes('pending') && (
+                                                            <>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="text-green-600 border-green-600 hover:bg-green-50"
+                                                                    onClick={() => confirmApprovalDirect(request)}
+                                                                    disabled={isProcessing}
+                                                                >
+                                                                    <ThumbsUp className="w-4 h-4 mr-1" /> Approve
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="text-red-600 border-red-600 hover:bg-red-50"
+                                                                    onClick={() => {
+                                                                        setSelectedLeave(request);
+                                                                        setRejectionDialogOpen(true);
+                                                                    }}
+                                                                    disabled={isProcessing}
+                                                                >
+                                                                    <ThumbsDown className="w-4 h-4 mr-1" /> Reject
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         );
@@ -288,8 +333,8 @@ export default function LeaveApprovalsPage() {
                 </CardContent>
             </Card>
 
-            {/* Approval/Rejection Dialog */}
-            <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
+            {/* View Details Dialog */}
+            <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
                 <DialogContent className="max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>
@@ -364,110 +409,150 @@ export default function LeaveApprovalsPage() {
                             </div>
 
                             {/* Documents Section */}
-                            {(selectedLeave.supporting_documents?.length > 0 || selectedLeave.handover_documents?.length > 0) && (
-                                <div className="mt-6 pt-6 border-t">
-                                    <h4 className="font-semibold text-gray-900 mb-4">Documents</h4>
-                                    {selectedLeave.supporting_documents?.length > 0 && (
-                                        <div className="mb-4">
-                                            <p className="text-sm font-medium text-gray-700 mb-2">Supporting Documents</p>
-                                            <div className="space-y-2">
-                                                {selectedLeave.supporting_documents.map((doc, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                                                        <span className="text-sm text-gray-700">{doc.name || `Document ${idx + 1}`}</span>
-                                                        <a
-                                                            href={doc.url || '#'}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                        >
-                                                            View
-                                                        </a>
-                                                    </div>
-                                                ))}
+                            {(() => {
+                                try {
+                                    let supportingDocs = [];
+                                    let handoverDocs = [];
+                                    
+                                    // Try to parse supporting docs safely
+                                    if (selectedLeave.supporting_documents) {
+                                        if (typeof selectedLeave.supporting_documents === 'string') {
+                                            try {
+                                                supportingDocs = JSON.parse(selectedLeave.supporting_documents);
+                                            } catch (e) {
+                                                supportingDocs = [];
+                                            }
+                                        } else if (Array.isArray(selectedLeave.supporting_documents)) {
+                                            supportingDocs = selectedLeave.supporting_documents;
+                                        }
+                                    }
+                                    
+                                    // Try to parse handover docs safely
+                                    if (selectedLeave.handover_documents) {
+                                        if (typeof selectedLeave.handover_documents === 'string') {
+                                            try {
+                                                handoverDocs = JSON.parse(selectedLeave.handover_documents);
+                                            } catch (e) {
+                                                handoverDocs = [];
+                                            }
+                                        } else if (Array.isArray(selectedLeave.handover_documents)) {
+                                            handoverDocs = selectedLeave.handover_documents;
+                                        }
+                                    }
+                                
+                                    return (supportingDocs.length > 0 || handoverDocs.length > 0) ? (
+                                    <div className="mt-6 pt-6 border-t">
+                                        <h4 className="font-semibold text-gray-900 mb-4">Documents</h4>
+                                        {supportingDocs.length > 0 && (
+                                            <div className="mb-4">
+                                                <p className="text-sm font-medium text-gray-700 mb-2">Supporting Documents</p>
+                                                <div className="space-y-2">
+                                                    {supportingDocs.map((doc, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                                                            <span className="text-sm text-gray-700">{doc.name || `Document ${idx + 1}`}</span>
+                                                            <a
+                                                                href={doc.url || '#'}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                            >
+                                                                View
+                                                            </a>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-                                    {selectedLeave.handover_documents?.length > 0 && (
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-700 mb-2">Handover Documents</p>
-                                            <div className="space-y-2">
-                                                {selectedLeave.handover_documents.map((doc, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                                                        <span className="text-sm text-gray-700">{doc.name || `Document ${idx + 1}`}</span>
-                                                        <a
-                                                            href={doc.url || '#'}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                        >
-                                                            View
-                                                        </a>
-                                                    </div>
-                                                ))}
+                                        )}
+                                        {handoverDocs.length > 0 && (
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-700 mb-2">Handover Documents</p>
+                                                <div className="space-y-2">
+                                                    {handoverDocs.map((doc, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                                                            <span className="text-sm text-gray-700">{doc.name || `Document ${idx + 1}`}</span>
+                                                            <a
+                                                                href={doc.url || '#'}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                            >
+                                                                View
+                                                            </a>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* {selectedLeave.status?.includes('pending') && (
-                                <>
-                                    <Alert className="bg-blue-50 border-blue-200">
-                                        <AlertDescription className="text-blue-800">
-                                            Choose to approve or reject this leave request.
-                                        </AlertDescription>
-                                    </Alert>
-
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-700">
-                                            Rejection Reason (if rejecting)
-                                        </label>
-                                        <Textarea
-                                            value={rejectionReason}
-                                            onChange={(e) => setRejectionReason(e.target.value)}
-                                            placeholder="Provide a reason for rejection (optional if approving)"
-                                            rows={3}
-                                        />
+                                        )}
                                     </div>
-                                </>
-                            )} */}
+                                    ) : null;
+                                } catch (error) {
+                                    console.error('Error parsing documents:', error);
+                                    return null;
+                                }
+                            })()}
                         </div>
                     )}
 
-                    <DialogFooter className="gap-2">
+                    <DialogFooter>
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => {
-                                setApprovalDialogOpen(false);
+                                setViewDialogOpen(false);
                                 setSelectedLeave(null);
-                                setRejectionReason('');
                             }}
                         >
                             Close
                         </Button>
-                        {/* {selectedLeave?.status?.includes('pending') && (
-                            <>
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    onClick={confirmRejection}
-                                    disabled={isProcessing}
-                                >
-                                    {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                    Reject
-                                </Button>
-                                <Button
-                                    type="button"
-                                    className="bg-green-600 hover:bg-green-700"
-                                    onClick={confirmApproval}
-                                    disabled={isProcessing}
-                                >
-                                    {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                    Approve
-                                </Button>
-                            </>
-                        )} */}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Rejection Reason Dialog */}
+            <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Reject Leave Request</DialogTitle>
+                        <DialogDescription>
+                            {selectedLeave && getEmployeeName(selectedLeave.employeeId)}
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 block mb-2">
+                                Rejection Reason (Optional)
+                            </label>
+                            <Textarea
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                placeholder="Provide a reason for rejection"
+                                rows={4}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2 flex-col sm:flex-row">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setRejectionDialogOpen(false);
+                                setSelectedLeave(null);
+                                setRejectionReason('');
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={confirmRejection}
+                            disabled={isProcessing}
+                        >
+                            {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                            Confirm Rejection
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
