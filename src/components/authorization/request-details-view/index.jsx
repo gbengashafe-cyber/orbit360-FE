@@ -12,7 +12,7 @@ export function RequestDetailsView({ item, moduleName }) {
   }
 
   return (
-    <div className="max-h-[70vh] overflow-y-auto px-1">
+    <div className="px-1">
       <div className="space-y-6">
         {schema.sections.map((section) => (
           <div key={section.title} className="space-y-4">

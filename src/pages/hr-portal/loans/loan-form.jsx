@@ -1,15 +1,15 @@
 import { loanService } from '@/api/loan.service';
 import { FieldDisplay } from '@/components/authorization/request-details-view/shared/field-display';
-import { LoanUtil } from '@/components/cooperative/loan.utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { LoanBreakDown } from '@/pages/employee-portal/employee-cooperative/loan-request-form';
 import { logger } from '@/utils';
 import { format } from 'date-fns';
 import { Save } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import z from 'zod';
 
@@ -34,23 +34,6 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, loan, loadData }) =>
     reviewerDecision: '',
     reviewerNote: loan?.reviewerNote || '',
   });
-
-  const [calculations, setCalculations] = useState({
-    monthlyDeduction: loan?.monthlyDeduction || 0,
-    totalRepayment: loan?.totalRepayment || 0,
-    endDate: loan?.endDate ? new Date(loan.endDate) : null,
-  });
-
-  useEffect(() => {
-    const { principalAmount, interestRate, tenureMonths } = loan;
-    if (principalAmount > 0 && interestRate >= 0 && tenureMonths > 0) {
-      const calculations = LoanUtil.calculations(loan);
-
-      setCalculations(calculations);
-    } else {
-      setCalculations({ monthlyDeduction: 0, totalRepayment: 0, endDate: null });
-    }
-  }, [loan]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -119,21 +102,7 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, loan, loadData }) =>
               <FieldDisplay label="Tenure (In Months)" value={loan?.tenureMonths} />
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-              <h4 className="font-semibold text-sm">Loan Summary</h4>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Loan Amount:</span>{' '}
-                <strong>₦{loan?.principalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Monthly Deduction:</span>{' '}
-                <strong>₦{calculations.monthlyDeduction.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Total Repayment:</span>{' '}
-                <strong>₦{calculations.totalRepayment.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
-              </div>
-            </div>
+            <LoanBreakDown loan={loan} />
 
             <div className="space-y-2">
               <Label htmlFor="reviewerDecision">Recommendation</Label>

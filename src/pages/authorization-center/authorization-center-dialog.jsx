@@ -1,5 +1,5 @@
-// import RequestDetailsView from '@/components/authorization/RequestDetailsView';
 import { RequestDetailsView } from '@/components/authorization/request-details-view';
+import { LoanUtil } from '@/components/cooperative/loan.utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -21,15 +21,22 @@ export const AuthorizationViewDialog = ({
 }) => {
   return (
     <Dialog open={!!viewingItem} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col gap-y-0 p-0">
-        <DialogHeader className="sticky top-0 z-10 px-6 py-4">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col gap-y-0 p-0">
+        <DialogHeader className="sticky top-0 p-6 border-b">
           <DialogTitle className="text-xl font-bold capitalize">{moduleName}: Approval</DialogTitle>
           <DialogDescription className="sr-only">Viewing full details for the selected {moduleName}</DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto p-6 py-4">
+        <div className="flex-1 pt-6 overflow-y-auto">
           {viewingItem && (
-            <div className="space-y-6">
-              <RequestDetailsView item={viewingItem} moduleName={moduleName} />
+            <div className="space-y-6 px-6">
+              <RequestDetailsView
+                item={
+                  moduleName?.toLowerCase() === 'loans'
+                    ? { ...viewingItem, _calculations: LoanUtil.calculations(viewingItem) }
+                    : viewingItem
+                }
+                moduleName={moduleName}
+              />
 
               {/* Notes */}
               <form>
@@ -73,9 +80,9 @@ export const AuthorizationViewDialog = ({
               </div>
             </div>
           )}
-          <DialogFooter className="sticky bottom-0 z-10">
+          <DialogFooter className="sticky bottom-0 bg-white z-10 border-t">
             {viewingItem && canAuthorize && PENDING_STATES.includes(viewingItem.status?.toLowerCase()) ? (
-              <div className="flex w-full gap-3 pt-4 border-t">
+              <div className="gap-3 p-6 flex w-full">
                 <Button
                   onClick={() => handleAuthorize(viewingItem, 'approve', moduleName)}
                   disabled={authorizing}

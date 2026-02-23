@@ -1,4 +1,5 @@
 import { loanService } from '@/api/loan.service';
+import { LoanUtil } from '@/components/cooperative/loan.utils';
 import { FormSubmitError } from '@/components/shared/submit-error';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,7 +21,7 @@ const loanSchema = z
     principalAmount: z.coerce
       .string('Invalid loan amount provided')
       .min(1, 'Amount is required')
-      .pipe(z.coerce.number().positive('Amount must be greater than 0')),
+      .pipe(z.coerce.number().positive('Loan amount is required')),
     tenureMonths: z.coerce
       .string('Invalid loan tenure provided')
       .min(1, 'Loan tenure is required')
@@ -44,11 +45,12 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
       ? { ...loan, loanTypeMaxTenure: loan?.loanType?.maxTenureMonths || 0 }
       : {
           loanTypeId: '',
-          principalAmount: '',
+          principalAmount: 0,
           tenureMonths: '',
           startDate: new Date().toJSON().split('T')[0],
           employeeNote: '',
-          loanTypeMaxTenure: 0,
+          loanTypeMaxTenure: '',
+          interestRate: 0,
         },
     mode: 'all',
   });
@@ -87,123 +89,147 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl rounded-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden overflow-y-auto flex flex-col gap-y-0 p-0 ">
+        <DialogHeader className="sticky top-0 border-b px-6 py-4 bg-white">
           <DialogTitle>New Loan Request</DialogTitle>
           <DialogDescription>Fill in the details to create a new employee loan request.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="loanTypeId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <div className="flex justify-between py-1">
-                        Loan Type{' '}
-                        {form.getValues('loanTypeMaxTenure') ? (
-                          <span className="italic font-normal">Max Tenure: {form.getValues('loanTypeMaxTenure')} months</span>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="flex-1 p-6 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="loanTypeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loan Type</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={(val) => {
+                            const selectedLoanType = loanTypes?.find(
+                              (_loan) => _loan.id === Number(form.getValues('loanTypeId')),
+                            );
+                            form.setValue('loanTypeMaxTenure', selectedLoanType?.maxTenureMonths || 0);
+                            form.setValue('interestRate', selectedLoanType?.interestRate || 0);
+                            form.setValue('loanTypeId', val);
+                          }}
+                          value={Number(field.value)}
+                          disabled={lockFields}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Please select loan type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {loanTypes?.length
+                              ? loanTypes.map((_loanType) => (
+                                  <SelectItem key={_loanType.id} value={Number(_loanType.id)}>
+                                    {_loanType.name} - {_loanType.interestRate}%
+                                  </SelectItem>
+                                ))
+                              : null}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="principalAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loan Amount</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} step="0.01" disabled={lockFields} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="tenureMonths"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="grid grid-flow-col leading-6 justify-between gap-x-4">
+                        Tenure (Months)
+                        {form.watch('loanTypeMaxTenure') ? (
+                          <span className="italic font-normal text-slate-600">
+                            Max Tenure: {form.watch('loanTypeMaxTenure')} months
+                          </span>
                         ) : null}
-                      </div>
-                    </FormLabel>
-                    <FormControl>
-                      <Select
-                        onValueChange={(val) => {
-                          const selectedLoanType = loanTypes?.find((_loan) => _loan.id === Number(form.getValues('loanTypeId')));
-                          form.setValue('loanTypeMaxTenure', selectedLoanType?.maxTenureMonths || 0);
-                          form.setValue('loanTypeId', val);
-                        }}
-                        value={Number(field.value)}
-                        disabled={lockFields}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Please select loan type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {loanTypes?.length
-                            ? loanTypes.map((_loanType) => (
-                                <SelectItem key={_loanType.id} value={Number(_loanType.id)}>
-                                  {_loanType.name} - {_loanType.interestRate}%
-                                </SelectItem>
-                              ))
-                            : null}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} disabled={lockFields || !form.getValues('loanTypeId')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date Needed</FormLabel>
+                      <FormControl>
+                        <Input type="date" disabled={lockFields} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name="principalAmount"
+                name="employeeNote"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Loan Amount</FormLabel>
+                    <FormLabel>Note (Optional)</FormLabel>
                     <FormControl>
-                      <Input type="number" min={0} step="0.01" disabled={lockFields} {...field} />
+                      <Textarea placeholder="Brief description of the loan purpose" disabled={lockFields} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              <p className="text-sm text-red-700 italic">
+                By submitting this request, you confirm that you agree to the terms for requesting an employee loan. You
+                understand that submission does not guarantee approval and that repayment will be made through payroll deductions.
+              </p>
+
+              <LoanBreakDown loan={form.watch()} />
+
+              {!['PENDING_APPROVAL'].includes(loan?.status?.toUpperCase()) ? (
+                <>
+                  {loan && loan?.reviewerNote ? (
+                    <div className="text-sm space-y-2 bg-slate-100 py-2 px-3 rounded-lg">
+                      <p className="font-semibold">Reviewer Note:</p>
+                      <p className="italic">{loan?.reviewerNote}</p>
+                    </div>
+                  ) : null}
+
+                  {loan && loan?.approverNote ? (
+                    <div className="text-sm space-y-2 bg-slate-100 py-2 px-3 rounded-lg">
+                      <p className="font-semibold">Approver Note:</p>
+                      <p className="italic">{loan?.approverNote}</p>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+
+              {apiError && <FormSubmitError>{apiError}</FormSubmitError>}
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="tenureMonths"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tenure (Months)</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={0} disabled={lockFields} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date Needed</FormLabel>
-                    <FormControl>
-                      <Input type="date" disabled={lockFields} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="employeeNote"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Note (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Brief description of the loan purpose" disabled={lockFields} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <p className="text-sm text-red-700 italic">
-              By submitting this request, you confirm that you agree to the terms for requesting an employee loan. You understand
-              that submission does not guarantee approval and that repayment will be made through payroll deductions.
-            </p>
-
-            {apiError && <FormSubmitError>{apiError}</FormSubmitError>}
-
-            <DialogFooter>
+            <DialogFooter className="sticky bottom-0 bg-white z-10 border-t p-6">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
                 Cancel
               </Button>
@@ -223,3 +249,40 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
     </Dialog>
   );
 }
+
+export const LoanBreakDown = ({ loan }) => {
+  const [calculations, setCalculations] = useState({
+    monthlyDeduction: loan?.monthlyDeduction || 0,
+    totalRepayment: loan?.totalRepayment || 0,
+    endDate: loan?.endDate ? new Date(loan.endDate) : null,
+  });
+
+  useEffect(() => {
+    const { principalAmount, interestRate, tenureMonths, startDate } = loan;
+    if (principalAmount > 0 && interestRate >= 0 && tenureMonths > 0) {
+      const calculations = LoanUtil.calculations({ principalAmount, interestRate, tenureMonths, startDate });
+
+      setCalculations(calculations);
+    } else {
+      setCalculations({ monthlyDeduction: 0, totalRepayment: 0, endDate: null });
+    }
+  }, [loan]);
+
+  return (
+    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+      <h4 className="font-semibold text-sm">Loan Summary</h4>
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-600">Loan Amount:</span>{' '}
+        <strong>₦{loan?.principalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
+      </div>
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-600">Monthly Deduction:</span>{' '}
+        <strong>₦{calculations.monthlyDeduction.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
+      </div>
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-600">Total Repayment:</span>{' '}
+        <strong>₦{calculations.totalRepayment.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
+      </div>
+    </div>
+  );
+};

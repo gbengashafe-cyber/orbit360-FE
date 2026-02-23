@@ -20,4 +20,5 @@ export const TYPE_RENDERERS = {
       {v ?? 'unknown'}
     </Badge>
   ),
+  node: (v) => v,
 };
