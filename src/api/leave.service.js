@@ -34,8 +34,12 @@ export const leaveService = {
     return apiClient.get(ApiRoutes.GetLeaveBalance(employeeId));
   },
 
-  async updateLeaveStatus(id, status) {
-    return apiClient.patch(ApiRoutes.UpdateLeaveStatus(id), { action: status });
+  async updateLeaveStatus(id, status, rejectionReason = null) {
+    const payload = { action: status };
+    if (rejectionReason) {
+      payload.rejection_reason = rejectionReason;
+    }
+    return apiClient.patch(ApiRoutes.UpdateLeaveStatus(id), payload);
   },
 
   async calculateLeaveDays(data) {
