@@ -18,6 +18,14 @@ export const leaveService = {
     return apiClient.post(ApiRoutes.CreateLeave, data);
   },
 
+  async createLeaveMultipart(formData) {
+    return apiClient.post(ApiRoutes.CreateLeave, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
   async updateLeave(id, data) {
     return apiClient.put(ApiRoutes.UpdateLeave(id), data);
   },
