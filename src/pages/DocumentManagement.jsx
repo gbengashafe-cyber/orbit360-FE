@@ -151,35 +151,32 @@ export default function DocumentManagement() {
         }
         setIsUploading(true);
         try {
-            // Convert file to base64 for upload
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const file_url = e.target.result; // Base64 encoded file
-                    const response = await apiClient.post(apiRoutes.CreateDocument, {
-                        name: uploadData.name,
-                        file_url: file_url,
-                        document_type: uploadData.document_type,
-                        folder_id: currentFolder,
-                        access_level: uploadData.access_level,
-                    });
+            // Create FormData for multipart upload
+            const formData = new FormData();
+            formData.append('name', uploadData.name);
+            formData.append('document_type', uploadData.document_type);
+            formData.append('access_level', uploadData.access_level);
+            if (currentFolder) {
+                formData.append('folder_id', currentFolder);
+            }
+            // Append file with field name 'file' (multer will use this)
+            formData.append('file', uploadData.file);
 
-                    const newDoc = response.data || response;
-                    setDocuments(prev => [...prev, newDoc]);
-                    setShowUploadForm(false);
-                    setUploadData({ file: null, name: "", document_type: "other", access_level: "private" });
-                    toast.success(`Document "${newDoc.name}" uploaded successfully.`);
-                    setIsUploading(false);
-                } catch (error) {
-                    console.error("Error uploading file:", error);
-                    toast.error('Failed to upload file.');
-                    setIsUploading(false);
-                }
-            };
-            reader.readAsDataURL(uploadData.file);
+            const response = await apiClient.post(apiRoutes.CreateDocument, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            const newDoc = response.data?.data || response.data || response;
+            setDocuments(prev => [...prev, newDoc]);
+            setShowUploadForm(false);
+            setUploadData({ file: null, name: "", document_type: "other", access_level: "private" });
+            toast.success(`Document "${newDoc.name}" uploaded successfully.`);
+            setIsUploading(false);
         } catch (error) {
             console.error("Error uploading file:", error);
-            toast.error('Failed to upload file.');
+            toast.error(error?.response?.data?.message || 'Failed to upload file.');
             setIsUploading(false);
         }
     };
@@ -529,7 +526,7 @@ export default function DocumentManagement() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="z-50">
-                                                    {doc.access_level === 'private' ? (
+                                                    {doc.access_level === 'private' || !doc.access_level ? (
                                                         <DropdownMenuItem onClick={() => handleAccessChange(doc, 'public')}>
                                                             <Globe className="w-4 h-4 mr-2" /> Make Public
                                                         </DropdownMenuItem>
