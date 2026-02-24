@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { userService } from '@/api';
 import { apiClient, apiRoutes } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,8 +53,11 @@ export default function DocumentManagement() {
     const [newFolderName, setNewFolderName] = useState("");
     const [uploadData, setUploadData] = useState({ file: null, name: "", document_type: "other", access_level: "private" });
     const [isUploading, setIsUploading] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [activeTab, setActiveTab] = useState('documents'); // 'documents' or 'pending-deletions'
+    const [pendingDeletions, setPendingDeletions] = useState([]);
+    const [loadingDeletions, setLoadingDeletions] = useState(false);
+    const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ open: false, itemId: null, itemName: '', itemType: 'document' });
+    const [approvalDialog, setApprovalDialog] = useState({ open: false, deletionId: null, action: null });
 
     const initializeDefaultStructure = useCallback(async () => {
         try {
@@ -116,7 +120,7 @@ export default function DocumentManagement() {
             const errorMsg = error?.response?.data?.message || error?.message || 'Failed to load document data.';
             console.error("Error loading document data:", error);
             console.error("Error details:", { status: error?.response?.status, data: error?.response?.data });
-            setError(errorMsg);
+            toast.error(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -133,20 +137,18 @@ export default function DocumentManagement() {
             setNewFolderName("");
             setShowFolderForm(false);
             loadData();
-            setSuccess(`Folder "${newFolderName}" created successfully.`);
+            toast.success(`Folder "${newFolderName}" created successfully.`);
         } catch (error) {
             console.error("Error creating folder:", error);
-            setError('Failed to create folder.');
+            toast.error('Failed to create folder.');
         }
     };
 
     const handleFileUpload = async () => {
         if (!uploadData.file || !uploadData.name) {
-            setError("Please provide a document name and select a file.");
+            toast.error("Please provide a document name and select a file.");
             return;
         }
-        setError('');
-        setSuccess('');
         setIsUploading(true);
         try {
             // Convert file to base64 for upload
@@ -166,23 +168,29 @@ export default function DocumentManagement() {
                     setDocuments(prev => [...prev, newDoc]);
                     setShowUploadForm(false);
                     setUploadData({ file: null, name: "", document_type: "other", access_level: "private" });
-                    setSuccess(`Document "${newDoc.name}" uploaded successfully.`);
+                    toast.success(`Document "${newDoc.name}" uploaded successfully.`);
                     setIsUploading(false);
                 } catch (error) {
                     console.error("Error uploading file:", error);
-                    setError('Failed to upload file.');
+                    toast.error('Failed to upload file.');
                     setIsUploading(false);
                 }
             };
             reader.readAsDataURL(uploadData.file);
         } catch (error) {
             console.error("Error uploading file:", error);
-            setError('Failed to upload file.');
+            toast.error('Failed to upload file.');
             setIsUploading(false);
         }
     };
 
     const handleAccessChange = async (doc, newLevel) => {
+        // Skip for onboarding documents (they are read-only)
+        if (doc.source === 'onboarding' || String(doc.id).startsWith('onboarding_')) {
+            toast.error('Onboarding documents are read-only and cannot be modified.');
+            return;
+        }
+
         try {
             console.log("Updating document:", { docId: doc.id, docName: doc.name, newLevel });
             const response = await apiClient.put(apiRoutes.UpdateDocument(doc.id), { access_level: newLevel });
@@ -191,24 +199,43 @@ export default function DocumentManagement() {
             setDocuments(prevDocs =>
                 prevDocs.map(d => d.id === doc.id ? { ...d, access_level: newLevel } : d)
             );
-            setSuccess(`Document status changed to ${newLevel}.`);
+            toast.success(`Document status changed to ${newLevel}.`);
         } catch (error) {
             console.error("Error updating document access level:", error);
             console.error("Document object:", doc);
-            setError(error?.response?.data?.message || 'Failed to update document status.');
+            toast.error(error?.response?.data?.message || 'Failed to update document status.');
         }
     };
 
-    const handleDeleteDocument = async (docId) => {
-        if (window.confirm("Are you sure you want to permanently delete this document?")) {
-            try {
-                await apiClient.delete(apiRoutes.DeleteDocument(docId));
-                setDocuments(prevDocs => prevDocs.filter(d => d.id !== docId));
-                setSuccess('Document deleted successfully.');
-            } catch (error) {
-                console.error("Error deleting document:", error);
-                setError('Failed to delete document.');
+    const handleDeleteDocument = (docId) => {
+        const doc = documents.find(d => d.id === docId);
+        const docName = doc?.name || 'Document';
+        setDeleteConfirmDialog({
+            open: true,
+            itemId: docId,
+            itemName: docName,
+            itemType: 'document'
+        });
+    };
+
+    const handleConfirmDelete = async () => {
+        const { itemId, itemType } = deleteConfirmDialog;
+        
+        try {
+            if (itemType === 'document') {
+                await apiClient.delete(apiRoutes.DeleteDocument(itemId), {
+                    data: { requesterComment: '' }
+                });
+            } else if (itemType === 'folder') {
+                await apiClient.delete(apiRoutes.DeleteFolder(itemId), {
+                    data: { requesterComment: '' }
+                });
             }
+            toast.success(`Deletion request for "${deleteConfirmDialog.itemName}" has been submitted to your HR manager for approval.`);
+            setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
+        } catch (error) {
+            console.error(`Error requesting ${itemType} deletion:`, error);
+            toast.error(`Failed to submit ${itemType} deletion request.`);
         }
     };
 
@@ -219,7 +246,57 @@ export default function DocumentManagement() {
     const displayedDocuments = documents.filter(d => d.folder_id === currentFolder);
 
     const canManage = currentUser && (currentUser.role === 'admin' || currentUser.permissions?.includes('MANAGE_DOCUMENTS'));
+    const canApproveDeletions = currentUser && (currentUser.role === 'admin' || currentUser.permissions?.includes('APPROVE_DOCUMENT_DELETION'));
     const canView = currentUser && (canManage || true); // All authenticated users can view (with filtering applied server-side)
+
+    const loadPendingDeletions = useCallback(async () => {
+        if (!canApproveDeletions) return;
+        
+        setLoadingDeletions(true);
+        try {
+            const response = await apiClient.get(`${apiRoutes.HRDocuments}/deletion-requests/pending?page=1&rows=50`);
+            const deletions = response?.data?.data || [];
+            setPendingDeletions(deletions);
+        } catch (error) {
+            console.error('Error loading pending deletions:', error);
+            toast.error('Failed to load pending deletion requests.');
+        } finally {
+            setLoadingDeletions(false);
+        }
+    }, [canApproveDeletions]);
+
+    const handleApproveDeletion = (deletionId) => {
+        setApprovalDialog({ open: true, deletionId, action: 'approve' });
+    };
+
+    const handleRejectDeletion = (deletionId) => {
+        setApprovalDialog({ open: true, deletionId, action: 'reject' });
+    };
+
+    const handleConfirmApprovalAction = async () => {
+        const { deletionId, action } = approvalDialog;
+        
+        try {
+            const url = action === 'approve' 
+                ? `${apiRoutes.HRDocuments}/deletion-requests/${deletionId}/approve`
+                : `${apiRoutes.HRDocuments}/deletion-requests/${deletionId}/reject`;
+            
+            await apiClient.post(url, {
+                reviewerComment: ''
+            });
+            
+            const message = action === 'approve' 
+                ? 'Deletion request approved and document/folder deleted.'
+                : 'Deletion request rejected.';
+            
+            toast.success(message);
+            await loadPendingDeletions();
+            setApprovalDialog({ open: false, deletionId: null, action: null });
+        } catch (error) {
+            console.error(`Error ${approvalDialog.action}ing deletion:`, error);
+            toast.error(`Failed to ${approvalDialog.action} deletion request.`);
+        }
+    };
 
     if (loading) {
         return (
@@ -228,6 +305,72 @@ export default function DocumentManagement() {
             </div>
         );
     }
+
+    // Delete confirmation dialog
+    const DeleteConfirmationDialog = () => (
+        <Dialog open={deleteConfirmDialog.open} onOpenChange={(open) => !open && setDeleteConfirmDialog({ ...deleteConfirmDialog, open: false })}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Confirm Deletion Request</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                    <p className="text-gray-700">
+                        Are you sure you want to delete <span className="font-semibold">"{deleteConfirmDialog.itemName}"</span>? 
+                        <br />
+                        <span className="text-sm text-gray-600">An HR manager will review and approve this deletion request.</span>
+                    </p>
+                    <div className="flex gap-3 justify-end">
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' })}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={handleConfirmDelete}
+                        >
+                            Delete
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+
+    // Approval action dialog (for HR managers approving/rejecting deletions)
+    const ApprovalActionDialog = () => (
+        <Dialog open={approvalDialog.open} onOpenChange={(open) => !open && setApprovalDialog({ open: false, deletionId: null, action: null })}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>
+                        {approvalDialog.action === 'approve' ? 'Approve Deletion Request' : 'Reject Deletion Request'}
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                    <p className="text-gray-700">
+                        {approvalDialog.action === 'approve' 
+                            ? 'This will permanently delete the document/folder. This action cannot be undone.'
+                            : 'The deletion request will be rejected and the document/folder will remain intact.'}
+                    </p>
+                    <div className="flex gap-3 justify-end">
+                        <Button
+                            variant="outline"
+                            onClick={() => setApprovalDialog({ open: false, deletionId: null, action: null })}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className={approvalDialog.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+                            onClick={handleConfirmApprovalAction}
+                        >
+                            {approvalDialog.action === 'approve' ? 'Approve' : 'Reject'}
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
 
     if (!canView) {
         return (
@@ -248,6 +391,25 @@ export default function DocumentManagement() {
                         <p className="text-gray-600">
                             {canManage ? 'Securely store and manage HR files and documents.' : 'View HR documents and resources.'}
                         </p>
+                        {canApproveDeletions && (
+                            <div className="flex gap-4 mt-4">
+                                <Button
+                                    variant={activeTab === 'documents' ? 'default' : 'outline'}
+                                    onClick={() => setActiveTab('documents')}
+                                >
+                                    Documents
+                                </Button>
+                                <Button
+                                    variant={activeTab === 'pending-deletions' ? 'default' : 'outline'}
+                                    onClick={() => {
+                                        setActiveTab('pending-deletions');
+                                        loadPendingDeletions();
+                                    }}
+                                >
+                                    Pending Deletions ({pendingDeletions.length})
+                                </Button>
+                            </div>
+                        )}
                     </div>
                     {canManage && (
                     <div className="flex gap-3">
@@ -306,9 +468,10 @@ export default function DocumentManagement() {
                     )}
                 </div>
 
-                {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
-                {success && <Alert className="border-green-500 text-green-700"><AlertDescription>{success}</AlertDescription></Alert>}
+                <DeleteConfirmationDialog />
+                <ApprovalActionDialog />
 
+                {activeTab === 'documents' ? (
                 <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -324,23 +487,48 @@ export default function DocumentManagement() {
                             <div className="text-center p-12"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-700" /></div>
                         ) : (
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                {displayedFolders.map(folder => (
-                                    <div key={folder.id} onClick={() => setCurrentFolder(folder.id)} className="p-4 border rounded-lg text-center cursor-pointer hover:bg-gray-50 flex flex-col items-center justify-center transition-all hover:shadow-lg hover:-translate-y-1 h-40">
-                                        <Folder className="w-12 h-12 text-yellow-500 mb-2" />
-                                        <span className="text-sm font-medium break-words w-full">{folder.name}</span>
+                                {displayedFolders.map(folder => {
+                                    const isDefaultFolder = defaultFolders.includes(folder.name);
+                                    
+                                    return (
+                                    <div key={folder.id} className="relative group p-4 border rounded-lg text-center cursor-pointer hover:bg-gray-50 flex flex-col items-center justify-center transition-all hover:shadow-lg hover:-translate-y-1 h-40">
+                                        {canManage && !isDefaultFolder && (
+                                        <div className="absolute top-1 right-1 z-10">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                    <Button variant="ghost" size="icon" className="w-7 h-7">
+                                                        <MoreHorizontal className="w-4 h-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDeleteConfirmDialog({ open: true, itemId: folder.id, itemName: folder.name, itemType: 'folder' }); }} className="text-red-500">
+                                                        <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                        )}
+                                        <div onClick={() => setCurrentFolder(folder.id)} className="flex flex-col items-center justify-center w-full">
+                                            <Folder className="w-12 h-12 text-yellow-500 mb-2" />
+                                            <span className="text-sm font-medium break-words w-full">{folder.name}</span>
+                                        </div>
                                     </div>
-                                ))}
-                                {displayedDocuments.map(doc => (
+                                    );
+                                })}
+                                {displayedDocuments.map(doc => {
+                                    const isOnboardingDoc = doc.source === 'onboarding' || String(doc.id).startsWith('onboarding_');
+                                    
+                                    return (
                                     <div key={doc.id} className="relative group p-4 border rounded-lg text-center flex flex-col items-center justify-between transition-all hover:shadow-lg h-40">
-                                        {canManage && (
-                                        <div className="absolute top-1 right-1">
+                                        {canManage && !isOnboardingDoc && (
+                                        <div className="absolute top-1 right-1 z-20">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" size="icon" className="w-7 h-7">
                                                         <MoreHorizontal className="w-4 h-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
+                                                <DropdownMenuContent align="end" className="z-50">
                                                     {doc.access_level === 'private' ? (
                                                         <DropdownMenuItem onClick={() => handleAccessChange(doc, 'public')}>
                                                             <Globe className="w-4 h-4 mr-2" /> Make Public
@@ -378,7 +566,8 @@ export default function DocumentManagement() {
                                             )}
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                         {!loading && displayedFolders.length === 0 && displayedDocuments.length === 0 && (
@@ -389,6 +578,61 @@ export default function DocumentManagement() {
                         )}
                     </CardContent>
                 </Card>
+                ) : (
+                <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
+                    <CardHeader>
+                        <CardTitle>Pending Deletion Requests</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {loadingDeletions ? (
+                            <div className="text-center p-12">
+                                <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-700" />
+                            </div>
+                        ) : pendingDeletions.length === 0 ? (
+                            <div className="text-center py-12 text-gray-500">
+                                <File className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                                <p>No pending deletion requests.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {pendingDeletions.map((deletion) => (
+                                    <div key={deletion.id} className="border rounded-lg p-4 flex justify-between items-center bg-gray-50">
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-gray-900">{deletion.itemName}</h3>
+                                            <p className="text-sm text-gray-600">
+                                                Type: <span className="font-medium">{deletion.deletionType}</span>
+                                                {' '} • Requested by: <span className="font-medium">User #{deletion.requestedBy}</span>
+                                            </p>
+                                            {deletion.requesterComment && (
+                                                <p className="text-sm text-gray-700 mt-2 italic">
+                                                    Reason: {deletion.requesterComment}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2 ml-4">
+                                            <Button
+                                                size="sm"
+                                                className="bg-green-600 hover:bg-green-700"
+                                                onClick={() => handleApproveDeletion(deletion.id)}
+                                            >
+                                                Approve
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="border-red-200 text-red-600 hover:bg-red-50"
+                                                onClick={() => handleRejectDeletion(deletion.id)}
+                                            >
+                                                Reject
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+                )}
             </div>
         </div>
     );
