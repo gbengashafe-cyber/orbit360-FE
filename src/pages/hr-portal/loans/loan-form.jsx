@@ -31,7 +31,7 @@ const loanReviewSchema = z
 export const LoanForm = ({ showForm, setShowForm, onCancel, loan, loadData }) => {
   const [submitError, setSubmitError] = useState('');
   const [formData, setFormData] = useState({
-    reviewerDecision: '',
+    reviewerDecision: loan?.reviewerDecision || '',
     reviewerNote: loan?.reviewerNote || '',
   });
 
@@ -106,13 +106,17 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, loan, loadData }) =>
 
             <div className="space-y-2">
               <Label htmlFor="reviewerDecision">Recommendation</Label>
-              <Select onValueChange={(val) => handleInputChange('reviewerDecision', val)} value={formData.reviewerDecision}>
-                <SelectTrigger className="" id="select-rows-per-page">
+              <Select
+                disabled={loan?.status?.toUpperCase() !== 'PENDING_REVIEW'}
+                onValueChange={(val) => handleInputChange('reviewerDecision', val)}
+                value={formData?.reviewerDecision?.toUpperCase()}
+              >
+                <SelectTrigger className="" id="reviewerDecision" name="reviewerDecision">
                   <SelectValue placeholder="Select recommendation" />
                 </SelectTrigger>
-                <SelectContent align="start">
-                  <SelectItem value="approve">Approve</SelectItem>
-                  <SelectItem value="reject">Reject</SelectItem>
+                <SelectContent align="start" readOnly={loan?.status?.toUpperCase() !== 'PENDING_REVIEW'}>
+                  <SelectItem value="APPROVE">Approve</SelectItem>
+                  <SelectItem value="REJECT">Reject</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -129,6 +133,7 @@ export const LoanForm = ({ showForm, setShowForm, onCancel, loan, loadData }) =>
                 id="reviewerNote"
                 value={formData.reviewerNote}
                 onChange={(e) => handleInputChange('reviewerNote', e.target.value)}
+                readOnly={loan?.status?.toUpperCase() !== 'PENDING_REVIEW'}
               />
             </div>
 

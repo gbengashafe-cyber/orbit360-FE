@@ -191,7 +191,10 @@ export function EmployeeCooperative() {
               setShowLoanForm(false);
               setSelectedLoan(null);
             }}
-            onSuccess={loadData}
+            onSuccess={() => {
+              setSelectedLoan();
+              loadData();
+            }}
           />
         ) : null}
 

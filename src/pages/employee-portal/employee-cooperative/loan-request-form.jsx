@@ -74,9 +74,9 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
         const response = await loanService.createLoanRequest(values);
         toast.success('Success', { description: response?.message ?? 'Loan request initiated successfully' });
       }
-      onSuccess();
-      onOpenChange(false);
       form.reset();
+      onOpenChange();
+      onSuccess();
     } catch (error) {
       logger.error({ caller: 'Error saving loan:', payload: error });
       setApiError(error?.message || 'Something went wrong while saving the loan.');
@@ -230,7 +230,7 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
               {apiError && <FormSubmitError>{apiError}</FormSubmitError>}
             </div>
             <DialogFooter className="sticky bottom-0 bg-white z-10 border-t p-6">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              <Button type="button" variant="outline" onClick={onOpenChange} disabled={loading}>
                 Cancel
               </Button>
               {!['CANCELLED'].includes(loan?.status?.toUpperCase()) ? (
