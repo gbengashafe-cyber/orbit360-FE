@@ -29,11 +29,11 @@ export const payrollService = {
     return apiClient.post(ApiRoutes.regeneratePayroll, { payPeriod });
   },
 
-  approvePayrollBatch: async (id) => {
-    return apiClient.patch(ApiRoutes.payroll.approveBatch(id));
+  approvePayrollBatch: async (id, data) => {
+    return apiClient.patch(ApiRoutes.payroll.approveBatch(id), data);
   },
-  rejectPayrollBatch: async (id) => {
-    return apiClient.patch(ApiRoutes.payroll.rejectBatch(id));
+  rejectPayrollBatch: async (id, data) => {
+    return apiClient.patch(ApiRoutes.payroll.rejectBatch(id), data);
   },
 
   async updatePayroll(id, data) {

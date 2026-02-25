@@ -117,11 +117,12 @@ export default function AuthorizationCenterWIP() {
             : (responsePayload = await loanService.rejectLoan(item.id, { approverNote }));
           break;
         }
-        case 'payrolls':
+        case 'payrolls': {
           action === 'approve'
-            ? (responsePayload = await payrollService.approvePayrollBatch(item.id))
-            : (responsePayload = await payrollService.rejectPayrollBatch(item.id));
+            ? (responsePayload = await payrollService.approvePayrollBatch(item.id, { approverNote }))
+            : (responsePayload = await payrollService.rejectPayrollBatch(item.id, { approverNote }));
           break;
+        }
         case 'employees':
           action === 'approve'
             ? (responsePayload = await employeeService.approveMaintenance(item.id))

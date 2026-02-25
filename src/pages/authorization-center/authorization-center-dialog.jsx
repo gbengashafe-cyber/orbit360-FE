@@ -41,8 +41,8 @@ export const AuthorizationViewDialog = ({
               {/* Notes */}
               <form>
                 <div className="space-y-2">
-                  <Label htmlFor="reviewerNote">Notes</Label>
-                  <Textarea id="reviewerNote" value={approverNote} onChange={(e) => setApprovalNote(e.target.value)} />
+                  <Label htmlFor="approverNote">Notes</Label>
+                  <Textarea id="approverNote" value={approverNote} onChange={(e) => setApprovalNote(e.target.value)} />
                 </div>
               </form>
 
