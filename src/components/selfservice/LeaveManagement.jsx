@@ -253,43 +253,36 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             // Format leave type to match API expectations
             const leaveType = formatLeaveType(formData.leave_type);
 
-            // Convert files to document metadata (just names for now)
-            const convertFilesToDocuments = (files) => {
-                return files.map(file => ({
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    uploaded_at: new Date().toISOString()
-                }));
-            };
+            // Build FormData for multipart upload
+            const formDataPayload = new FormData();
+            formDataPayload.append('employeeId', employee.id);
+            formDataPayload.append('type', leaveType);
+            formDataPayload.append('startDate', formData.start_date);
+            formDataPayload.append('endDate', formData.end_date);
+            formDataPayload.append('reason', formData.reason);
+            formDataPayload.append('leave_period', formData.leave_period);
+            if (formData.selected_supervisor_id) formDataPayload.append('selected_supervisor_id', formData.selected_supervisor_id);
+            if (formData.covering_employee_id) formDataPayload.append('covering_employee_id', formData.covering_employee_id);
+            if (formData.handover_notes) formDataPayload.append('handover_notes', formData.handover_notes);
+            if (formData.emergency_contact) formDataPayload.append('emergency_contact', formData.emergency_contact);
+            if (formData.alternative_email) formDataPayload.append('alternative_email', formData.alternative_email);
 
-            const supportingDocs = supportingFiles.length > 0 ? convertFilesToDocuments(supportingFiles) : null;
-            const handoverDocs = handoverFiles.length > 0 ? convertFilesToDocuments(handoverFiles) : null;
-
-            console.log('📄 Converted Documents:', {
-                supportingDocs,
-                handoverDocs,
+            // Append supporting documents
+            supportingFiles.forEach((file, index) => {
+                formDataPayload.append('supporting_documents', file);
             });
 
-            const leaveData = {
-                employeeId: employee.id,
-                type: leaveType,
-                startDate: formData.start_date,
-                endDate: formData.end_date,
-                reason: formData.reason,
-                leave_period: formData.leave_period,
-                selected_supervisor_id: formData.selected_supervisor_id ? parseInt(formData.selected_supervisor_id) : null,
-                covering_employee_id: formData.covering_employee_id ? parseInt(formData.covering_employee_id) : null,
-                handover_notes: formData.handover_notes || null,
-                emergency_contact: formData.emergency_contact || null,
-                alternative_email: formData.alternative_email || null,
-                supporting_documents: supportingDocs,
-                handover_documents: handoverDocs,
-            };
+            // Append handover documents
+            handoverFiles.forEach((file, index) => {
+                formDataPayload.append('handover_documents', file);
+            });
 
-            console.log('📤 Final Leave Data Payload:', leaveData);
+            console.log('📤 FormData Payload with files:', {
+                supportingFilesCount: supportingFiles.length,
+                handoverFilesCount: handoverFiles.length,
+            });
 
-            const response = await leaveService.createLeave(leaveData);
+            const response = await leaveService.createLeaveMultipart(formDataPayload);
 
             // Verify response was successful
             if (!response || (response.error && response.error !== false)) {
