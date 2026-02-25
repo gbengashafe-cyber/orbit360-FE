@@ -126,6 +126,8 @@ export class ApiRoutes {
   static UpdateFolder = (id) => `/v1/hr-documents/folders/${id}`;
   static DeleteFolder = (id) => `/v1/hr-documents/folders/${id}`;
 
+  static HRDocuments = '/v1/hr-documents';
+
   // Onboarding
   static GetOnboardings = '/v1/onboardings';
   static GetOnboardingById = (id) => `/v1/onboardings/${id}`;

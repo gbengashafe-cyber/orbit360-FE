@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { apiClient, apiRoutes } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Folder, File, Download, Search, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function EmployeeDocuments() {
   const [documents, setDocuments] = useState([]);
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [currentFolder, setCurrentFolder] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, name: 'Root' }]);
@@ -30,7 +29,7 @@ export default function EmployeeDocuments() {
       setFolders(Array.isArray(foldersData) ? foldersData : []);
     } catch (err) {
       console.error('Error loading folders:', err);
-      setError('Failed to load folders');
+      toast.error('Failed to load folders');
     }
   };
 
@@ -54,10 +53,9 @@ export default function EmployeeDocuments() {
       const response = await apiClient.get(url);
       const docsData = response.data || response;
       setDocuments(Array.isArray(docsData) ? docsData : []);
-      setError('');
     } catch (err) {
       console.error('Error loading documents:', err);
-      setError('Failed to load documents');
+      toast.error('Failed to load documents');
     } finally {
       setLoading(false);
     }
@@ -76,15 +74,20 @@ export default function EmployeeDocuments() {
   };
 
   const handleDownload = (doc) => {
-    if (doc.file_url.startsWith('data:')) {
-      const link = document.createElement('a');
-      link.href = doc.file_url;
-      link.download = doc.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      window.open(doc.file_url, '_blank');
+    try {
+      if (doc.file_url.startsWith('data:')) {
+        const link = document.createElement('a');
+        link.href = doc.file_url;
+        link.download = doc.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        window.open(doc.file_url, '_blank');
+      }
+      toast.success(`Downloaded "${doc.name}"`);
+    } catch (err) {
+      toast.error('Failed to download document');
     }
   };
 
@@ -137,13 +140,6 @@ export default function EmployeeDocuments() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Error Alert */}
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
 
         {/* Content Area */}
         {loading ? (
