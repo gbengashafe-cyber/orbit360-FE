@@ -60,9 +60,11 @@ const hrNav = [
   { title: 'Cooperative & Loans', url: createPageUrl('Cooperative'), icon: HandCoins },
   // { title: 'Compensation Tool', url: createPageUrl('CompensationTool'), icon: Calculator },
   { title: 'Recruitment', url: createPageUrl('Recruitment'), icon: UserCheck },
+  { title: 'Recruitment Approvals', url: '/RecruitmentApprovals', icon: CheckCircle2 },
   { title: 'Onboarding', url: createPageUrl('Onboarding'), icon: ClipboardList },
   { title: 'Performance', url: createPageUrl('Performance'), icon: Star },
   { title: 'Leave Approvals', url: createPageUrl('leave-approvals'), icon: CheckCircle2 },
+  { title: 'Exit Approvals', url: '/ExitApprovals', icon: UserRoundX },
   { title: 'KPI Management', url: createPageUrl('KPIManagement'), icon: BadgePercent },
   { title: 'Disciplinary Actions', url: createPageUrl('DisciplinaryActions'), icon: Scale },
   { title: 'Documents', url: createPageUrl('DocumentManagement'), icon: FolderArchive },
@@ -82,6 +84,10 @@ const employeePortalNav = [
   { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
 ];
 
+const supervisorNav = [
+  { title: 'Exit Approvals', url: '/ExitApprovals', icon: UserRoundX },
+];
+
 const adminNav = [
   { title: 'User Management', url: createPageUrl('UserManagement'), icon: Users },
   { title: 'Install App', url: createPageUrl('InstallApp'), icon: Download },
@@ -92,15 +98,19 @@ const LayoutContent = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isHrNavOpen, setHrNavOpen] = useState(false);
   const [isEmployeePortalNavOpen, setEmployeePortalNavOpen] = useState(false);
+  const [isSupervisorNavOpen, setIsSupervisorNavOpen] = useState(false);
   const [isAdminNavOpen, setIsAdminNavOpen] = useState(false);
 
   const { currentUser, isAdmin, isLoadingUser } = useGlobalContext();
+
+  const isSupervisor = currentUser?.permissions?.includes('APPROVE_EXITS');
 
   useEffect(() => {
     const path = location.pathname;
     const isDashboard = path === createPageUrl('Dashboard');
     setHrNavOpen(hrNav.some((item) => path === item.url) || isDashboard);
     setEmployeePortalNavOpen(employeePortalNav.some((item) => path === item.url));
+    setIsSupervisorNavOpen(supervisorNav.some((item) => path === item.url));
     setIsAdminNavOpen(adminNav.some((item) => path === item.url));
   }, [location.pathname]);
 
@@ -223,6 +233,9 @@ const LayoutContent = ({ children }) => {
             onOpenChange={setEmployeePortalNavOpen}
             navItems={employeePortalNav}
           />
+          {isSupervisor && (
+            <NavGroup title="Supervisor" isOpen={isSupervisorNavOpen} onOpenChange={setIsSupervisorNavOpen} navItems={supervisorNav} />
+          )}
           {isAdmin && (
             <NavGroup title="Administration" isOpen={isAdminNavOpen} onOpenChange={setIsAdminNavOpen} navItems={adminNav} />
           )}
