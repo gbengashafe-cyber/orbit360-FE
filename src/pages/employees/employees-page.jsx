@@ -27,24 +27,6 @@ export function Employees() {
 
   const { allCompanies } = useCompanies();
 
-  const loadTerminatedEmployees = useCallback(async () => {
-    setLoading(true);
-    try {
-      const employeesData = await employeeService.getEmployees({
-        page: currentPage,
-        rows,
-        options: { status: currentStatus },
-      });
-      setEmployees(employeesData.data);
-      setPages(employeesData?.pagination?.pages || 1);
-    } catch (error) {
-      logger.error({ caller: 'Loading terminated employees', payload: error });
-      toast.error('Error', { description: `${error.message ? error.message : 'Unable to load employees data.'}` });
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, currentStatus, rows]);
-
   const loadActiveEmployees = useCallback(async () => {
     setLoading(true);
     try {
@@ -62,9 +44,27 @@ export function Employees() {
     }
   }, [currentPage, rows]);
 
+  const loadEmployeesByStatus = useCallback(async () => {
+    setLoading(true);
+    try {
+      const employeesData = await employeeService.getEmployees({
+        page: currentPage,
+        rows,
+        options: { status: currentStatus },
+      });
+      setEmployees(employeesData.data);
+      setPages(employeesData?.pagination?.pages || 1);
+    } catch (error) {
+      logger.error({ caller: 'Loading employees by status', payload: error });
+      toast.error('Error', { description: `${error.message ? error.message : 'Unable to load employees data.'}` });
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, currentStatus, rows]);
+
   useEffect(() => {
-    currentStatus === 'active' ? loadActiveEmployees() : loadTerminatedEmployees();
-  }, [currentStatus, loadActiveEmployees, loadTerminatedEmployees]);
+    currentStatus === 'active' ? loadActiveEmployees() : loadEmployeesByStatus();
+  }, [currentStatus, loadActiveEmployees, loadEmployeesByStatus]);
 
   const handleFormSubmit = async (formData) => {
     const { employeeData, createUser } = formData;
@@ -106,7 +106,8 @@ export function Employees() {
       }
       setShowForm(false);
       setEditingEmployee(null);
-      loadTerminatedEmployees();
+      loadActiveEmployees();
+      loadEmployeesByStatus();
     } catch (error) {
       logger.error({ caller: 'Employee page - handleSubmit', payload: error });
       setError(`${error.message || 'Unable to complete request. Kindly contact the administrator'}`);
@@ -141,7 +142,7 @@ export function Employees() {
     if (window.confirm('Are you sure you want to terminate this employee? Their record will be moved to the ex-staff archive.')) {
       try {
         const response = await employeeService.submitModificationRequest(employeeId, { status: 'terminated' });
-        loadTerminatedEmployees();
+        loadEmployeesByStatus();
         toast.success('Success', { description: response.message ?? 'Employee terminated successfully.' });
       } catch (error) {
         setError(`Failed to terminate employee: ${error.message}`);
@@ -185,8 +186,10 @@ export function Employees() {
             }}
           >
             <CardHeader>
-              <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsList className="grid w-full grid-flow-col justify-start">
                 <TabsTrigger value="active">Active Employees</TabsTrigger>
+                <TabsTrigger value="pending_approval">Pending Approval</TabsTrigger>
+                <TabsTrigger value="on_leave">On Leave</TabsTrigger>
                 <TabsTrigger value="terminated">Ex-Staff Archive</TabsTrigger>
               </TabsList>
             </CardHeader>
@@ -206,6 +209,14 @@ export function Employees() {
                       onEdit={handleEdit}
                       onTerminate={handleTerminate}
                       onResendInstructions={handleResendInstructions}
+                    />
+                  </TabsContent>
+                  <TabsContent value="pending_approval">
+                    <EmployeeBioDataTable
+                      employees={employees}
+                      onEdit={handleEdit}
+                      onResendInstructions={handleResendInstructions}
+                      onTerminate={handleTerminate}
                     />
                   </TabsContent>
                   <TabsContent value="terminated">
