@@ -78,10 +78,16 @@ export default function DocumentManagement() {
             const documentsRes = await apiClient.get(apiRoutes.GetDocuments);
 
             const foldersData = foldersRes?.data?.data || foldersRes?.data || [];
-            const documentsData = documentsRes?.data?.data || documentsRes?.data || [];
+            let documentsData = documentsRes?.data?.data || documentsRes?.data || [];
 
             console.log("Loaded folders:", foldersData.length, foldersData);
-            console.log("Loaded documents:", documentsData.length, documentsData);
+            console.log("Loaded documents (raw):", documentsData.length, documentsData);
+            
+            // Ensure each document has a proper id field
+            documentsData = documentsData.map((doc, idx) => ({
+                ...doc,
+                id: doc.id || doc._id || `doc_${idx}`
+            }));
 
             if (isInitialLoad && foldersData.length === 0) {
                 console.log("No folders found, initializing default structure...");
@@ -91,7 +97,14 @@ export default function DocumentManagement() {
                 const newDocsRes = await apiClient.get(apiRoutes.GetDocuments);
                 
                 const newFolders = newFoldersRes?.data?.data || newFoldersRes?.data || [];
-                const newDocs = newDocsRes?.data?.data || newDocsRes?.data || [];
+                let newDocs = newDocsRes?.data?.data || newDocsRes?.data || [];
+                
+                // Ensure each document has a proper id field
+                newDocs = newDocs.map((doc, idx) => ({
+                    ...doc,
+                    id: doc.id || doc._id || `doc_${idx}`
+                }));
+                
                 console.log("After init - Folders:", newFolders.length, "Documents:", newDocs.length);
                 setFolders(newFolders);
                 setDocuments(newDocs);
@@ -171,14 +184,18 @@ export default function DocumentManagement() {
 
     const handleAccessChange = async (doc, newLevel) => {
         try {
-            await apiClient.put(apiRoutes.UpdateDocument(doc.id), { access_level: newLevel });
+            console.log("Updating document:", { docId: doc.id, docName: doc.name, newLevel });
+            const response = await apiClient.put(apiRoutes.UpdateDocument(doc.id), { access_level: newLevel });
+            console.log("Update response:", response);
+            
             setDocuments(prevDocs =>
                 prevDocs.map(d => d.id === doc.id ? { ...d, access_level: newLevel } : d)
             );
             setSuccess(`Document status changed to ${newLevel}.`);
         } catch (error) {
             console.error("Error updating document access level:", error);
-            setError('Failed to update document status.');
+            console.error("Document object:", doc);
+            setError(error?.response?.data?.message || 'Failed to update document status.');
         }
     };
 
