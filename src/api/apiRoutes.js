@@ -127,6 +127,12 @@ export class ApiRoutes {
   static DeleteFolder = (id) => `/v1/hr-documents/folders/${id}`;
 
   static HRDocuments = '/v1/hr-documents';
+  
+  static hrDocumentDeletionRequests = {
+    pending: '/v1/hr-documents/deletion-requests/pending',
+    approve: (id) => `/v1/hr-documents/deletion-requests/${id}/approve`,
+    reject: (id) => `/v1/hr-documents/deletion-requests/${id}/reject`,
+  };
 
   // Onboarding
   static GetOnboardings = '/v1/onboardings';

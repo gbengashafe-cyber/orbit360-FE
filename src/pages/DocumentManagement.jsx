@@ -247,12 +247,19 @@ export default function DocumentManagement() {
     const canView = currentUser && (canManage || true); // All authenticated users can view (with filtering applied server-side)
 
     const loadPendingDeletions = useCallback(async () => {
-        if (!canApproveDeletions) return;
+        console.log('[loadPendingDeletions] Called, canApproveDeletions:', canApproveDeletions);
+        if (!canApproveDeletions) {
+            console.log('[loadPendingDeletions] No approval permissions, returning early');
+            return;
+        }
         
         setLoadingDeletions(true);
         try {
-            const response = await apiClient.get(`${apiRoutes.HRDocuments}/deletion-requests/pending?page=1&rows=50`);
-            const deletions = response?.data?.data || [];
+            console.log('[loadPendingDeletions] Fetching from:', apiRoutes.hrDocumentDeletionRequests.pending);
+            const response = await apiClient.get(`${apiRoutes.hrDocumentDeletionRequests.pending}?page=1&rows=50`);
+            console.log('[loadPendingDeletions] Response:', response);
+            const deletions = response?.data || [];
+            console.log('[loadPendingDeletions] Deletions:', deletions);
             setPendingDeletions(deletions);
         } catch (error) {
             console.error('Error loading pending deletions:', error);
@@ -275,8 +282,8 @@ export default function DocumentManagement() {
         
         try {
             const url = action === 'approve' 
-                ? `${apiRoutes.HRDocuments}/deletion-requests/${deletionId}/approve`
-                : `${apiRoutes.HRDocuments}/deletion-requests/${deletionId}/reject`;
+                ? apiRoutes.hrDocumentDeletionRequests.approve(deletionId)
+                : apiRoutes.hrDocumentDeletionRequests.reject(deletionId);
             
             await apiClient.post(url, {
                 reviewerComment: ''
@@ -287,7 +294,9 @@ export default function DocumentManagement() {
                 : 'Deletion request rejected.';
             
             toast.success(message);
+            // Refresh both pending deletions and documents lists
             await loadPendingDeletions();
+            await loadData(); // Refresh documents to reflect deletion
             setApprovalDialog({ open: false, deletionId: null, action: null });
         } catch (error) {
             console.error(`Error ${approvalDialog.action}ing deletion:`, error);
@@ -598,7 +607,7 @@ export default function DocumentManagement() {
                                             <h3 className="font-semibold text-gray-900">{deletion.itemName}</h3>
                                             <p className="text-sm text-gray-600">
                                                 Type: <span className="font-medium">{deletion.deletionType}</span>
-                                                {' '} • Requested by: <span className="font-medium">User #{deletion.requestedBy}</span>
+                                                {' '} • Requested by: <span className="font-medium">{deletion.requester ? `${deletion.requester.firstName} ${deletion.requester.lastName}` : `User #${deletion.requestedBy}`}</span>
                                             </p>
                                             {deletion.requesterComment && (
                                                 <p className="text-sm text-gray-700 mt-2 italic">
