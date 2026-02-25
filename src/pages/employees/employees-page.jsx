@@ -198,35 +198,21 @@ export function Employees() {
                 <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
                   <div className="flex items-center gap-2 text-blue-700 font-medium">
                     <div className="animate-spin h-5 w-5 border-2 border-blue-700 border-t-transparent rounded-full" />
-                    Loading ...
+                    Loading
                   </div>
                 </div>
               ) : (
                 <>
-                  <TabsContent value="active">
-                    <EmployeeBioDataTable
-                      employees={employees}
-                      onEdit={handleEdit}
-                      onTerminate={handleTerminate}
-                      onResendInstructions={handleResendInstructions}
-                    />
-                  </TabsContent>
-                  <TabsContent value="pending_approval">
-                    <EmployeeBioDataTable
-                      employees={employees}
-                      onEdit={handleEdit}
-                      onResendInstructions={handleResendInstructions}
-                      onTerminate={handleTerminate}
-                    />
-                  </TabsContent>
-                  <TabsContent value="terminated">
-                    <EmployeeBioDataTable
-                      employees={employees}
-                      onEdit={handleEdit}
-                      onTerminate={handleTerminate}
-                      onResendInstructions={handleResendInstructions}
-                    />
-                  </TabsContent>
+                  {['active', 'pending_approval', 'on_leave', 'terminated'].map((_currentPage) => (
+                    <TabsContent value={_currentPage} key={_currentPage}>
+                      <EmployeeBioDataTable
+                        employees={employees}
+                        onEdit={handleEdit}
+                        onTerminate={handleTerminate}
+                        onResendInstructions={handleResendInstructions}
+                      />
+                    </TabsContent>
+                  ))}
                 </>
               )}
             </CardContent>
