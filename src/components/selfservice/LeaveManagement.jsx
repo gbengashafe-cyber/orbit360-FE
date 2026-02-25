@@ -185,7 +185,33 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
 
             setLeaveRequests(requests);
             setEmployees(allEmps);
-            setLeaveBalanceByType(balances);
+            
+            // Default leave entitlements (must match backend defaults)
+            const DEFAULT_LEAVE_ENTITLEMENTS = {
+              annual: 15,
+              sick: 5,
+              maternity: 90,
+              paternity: 5,
+              compassionate: 5,
+              study: 5,
+              unpaid: 0,
+              casual: 5,
+            };
+            
+            // If balances is empty, compute from requests
+            if (!balances || balances.length === 0) {
+              // Get unique leave types from requests
+              const leaveTypes = [...new Set(requests.map(r => r.type || r.leave_type))];
+              const computedBalances = leaveTypes.map((type, idx) => ({
+                id: idx,
+                leaveType: type,
+                totalDays: DEFAULT_LEAVE_ENTITLEMENTS[type] || DEFAULT_LEAVE_ENTITLEMENTS.annual,
+              }));
+              console.log('Computed leave balances:', computedBalances);
+              setLeaveBalanceByType(computedBalances);
+            } else {
+              setLeaveBalanceByType(balances);
+            }
 
             // Calculate total balance for backward compatibility
             if (employee?.annual_leave_entitlement) {
@@ -419,12 +445,12 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                 </button>
             </div>
 
-            {/* Leave Balance Summary - By Type (if available) */}
-            {leaveBalanceByType && leaveBalanceByType.length > 0 ? (
-                <div className="border border-gray-200 rounded-lg shadow-sm p-6">
-                    <h3 className="font-semibold text-lg mb-4">Leave Balance by Type</h3>
-                    <div className="grid grid-cols-3 gap-4">
-                        {leaveBalanceByType.map((balance) => {
+            {/* Leave Balance Summary - Always show summary cards */}
+            <div className="border border-gray-200 rounded-lg shadow-sm p-6">
+                <h3 className="font-semibold text-lg mb-4">Leave Balance Summary</h3>
+                <div className="grid grid-cols-3 gap-4">
+                    {leaveBalanceByType && leaveBalanceByType.length > 0 ? (
+                        leaveBalanceByType.map((balance) => {
                             // Calculate approved days for this leave type
                             const approvedDaysForType = leaveRequests
                                 .filter(req => {
@@ -464,13 +490,9 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                     </div>
                                 </div>
                             );
-                        })}
-                    </div>
-                </div>
-            ) : (
-                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
-                    <CardContent className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        })
+                    ) : (
+                        <>
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-blue-100 rounded-lg">
                                     <Calendar className="w-6 h-6 text-blue-600" />
@@ -512,10 +534,10 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                                     <p className="text-2xl font-bold text-green-600">{leaveBalance} days</p>
                                 </div>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+                        </>
+                    )}
+                </div>
+            </div>
 
             <Card className="bg-white/90 backdrop-blur-sm">
                 <CardHeader>

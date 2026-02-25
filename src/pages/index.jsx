@@ -16,6 +16,7 @@ import EmailCenter from './EmailCenter';
 import { EmployeeCooperative } from './employee-portal/employee-cooperative/cooperative-loan';
 import { Employees } from './employees/employees-page';
 import ExitManagement from './ExitManagement';
+import ExitApprovals from './ExitApprovals';
 import ExpenseApprovals from './ExpenseApprovals';
 import ExpenseDetail from './ExpenseDetail';
 import Expenses from './Expenses';
@@ -38,6 +39,7 @@ import ProjectBoard from './ProjectBoard';
 import Projects from './Projects';
 import PublicJobView from './PublicJobView';
 import Recruitment from './Recruitment';
+import RecruitmentApprovals from './RecruitmentApprovals';
 import RequestTraining from './RequestTraining';
 import ScrollBoard from './ScrollBoard';
 import SmartContentEngine from './SmartContentEngine';
@@ -57,6 +59,8 @@ const PAGES = {
   Payroll: Payroll,
 
   Recruitment: Recruitment,
+
+  RecruitmentApprovals: RecruitmentApprovals,
 
   Employees: Employees,
 
@@ -103,6 +107,8 @@ const PAGES = {
   Appraisals: Appraisals,
 
   ExitManagement: ExitManagement,
+
+  ExitApprovals: ExitApprovals,
 
   InstallApp: InstallApp,
 
@@ -171,6 +177,8 @@ function PagesContent() {
 
         <Route path="/Recruitment" element={<Recruitment />} />
 
+        <Route path="/RecruitmentApprovals" element={<RecruitmentApprovals />} />
+
         <Route path="/Employees" element={<Employees />} />
 
         <Route path="/TaxCalculator" element={<TaxCalculator />} />
@@ -216,6 +224,8 @@ function PagesContent() {
         <Route path="/Appraisals" element={<Appraisals />} />
 
         <Route path="/ExitManagement" element={<ExitManagement />} />
+
+        <Route path="/ExitApprovals" element={<ExitApprovals />} />
 
         <Route path="/InstallApp" element={<InstallApp />} />
 

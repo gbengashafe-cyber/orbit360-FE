@@ -52,7 +52,7 @@ const ApprovalStatusDisplay = ({ title, status, date, comments }) => {
     );
 };
 
-export default function ExitManagement({ employee, onUpdate }) {
+export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }) {
   const [resignationRequests, setResignationRequests] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -69,6 +69,7 @@ export default function ExitManagement({ employee, onUpdate }) {
     outstanding_tasks: '',
     outstanding_approvals: '',
     assets_to_return: '',
+    asset_return_status: 'pending_return',
     salary_balance_notes: '',
     loan_deduction_notes: '',
     leave_encashment_request: false,
@@ -120,6 +121,17 @@ export default function ExitManagement({ employee, onUpdate }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.last_working_date) {
+      showToast.error('Last Working Date is required');
+      return;
+    }
+    if (!formData.assets_to_return || formData.assets_to_return.trim() === '') {
+      showToast.error('Please list your assets or write "None" if no assets assigned');
+      return;
+    }
+    
     const resignationDate = new Date().toISOString().split('T')[0];
     const noticePeriod = formData.last_working_date ? calculateNoticePeriod(resignationDate, formData.last_working_date) : 0;
     
@@ -139,6 +151,7 @@ export default function ExitManagement({ employee, onUpdate }) {
       outstandingTasks: formData.outstanding_tasks,
       outstandingApprovals: formData.outstanding_approvals,
       assetsToReturn: formData.assets_to_return,
+      assetReturnStatus: formData.asset_return_status,
       salaryBalanceNotes: formData.salary_balance_notes,
       loanDeductionNotes: formData.loan_deduction_notes,
       leaveEncashmentRequest: formData.leave_encashment_request,
@@ -187,6 +200,7 @@ export default function ExitManagement({ employee, onUpdate }) {
       outstanding_tasks: '',
       outstanding_approvals: '',
       assets_to_return: '',
+      asset_return_status: 'pending_return',
       salary_balance_notes: '',
       loan_deduction_notes: '',
       leave_encashment_request: false,
@@ -256,7 +270,8 @@ export default function ExitManagement({ employee, onUpdate }) {
                 </FormSection>
 
                 <FormSection title="Asset & Company Property Return" icon={<Briefcase className="text-blue-600"/>}>
-                   <div><Label>List of items to return (laptops, phones, ID cards, etc.)</Label><Textarea value={formData.assets_to_return} onChange={(e) => setFormData({...formData, assets_to_return: e.target.value})} rows={3} placeholder="Please list all company assets in your possession."/></div>
+                   <div><Label>List of items to return (laptops, phones, ID cards, etc.) <span className="text-red-500">*</span></Label><Textarea value={formData.assets_to_return} onChange={(e) => setFormData({...formData, assets_to_return: e.target.value})} rows={3} placeholder="Please list all company assets in your possession. If none, write 'None' or 'No assets assigned'"/></div>
+                   <div><Label>Asset Return Status</Label><Select value={formData.asset_return_status} onValueChange={(value) => setFormData({...formData, asset_return_status: value})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="not_applicable">Not Applicable (No Assets Assigned)</SelectItem><SelectItem value="pending_return">Pending Return</SelectItem><SelectItem value="returned">Returned</SelectItem><SelectItem value="not_returned">Not Returned</SelectItem></SelectContent></Select></div>
                 </FormSection>
 
                 <FormSection title="Financial & Benefits Clearance" icon={<Landmark className="text-blue-600"/>}>
@@ -314,8 +329,70 @@ export default function ExitManagement({ employee, onUpdate }) {
                 </div>
                 <div className="p-4 border rounded-lg">
                     <h3 className="font-semibold text-lg mb-2">Handover</h3>
-                    <p><strong>Status:</strong> {activeRequest.handoverStatus}</p>
-                    <p><strong>Recipient:</strong> {activeRequest.handoverRecipientName}</p>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1"><strong>Status:</strong></p>
+                        <Select value={activeRequest.handoverStatus || 'in_progress'} onValueChange={async (value) => {
+                          try {
+                            await apiClient.put(apiRoutes.UpdateExit(activeRequest.id), {
+                              handoverStatus: value
+                            });
+                            showToast.success('Handover status updated successfully');
+                            loadData();
+                          } catch (error) {
+                            console.error('Error updating handover status:', error);
+                            showToast.error('Failed to update handover status');
+                          }
+                        }}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="yes">Completed</SelectItem>
+                            <SelectItem value="no">Not Started</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-sm"><strong>Recipient:</strong> {activeRequest.handoverRecipientName || 'N/A'}</p>
+                    </div>
+                </div>
+                <div className="p-4 border rounded-lg">
+                    <h3 className="font-semibold text-lg mb-2">Asset Return</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1"><strong>Status:</strong></p>
+                        {isHrAdmin ? (
+                          <Select value={activeRequest.assetReturnStatus || 'pending_return'} onValueChange={async (value) => {
+                            try {
+                              await apiClient.put(apiRoutes.UpdateExit(activeRequest.id), {
+                                assetReturnStatus: value
+                              });
+                              showToast.success('Asset return status updated successfully');
+                              loadData();
+                            } catch (error) {
+                              console.error('Error updating asset return status:', error);
+                              showToast.error('Failed to update asset return status');
+                            }
+                          }}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="not_applicable">Not Applicable (No Assets Assigned)</SelectItem>
+                              <SelectItem value="pending_return">Pending Return</SelectItem>
+                              <SelectItem value="returned">Returned</SelectItem>
+                              <SelectItem value="not_returned">Not Returned</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="p-2 bg-gray-100 rounded border text-gray-700">
+                            {activeRequest.assetReturnStatus === 'not_applicable' && 'Not Applicable (No Assets Assigned)'}
+                            {activeRequest.assetReturnStatus === 'pending_return' && 'Pending Return'}
+                            {activeRequest.assetReturnStatus === 'returned' && 'Returned'}
+                            {activeRequest.assetReturnStatus === 'not_returned' && 'Not Returned'}
+                            {!activeRequest.assetReturnStatus && 'Pending Return'}
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm"><strong>Items:</strong> {activeRequest.assetsToReturn || 'None listed'}</p>
+                    </div>
                 </div>
                  <div className="p-4 border rounded-lg">
                     <h3 className="font-semibold text-lg mb-2">Feedback</h3>
