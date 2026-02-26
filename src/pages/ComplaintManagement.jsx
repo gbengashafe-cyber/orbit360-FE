@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { complaintService } from '@/api/complaint.service';
 import { apiClient, apiRoutes } from '@/api';
+import { useNotification } from '@/context/NotificationContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ import {
 import { CheckCircle, AlertTriangle, Eye } from 'lucide-react';
 
 export default function ComplaintManagement() {
+  const { addNotification } = useNotification();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -54,10 +56,9 @@ export default function ComplaintManagement() {
       const response = await complaintService.getComplaints(1, 100, filters);
       const data = response.data || response;
       setComplaints(Array.isArray(data) ? data : []);
-      setError('');
     } catch (error) {
       console.error('Error loading complaints:', error);
-      setError('Failed to load complaints');
+      addNotification('Failed to load complaints', 'error');
       setComplaints([]);
     } finally {
       setLoading(false);
@@ -76,12 +77,10 @@ export default function ComplaintManagement() {
   const handleUpdateComplaint = async () => {
     if (!selectedComplaint) return;
     setUpdating(true);
-    setError('');
-    setSuccess('');
 
     try {
       if (updateData.status === 'resolved' && !updateData.resolution_notes) {
-        setError('Resolution notes are required when marking as resolved');
+        addNotification('Resolution notes are required when marking as resolved', 'warning');
         setUpdating(false);
         return;
       }
@@ -98,12 +97,12 @@ export default function ComplaintManagement() {
         await complaintService.updateComplaint(selectedComplaint.id, payload);
       }
 
-      setSuccess('Complaint updated successfully');
+      addNotification('Complaint updated successfully', 'success');
       setShowDetailsModal(false);
       loadComplaints();
     } catch (error) {
       console.error('Error updating complaint:', error);
-      setError('Failed to update complaint');
+      addNotification('Failed to update complaint', 'error');
     } finally {
       setUpdating(false);
     }

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { complaintService } from '@/api/complaint.service';
 import { apiClient, apiRoutes } from '@/api';
+import { useNotification } from '@/context/NotificationContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,14 +30,15 @@ import {
 import { FileText, Plus, AlertTriangle, Clock, CheckCircle, Upload } from 'lucide-react';
 
 export default function StaffComplaints() {
-    const [complaints, setComplaints] = useState([]);
-    const [currentUser, setCurrentUser] = useState(null);
-    const [currentEmployee, setCurrentEmployee] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [showForm, setShowForm] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [success, setSuccess] = useState('');
-    const [error, setError] = useState('');
+  const { addNotification } = useNotification();
+  const [complaints, setComplaints] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [currentEmployee, setCurrentEmployee] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
 
     const [formData, setFormData] = useState({
         complaint_type: '',
@@ -100,7 +102,7 @@ export default function StaffComplaints() {
 
             const response = await complaintService.createComplaint(complaintData);
 
-            setSuccess('Your complaint has been submitted successfully. You will receive updates on its status.');
+            addNotification('Your complaint has been submitted successfully. You will receive updates on its status.', 'success');
             setShowForm(false);
             setFormData({
                 complaint_type: '',
@@ -113,8 +115,8 @@ export default function StaffComplaints() {
             });
             loadData();
         } catch (error) {
-            setError('Failed to submit complaint. Please try again.');
-            console.error('Error submitting complaint:', error);
+          addNotification('Failed to submit complaint. Please try again.', 'error');
+          console.error('Error submitting complaint:', error);
         } finally {
             setSubmitting(false);
         }
