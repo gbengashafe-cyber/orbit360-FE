@@ -36,11 +36,11 @@ export const NotificationBar = () => {
   };
 
   return (
-    <div className="fixed top-20 right-4 z-50 space-y-2 max-w-md">
+    <div className="fixed top-16 right-4 z-50 space-y-2 max-w-md">
       {notifications.map((notification) => (
         <div
           key={notification.id}
-          className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg animate-in slide-in-from-top ${getStyles(
+          className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg ${getStyles(
             notification.type
           )}`}
         >

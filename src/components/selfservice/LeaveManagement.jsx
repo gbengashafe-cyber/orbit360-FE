@@ -281,14 +281,14 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
 
             // Build FormData for multipart upload
             const formDataPayload = new FormData();
-            formDataPayload.append('employeeId', employee.id);
+            formDataPayload.append('employeeId', parseInt(employee.id, 10));
             formDataPayload.append('type', leaveType);
             formDataPayload.append('startDate', formData.start_date);
             formDataPayload.append('endDate', formData.end_date);
             formDataPayload.append('reason', formData.reason);
             formDataPayload.append('leave_period', formData.leave_period);
-            if (formData.selected_supervisor_id) formDataPayload.append('selected_supervisor_id', formData.selected_supervisor_id);
-            if (formData.covering_employee_id) formDataPayload.append('covering_employee_id', formData.covering_employee_id);
+            if (formData.selected_supervisor_id) formDataPayload.append('selected_supervisor_id', parseInt(formData.selected_supervisor_id, 10));
+            if (formData.covering_employee_id) formDataPayload.append('covering_employee_id', parseInt(formData.covering_employee_id, 10));
             if (formData.handover_notes) formDataPayload.append('handover_notes', formData.handover_notes);
             if (formData.emergency_contact) formDataPayload.append('emergency_contact', formData.emergency_contact);
             if (formData.alternative_email) formDataPayload.append('alternative_email', formData.alternative_email);
