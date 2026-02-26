@@ -88,6 +88,10 @@ const supervisorNav = [
   { title: 'Exit Approvals', url: '/ExitApprovals', icon: UserRoundX },
 ];
 
+const hrManagerNav = [
+  { title: 'Complaint Management', url: createPageUrl('ComplaintManagement'), icon: MessageSquareHeart },
+];
+
 const adminNav = [
   { title: 'User Management', url: createPageUrl('UserManagement'), icon: Users },
   { title: 'Install App', url: createPageUrl('InstallApp'), icon: Download },
@@ -99,11 +103,13 @@ const LayoutContent = ({ children }) => {
   const [isHrNavOpen, setHrNavOpen] = useState(false);
   const [isEmployeePortalNavOpen, setEmployeePortalNavOpen] = useState(false);
   const [isSupervisorNavOpen, setIsSupervisorNavOpen] = useState(false);
+  const [isHrManagerNavOpen, setIsHrManagerNavOpen] = useState(false);
   const [isAdminNavOpen, setIsAdminNavOpen] = useState(false);
 
   const { currentUser, isAdmin, isLoadingUser } = useGlobalContext();
 
   const isSupervisor = currentUser?.permissions?.includes('APPROVE_EXITS');
+  const isHrManager = currentUser?.permissions?.includes('MANAGE_COMPLAINTS');
 
   useEffect(() => {
     const path = location.pathname;
@@ -111,6 +117,7 @@ const LayoutContent = ({ children }) => {
     setHrNavOpen(hrNav.some((item) => path === item.url) || isDashboard);
     setEmployeePortalNavOpen(employeePortalNav.some((item) => path === item.url));
     setIsSupervisorNavOpen(supervisorNav.some((item) => path === item.url));
+    setIsHrManagerNavOpen(hrManagerNav.some((item) => path === item.url));
     setIsAdminNavOpen(adminNav.some((item) => path === item.url));
   }, [location.pathname]);
 
@@ -235,6 +242,9 @@ const LayoutContent = ({ children }) => {
           />
           {isSupervisor && (
             <NavGroup title="Supervisor" isOpen={isSupervisorNavOpen} onOpenChange={setIsSupervisorNavOpen} navItems={supervisorNav} />
+          )}
+          {isHrManager && (
+            <NavGroup title="HR Manager" isOpen={isHrManagerNavOpen} onOpenChange={setIsHrManagerNavOpen} navItems={hrManagerNav} />
           )}
           {isAdmin && (
             <NavGroup title="Administration" isOpen={isAdminNavOpen} onOpenChange={setIsAdminNavOpen} navItems={adminNav} />

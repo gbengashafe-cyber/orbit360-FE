@@ -45,6 +45,7 @@ import ScrollBoard from './ScrollBoard';
 import SmartContentEngine from './SmartContentEngine';
 import SocialHub from './SocialHub';
 import StaffComplaints from './StaffComplaints';
+import ComplaintManagement from './ComplaintManagement';
 import StaffMovement from './StaffMovement';
 import TaxCalculator from './TaxCalculator';
 import UserManagement from './UserManagement';
@@ -115,6 +116,8 @@ const PAGES = {
   ScrollBoard: ScrollBoard,
 
   StaffComplaints: StaffComplaints,
+
+  ComplaintManagement: ComplaintManagement,
 
   RequestTraining: RequestTraining,
 
@@ -232,6 +235,8 @@ function PagesContent() {
         <Route path="/ScrollBoard" element={<ScrollBoard />} />
 
         <Route path="/StaffComplaints" element={<StaffComplaints />} />
+
+        <Route path="/ComplaintManagement" element={<ComplaintManagement />} />
 
         <Route path="/RequestTraining" element={<RequestTraining />} />
 
