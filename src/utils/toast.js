@@ -1,31 +1,32 @@
-import { toast } from 'sonner';
+// Toast utility that uses NotificationContext via a helper
+let notificationCallback = null;
+
+export const setNotificationCallback = (callback) => {
+  notificationCallback = callback;
+};
 
 export const showToast = {
   success: (message, title = 'Success') => {
-    toast.success(title, {
-      description: message,
-      duration: 3000,
-    });
+    if (notificationCallback) {
+      notificationCallback(`${title}: ${message}`, 'success', 3000);
+    }
   },
 
   error: (message, title = 'Error') => {
-    toast.error(title, {
-      description: message,
-      duration: 4000,
-    });
+    if (notificationCallback) {
+      notificationCallback(`${title}: ${message}`, 'error', 4000);
+    }
   },
 
   info: (message, title = 'Info') => {
-    toast.info(title, {
-      description: message,
-      duration: 3000,
-    });
+    if (notificationCallback) {
+      notificationCallback(`${title}: ${message}`, 'info', 3000);
+    }
   },
 
   warning: (message, title = 'Warning') => {
-    toast.warning(title, {
-      description: message,
-      duration: 3500,
-    });
+    if (notificationCallback) {
+      notificationCallback(`${title}: ${message}`, 'warning', 3500);
+    }
   },
 };
