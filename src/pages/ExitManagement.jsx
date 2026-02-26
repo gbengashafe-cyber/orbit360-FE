@@ -46,22 +46,20 @@ export default function ExitManagementPage() {
         userEmployeeRecord = allEmpsData.find(e => e.email === user.email) || null;
         setAllEmployees(allEmpsData);
       } else {
-         // For regular employees, use the user service to get their employee data
-         try {
-           const empData = await employeeService.getUserEmployeeData();
-           userEmployeeRecord = empData?.data || empData;
-           
-           // Add department information if missing
-           if (userEmployeeRecord && !userEmployeeRecord.departmentName) {
-             // Try to get department name from department object or ID
-             userEmployeeRecord.departmentName = userEmployeeRecord.department?.name || 
-                                                  userEmployeeRecord.departmentName || 
-                                                  'N/A';
-           }
-         } catch (err) {
-           console.warn('Could not fetch user employee data:', err);
-         }
-       }
+        try {
+          const empData = await employeeService.getUserEmployeeData();
+          userEmployeeRecord = empData?.data || empData;
+
+          // Add department information if missing
+          if (userEmployeeRecord && !userEmployeeRecord.departmentName) {
+            userEmployeeRecord.departmentName = userEmployeeRecord.department?.name ||
+              userEmployeeRecord.departmentName ||
+              'N/A';
+          }
+        } catch (err) {
+          console.warn('Could not fetch user employee data:', err);
+        }
+      }
 
       // Check if HR admin
       setIsHrAdmin(userIsHrAdmin);
@@ -114,7 +112,7 @@ export default function ExitManagementPage() {
       setLoading(false);
     }
   };
-  
+
   if (loading) {
     return <div className="p-8 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700 mx-auto"></div></div>;
   }
@@ -138,19 +136,19 @@ export default function ExitManagementPage() {
 
         {isHrAdmin && (
           <div className="flex flex-col md:flex-row items-center justify-between bg-blue-50 border border-blue-200 p-4 rounded-xl gap-4">
-             <p className="text-sm font-medium text-blue-800">Admin: You are viewing an employee portal.</p>
+            <p className="text-sm font-medium text-blue-800">Admin: You are viewing an employee portal.</p>
             <div className="w-full md:w-72">
-                <Select value={selectedEmployeeId} onValueChange={handleEmployeeSwitch}>
-                    <SelectTrigger className="bg-white"><SelectValue placeholder="View as..." /></SelectTrigger>
-                    <SelectContent>
-                        {selfEmployeeRecord && <SelectItem value="self">View My Portal ({selfEmployeeRecord.firstName} {selfEmployeeRecord.lastName})</SelectItem>}
-                        {allEmployees.map(emp => (<SelectItem key={emp.id} value={String(emp.id)}>{emp.firstName} {emp.lastName} ({emp.staffId || 'N/A'})</SelectItem>))}
-                    </SelectContent>
-                </Select>
+              <Select value={selectedEmployeeId} onValueChange={handleEmployeeSwitch}>
+                <SelectTrigger className="bg-white"><SelectValue placeholder="View as..." /></SelectTrigger>
+                <SelectContent>
+                  {selfEmployeeRecord && <SelectItem value="self">View My Portal ({selfEmployeeRecord.firstName} {selfEmployeeRecord.lastName})</SelectItem>}
+                  {allEmployees.map(emp => (<SelectItem key={emp.id} value={String(emp.id)}>{emp.firstName} {emp.lastName} ({emp.staffId || 'N/A'})</SelectItem>))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )}
-        
+
         <ExitManagementComponent employee={currentEmployeeData} isHrAdmin={isHrAdmin} onUpdate={loadBaseData} />
       </div>
     </div>

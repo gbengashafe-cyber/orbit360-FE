@@ -61,6 +61,9 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
     const [pendingSubmitData, setPendingSubmitData] = useState(null);
     const [showHandoverWarning, setShowHandoverWarning] = useState(false);
     const [pendingHandoverStatus, setPendingHandoverStatus] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const [formData, setFormData] = useState({
         last_working_date: '',
@@ -99,17 +102,27 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
         }
     };
 
-    const handleDelete = async (requestId) => {
-        if (window.confirm('Are you sure you want to delete this exit request? This action cannot be undone.')) {
-            try {
-                await apiClient.delete(apiRoutes.DeleteExit(requestId));
-                showToast.success('Exit request deleted successfully', 'Success');
-                loadData();
-                if (onUpdate) onUpdate();
-            } catch (error) {
-                console.error('Error deleting exit request:', error);
-                showToast.error('Failed to delete exit request. Please try again.', 'Error');
-            }
+    const handleDelete = (requestId) => {
+        setPendingDeleteId(requestId);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!pendingDeleteId) return;
+
+        setIsDeleting(true);
+        try {
+            await apiClient.delete(apiRoutes.DeleteExit(pendingDeleteId));
+            showToast.success('Exit request deleted successfully', 'Success');
+            setShowDeleteModal(false);
+            setPendingDeleteId(null);
+            loadData();
+            if (onUpdate) onUpdate();
+        } catch (error) {
+            console.error('Error deleting exit request:', error);
+            showToast.error('Failed to delete exit request. Please try again.', 'Error');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -541,6 +554,45 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
                             className="bg-red-600 hover:bg-red-700"
                         >
                             {isSubmitting ? 'Submitting...' : 'Confirm Submission'}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Modal */}
+            <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-red-600" />
+                            Delete Exit Request
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <Alert className="border-red-200 bg-red-50">
+                            <AlertCircle className="h-4 w-4 text-red-600" />
+                            <AlertDescription className="text-red-700">
+                                Are you sure you want to delete this exit request? This action cannot be undone.
+                            </AlertDescription>
+                        </Alert>
+                    </div>
+                    <div className="flex gap-3 justify-end">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowDeleteModal(false);
+                                setPendingDeleteId(null);
+                            }}
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={confirmDelete}
+                            disabled={isDeleting}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isDeleting ? 'Deleting...' : 'Delete'}
                         </Button>
                     </div>
                 </DialogContent>
