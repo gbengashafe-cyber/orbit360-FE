@@ -16,8 +16,8 @@ const Payslip = ({ payrollRecord, employee }) => {
           </p>
         </div>
         <div className="text-right">
-          <h2 className="text-lg font-semibold text-blue-700">Orbit360</h2>
-          <p className="text-xs text-gray-500">123 Innovation Drive, Lagos, Nigeria</p>
+          <h2 className="text-lg font-semibold text-blue-700">Famous Group</h2>
+          <p className="text-xs text-gray-500">Nigeria</p>
         </div>
       </div>
 
