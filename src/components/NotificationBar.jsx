@@ -5,6 +5,8 @@ import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 export const NotificationBar = () => {
   const { notifications, removeNotification } = useNotification();
 
+  console.log('🔔 NotificationBar - Current notifications:', notifications);
+
   const getIcon = (type) => {
     switch (type) {
       case 'success':

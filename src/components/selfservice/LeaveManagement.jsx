@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { leaveService, departmentService } from '@/api';
 import { showToast } from '@/utils/toast';
+import { useNotification } from '@/context/NotificationContext';
 import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay } from '@/utils/leaveCalculator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -102,6 +103,9 @@ FileUploader.propTypes = {
 };
 
 export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, leaveBalance: preLoadedBalance }) {
+    const notificationContext = useNotification();
+    const { addNotification } = notificationContext;
+    console.log('📝 LeaveManagement - Notification context:', notificationContext);
     const [leaveRequests, setLeaveRequests] = useState(preLoadedLeaves || []);
     const [employees, setEmployees] = useState([]);
     const [leaveBalance, setLeaveBalance] = useState(preLoadedBalance || 0);
@@ -318,17 +322,21 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             // Backend automatically sends emails to supervisor, HR, and employee
             // No need to send emails from frontend
 
-            showToast.success(
+            console.log('🎉 Calling addNotification with success message');
+            addNotification(
                 'Leave request submitted successfully! Notification emails have been sent to your supervisor and HR.',
-                'Success',
+                'success'
             );
+            console.log('✅ addNotification called');
             setShowForm(false);
             resetForm();
             loadData();
             if (onUpdate) onUpdate();
         } catch (error) {
             logger.error({ caller: 'Error submitting leave request:', payload: error });
-            setFormError(error.response?.data?.message || error.message || 'Failed to submit leave request');
+            const errorMsg = error.response?.data?.message || error.message || 'Failed to submit leave request';
+            addNotification(errorMsg, 'error');
+            setFormError(errorMsg);
         } finally {
             setIsSubmitting(false);
         }

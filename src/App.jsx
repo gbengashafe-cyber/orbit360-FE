@@ -1,14 +1,31 @@
 import Pages from '@/pages/index.jsx';
-import { Toaster } from 'sonner';
-import { NotificationProvider } from '@/context/NotificationContext';
+import { NotificationProvider, useNotification } from '@/context/NotificationContext';
 import { NotificationBar } from '@/components/NotificationBar';
+import { useEffect } from 'react';
+import { setNotificationCallback } from '@/utils/toast';
+
+function AppContent() {
+  const { addNotification } = useNotification();
+
+  useEffect(() => {
+    // Set up the notification callback for the toast utility
+    setNotificationCallback((message, type, duration) => {
+      addNotification(message, type, duration);
+    });
+  }, [addNotification]);
+
+  return (
+    <>
+      <NotificationBar />
+      <Pages />
+    </>
+  );
+}
 
 function App() {
   return (
     <NotificationProvider>
-      <NotificationBar />
-      <Pages />
-      <Toaster />
+      <AppContent />
     </NotificationProvider>
   );
 }
