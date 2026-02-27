@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { userService, employeeService } from '@/api';
+import { userService, employeeService, trainingService } from '@/api';
 import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { GraduationCap, Plus, BookOpen, CheckCircle, AlertTriangle } from 'lucide-react';
+import { GraduationCap, Plus, BookOpen, CheckCircle, Clock, AlertTriangle, Eye } from 'lucide-react';
 
 export default function RequestTraining() {
     const [requests, setRequests] = useState([]);
@@ -36,17 +36,17 @@ export default function RequestTraining() {
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
+    const [activeTab, setActiveTab] = useState('my_requests');
 
     // Approval states
     const [approvalModal, setApprovalModal] = useState({
         open: false,
         requestId: null,
-        type: null,
+        type: null, // 'supervisor', 'hr', 'final'
     });
     const [rejectionReason, setRejectionReason] = useState('');
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [requestsNeedingApproval, setRequestsNeedingApproval] = useState([]);
-    const [isApproving, setIsApproving] = useState(false);
 
     const [formData, setFormData] = useState({
         training_type: '',
@@ -61,7 +61,7 @@ export default function RequestTraining() {
         external_provider: '',
         priority: 'medium',
         request_scope: 'self',
-        team_count: ''
+        team_count: 0
     });
 
     useEffect(() => {
@@ -80,13 +80,8 @@ export default function RequestTraining() {
             setCurrentEmployee(employeeRecord);
 
             try {
-                const response = await fetch('/api/v1/training-requests', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
-                    }
-                });
-                const result = await response.json();
-                const allRequests = result?.data || [];
+                const requestsResponse = await trainingService.getRequests();
+                const allRequests = requestsResponse?.data || requestsResponse || [];
                 setRequests(allRequests);
 
                 // Filter requests needing approval based on user role
@@ -126,11 +121,6 @@ export default function RequestTraining() {
             return;
         }
 
-        if (formData.request_scope === 'team' && !formData.team_count) {
-            setError('Team count is required for team scope.');
-            return;
-        }
-
         setSubmitting(true);
         setError('');
         setSuccess('');
@@ -153,19 +143,7 @@ export default function RequestTraining() {
                 numberOfTeamMembers: formData.request_scope === 'team' ? parseInt(formData.team_count) : 0
             };
 
-            const response = await fetch('/api/v1/training-requests', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to submit request');
-            }
+            await trainingService.submitRequest(requestData);
 
             showToast.success('Your training request has been submitted successfully!', 'Success');
             setSuccess('Your training request has been submitted successfully. You will receive updates on its status.');
@@ -184,12 +162,12 @@ export default function RequestTraining() {
                 external_provider: '',
                 priority: 'medium',
                 request_scope: 'self',
-                team_count: ''
+                team_count: 0
             });
 
             await loadData();
         } catch (error) {
-            const errorMessage = error?.message || 'Failed to submit training request. Please try again.';
+            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to submit training request. Please try again.';
             setError(errorMessage);
             showToast.error(errorMessage, 'Error');
             console.error('Error submitting training request:', error);
@@ -204,27 +182,46 @@ export default function RequestTraining() {
             return;
         }
 
-        setIsApproving(true);
         try {
-            const endpoint = currentUser?.role === 'supervisor' || currentUser?.role === 'admin' || currentUser?.role === 'admin_officer'
-                ? `/api/v1/training-requests/${requestId}/supervisor-approval`
-                : `/api/v1/training-requests/${requestId}/hr-approval`;
-
-            const response = await fetch(endpoint, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
-                },
-                body: JSON.stringify({
-                    approved,
-                    rejectionReason: approved ? null : rejectionReason
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to process approval');
+            if (approvalModal.type === 'supervisor') {
+                // Call supervisor approval endpoint
+                await fetch(`/api/v1/training-requests/${requestId}/supervisor-approval`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
+                    },
+                    body: JSON.stringify({
+                        approved,
+                        rejectionReason: approved ? null : rejectionReason
+                    })
+                });
+            } else if (approvalModal.type === 'hr') {
+                // Call HR approval endpoint
+                await fetch(`/api/v1/training-requests/${requestId}/hr-approval`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
+                    },
+                    body: JSON.stringify({
+                        approved,
+                        rejectionReason: approved ? null : rejectionReason
+                    })
+                });
+            } else if (approvalModal.type === 'final') {
+                // Call final approval endpoint
+                await fetch(`/api/v1/training-requests/${requestId}/final-approval`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
+                    },
+                    body: JSON.stringify({
+                        approved,
+                        rejectionReason: approved ? null : rejectionReason
+                    })
+                });
             }
 
             showToast.success(`Request ${approved ? 'approved' : 'rejected'} successfully!`, 'Success');
@@ -234,8 +231,6 @@ export default function RequestTraining() {
         } catch (error) {
             showToast.error('Failed to process approval: ' + error.message, 'Error');
             console.error('Error processing approval:', error);
-        } finally {
-            setIsApproving(false);
         }
     };
 
@@ -311,6 +306,8 @@ export default function RequestTraining() {
                                                 <SelectItem value="soft_skills">Soft Skills</SelectItem>
                                                 <SelectItem value="leadership">Leadership</SelectItem>
                                                 <SelectItem value="compliance">Compliance</SelectItem>
+                                                <SelectItem value="safety">Safety</SelectItem>
+                                                <SelectItem value="software_training">Software Training</SelectItem>
                                                 <SelectItem value="certification">Certification</SelectItem>
                                                 <SelectItem value="professional_development">Professional Development</SelectItem>
                                                 <SelectItem value="other">Other</SelectItem>
@@ -356,6 +353,7 @@ export default function RequestTraining() {
                                             value={formData.team_count}
                                             onChange={(e) => setFormData({ ...formData, team_count: e.target.value })}
                                             placeholder="Enter number of team members"
+                                            required={formData.request_scope === 'team'}
                                         />
                                     </div>
                                 )}
@@ -390,7 +388,7 @@ export default function RequestTraining() {
                                         value={formData.business_justification}
                                         onChange={(e) => setFormData({ ...formData, business_justification: e.target.value })}
                                         placeholder="Explain how this benefits..."
-                                        className="h-20"
+                                        className="h-24"
                                     />
                                 </div>
 
@@ -539,12 +537,23 @@ export default function RequestTraining() {
                                                         className="bg-green-600 hover:bg-green-700"
                                                         onClick={() => {
                                                             setSelectedRequest(request);
-                                                            setApprovalModal({ open: true, requestId: request.id, type: 'approval' });
+                                                            setApprovalModal({ open: true, requestId: request.id, type: currentUser?.role === 'hr_officer' || currentUser?.role === 'hr_manager' ? 'hr' : 'supervisor' });
                                                         }}
                                                     >
-                                                        Review
+                                                        Approve
                                                     </Button>
-                                                </TableCell>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="text-red-600 border-red-600"
+                                                        onClick={() => {
+                                                            setSelectedRequest(request);
+                                                            setApprovalModal({ open: true, requestId: request.id, type: currentUser?.role === 'hr_officer' || currentUser?.role === 'hr_manager' ? 'hr' : 'supervisor' });
+                                                        }}
+                                                    >
+                                                        Reject
+                                                    </Button>
+                                                </TableBody>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -624,27 +633,21 @@ export default function RequestTraining() {
                     </DialogHeader>
                     <div className="space-y-4">
                         <div>
-                            <Label className="text-sm text-gray-600">Current Status</Label>
+                            <Label className="text-sm text-gray-600">Status</Label>
                             <Badge className={getStatusColor(selectedRequest?.status)}>
                                 {(selectedRequest?.status || '').replace('_', ' ')}
                             </Badge>
                         </div>
 
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600"><strong>Type:</strong> {selectedRequest?.trainingType}</p>
-                            <p className="text-sm text-gray-600"><strong>Priority:</strong> {selectedRequest?.priority}</p>
-                            <p className="text-sm text-gray-600"><strong>Cost:</strong> ₦{selectedRequest?.estimatedCost}</p>
-                        </div>
-
                         <div>
                             <Label htmlFor="rejection_reason">
-                                Rejection Reason (Required only if rejecting)
+                                Rejection Reason (Required if rejecting)
                             </Label>
                             <Textarea
                                 id="rejection_reason"
                                 value={rejectionReason}
                                 onChange={(e) => setRejectionReason(e.target.value)}
-                                placeholder="Provide a reason if you're rejecting this request..."
+                                placeholder="Enter reason for rejection..."
                                 className="h-24 mt-2"
                             />
                         </div>
@@ -653,24 +656,18 @@ export default function RequestTraining() {
                             <Button
                                 className="flex-1 bg-green-600 hover:bg-green-700"
                                 onClick={() => handleApproval(selectedRequest.id, true)}
-                                disabled={isApproving}
                             >
-                                {isApproving ? 'Processing...' : 'Approve'}
+                                Approve
                             </Button>
                             <Button
                                 className="flex-1 bg-red-600 hover:bg-red-700"
                                 onClick={() => handleApproval(selectedRequest.id, false)}
-                                disabled={isApproving}
                             >
-                                {isApproving ? 'Processing...' : 'Reject'}
+                                Reject
                             </Button>
                             <Button
                                 variant="outline"
-                                onClick={() => {
-                                    setApprovalModal({ open: false, requestId: null, type: null });
-                                    setRejectionReason('');
-                                }}
-                                disabled={isApproving}
+                                onClick={() => setApprovalModal({ open: false, requestId: null, type: null })}
                             >
                                 Cancel
                             </Button>

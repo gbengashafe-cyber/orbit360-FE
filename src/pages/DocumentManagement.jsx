@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { showToast } from '@/utils/toast';
 import { userService } from '@/api';
 import { apiClient, apiRoutes } from '@/api';
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import ApprovalActionDialog from './ApprovalActionDialog';
 
 
 const defaultFolders = [
@@ -58,7 +59,7 @@ export default function DocumentManagement() {
     const [loadingDeletions, setLoadingDeletions] = useState(false);
     const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ open: false, itemId: null, itemName: '', itemType: 'document' });
     const [approvalDialog, setApprovalDialog] = useState({ open: false, deletionId: null, action: null });
-    const rejectionReasonRef = useRef('');
+    const [rejectionReason, setRejectionReason] = useState('');
 
     const initializeDefaultStructure = useCallback(async () => {
         try {
@@ -357,10 +358,9 @@ export default function DocumentManagement() {
 
     const handleConfirmApprovalAction = async () => {
         const { deletionId, action } = approvalDialog;
-        const currentReason = rejectionReasonRef.current;
         
         // Validate rejection reason if rejecting
-        if (action === 'reject' && (!currentReason || currentReason.trim() === '')) {
+        if (action === 'reject' && (!rejectionReason || rejectionReason.trim() === '')) {
             showToast.error('Rejection reason is mandatory.');
             return;
         }
@@ -374,28 +374,29 @@ export default function DocumentManagement() {
             console.log(`[AUDIT] Document deletion ${action}:`, { 
                 deletionId, 
                 action, 
-                rejectionReason: action === 'reject' ? currentReason : null,
+                rejectionReason: action === 'reject' ? rejectionReason : null,
                 timestamp: new Date().toISOString(),
                 user: currentUser?.email 
             });
             
             await apiClient.post(url, {
-                reviewerComment: action === 'reject' ? currentReason : ''
+                reviewerComment: action === 'reject' ? rejectionReason : ''
             });
             
             const message = action === 'approve' 
                 ? 'Deletion request approved and document/folder deleted.'
-                : `Deletion request rejected. Reason: ${currentReason}`;
+                : `Deletion request rejected. Reason: ${rejectionReason}`;
             
             showToast.success(message);
             // Refresh both pending deletions and documents lists
             await loadPendingDeletions();
             await loadData(); // Refresh documents to reflect deletion
             setApprovalDialog({ open: false, deletionId: null, action: null });
-            rejectionReasonRef.current = '';
+            setRejectionReason('');
         } catch (error) {
             console.error(`Error ${approvalDialog.action}ing deletion:`, error);
-            showToast.error(`Failed to ${approvalDialog.action} deletion request.`);
+            const errorMsg = error?.response?.data?.message || `Failed to ${approvalDialog.action} deletion request.`;
+            showToast.error(errorMsg);
         }
     };
 
@@ -439,64 +440,7 @@ export default function DocumentManagement() {
         </Dialog>
     );
 
-    // Approval action dialog (for HR managers approving/rejecting deletions)
-    const ApprovalActionDialog = () => (
-        <Dialog open={approvalDialog.open} onOpenChange={(open) => {
-            if (!open) {
-                setApprovalDialog({ open: false, deletionId: null, action: null });
-                rejectionReasonRef.current = '';
-            }
-        }}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>
-                        {approvalDialog.action === 'approve' ? 'Approve Deletion Request' : 'Reject Deletion Request'}
-                    </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                    <p className="text-gray-700">
-                        {approvalDialog.action === 'approve' 
-                            ? 'This will permanently delete the document/folder. This action cannot be undone.'
-                            : 'The deletion request will be rejected and the document/folder will remain intact.'}
-                    </p>
-                    {approvalDialog.action === 'reject' && (
-                        <div>
-                            <Label htmlFor="rejection-reason" className="text-red-600">Rejection Reason (Required)</Label>
-                            <textarea
-                                id="rejection-reason"
-                                autoFocus
-                                defaultValue={rejectionReasonRef.current}
-                                onChange={(e) => {
-                                    rejectionReasonRef.current = e.target.value;
-                                }}
-                                placeholder="Explain why this deletion request is being rejected..."
-                                className="w-full p-2 border rounded-lg mt-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                rows={3}
-                                spellCheck="true"
-                            />
-                        </div>
-                    )}
-                    <div className="flex gap-3 justify-end">
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setApprovalDialog({ open: false, deletionId: null, action: null });
-                                rejectionReasonRef.current = '';
-                            }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            className={approvalDialog.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
-                            onClick={handleConfirmApprovalAction}
-                        >
-                            {approvalDialog.action === 'approve' ? 'Approve' : 'Reject'}
-                        </Button>
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
+
 
     if (!canView) {
         return (
@@ -595,7 +539,17 @@ export default function DocumentManagement() {
                 </div>
 
                 <DeleteConfirmationDialog />
-                <ApprovalActionDialog />
+                <ApprovalActionDialog 
+                    open={approvalDialog.open}
+                    action={approvalDialog.action}
+                    rejectionReason={rejectionReason}
+                    onReasonChange={setRejectionReason}
+                    onClose={() => {
+                        setApprovalDialog({ open: false, deletionId: null, action: null });
+                        setRejectionReason('');
+                    }}
+                    onConfirm={handleConfirmApprovalAction}
+                />
 
                 {activeTab === 'documents' ? (
                 <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
