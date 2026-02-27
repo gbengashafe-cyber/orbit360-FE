@@ -244,16 +244,7 @@ export default function DocumentManagement() {
     };
 
     const handleConfirmDelete = async () => {
-        const { itemId, itemType } = deleteConfirmDialog;
-        
-        // Check if item already has a pending deletion request
-        const hasPendingDeletion = pendingDeletions.some(deletion => deletion.itemId === itemId);
-        
-        if (hasPendingDeletion) {
-            showToast.error(`This ${itemType} already has a pending deletion request awaiting approval.`);
-            setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
-            return;
-        }
+        const { itemId, itemType, itemName } = deleteConfirmDialog;
         
         try {
             // Log audit action
@@ -274,17 +265,24 @@ export default function DocumentManagement() {
                     data: { requesterComment: '' }
                 });
             }
-            showToast.success(`Deletion request for "${deleteConfirmDialog.itemName}" has been submitted to your HR manager for approval.`);
+            showToast.success(`Deletion request for "${itemName}" has been submitted to your HR manager for approval.`);
+            // Reload pending deletions to show updated list
+            if (currentUser && (currentUser.role === 'admin' || currentUser.permissions?.includes('APPROVE_DOCUMENT_DELETION'))) {
+                await loadPendingDeletions();
+            }
             setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
         } catch (error) {
             console.error(`Error requesting ${itemType} deletion:`, error);
+            console.error('Error response:', error?.response?.data);
             
-            // Handle 409 Conflict - pending deletion already exists
+            // Handle specific error cases
             if (error?.response?.status === 409) {
-                showToast.error(`This ${itemType} has a pending deletion approval. Please wait for the approval decision.`);
+                showToast.error(`This ${itemType} already has a pending deletion request. Please wait for the approval decision.`);
+            } else if (error?.response?.data?.message) {
+                // Use backend error message if available
+                showToast.error(error.response.data.message);
             } else {
-                const errorMsg = error?.response?.data?.message || `Failed to submit ${itemType} deletion request.`;
-                showToast.error(errorMsg);
+                showToast.error(`Failed to submit ${itemType} deletion request.`);
             }
         } finally {
             setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
