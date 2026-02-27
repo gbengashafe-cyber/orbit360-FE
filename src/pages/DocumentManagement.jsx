@@ -130,6 +130,13 @@ export default function DocumentManagement() {
         loadData(true);
     }, [loadData]); // useEffect depends on the memoized loadData function
 
+    useEffect(() => {
+        // Load pending deletions on mount if user has approval permissions
+        if (canApproveDeletions) {
+            loadPendingDeletions();
+        }
+    }, [canApproveDeletions, loadPendingDeletions]);
+
     const handleCreateFolder = async () => {
         if (!newFolderName) return;
         try {
