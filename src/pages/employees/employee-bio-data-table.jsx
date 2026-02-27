@@ -1,17 +1,18 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
-import { Edit, Mail, MoreHorizontal, Users, UserX } from 'lucide-react';
+import { Edit, Users } from 'lucide-react';
 
-export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onResendInstructions }) => {
+// export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onResendInstructions }) => {
+export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate }) => {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto px-5">
       <Table>
         <TableHeader>
           <TableRow className="bg-gray-50">
             <TableHead>Employee</TableHead>
+            <TableHead>SBU</TableHead>
             <TableHead>Department</TableHead>
             <TableHead>Job Role</TableHead>
             <TableHead>Status</TableHead>
@@ -31,13 +32,23 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onResendI
                       <p className="text-sm text-gray-500">{employee.email}</p>
                     </div>
                   </TableCell>
+                  <TableCell className="capitalize">{employee.company?.name}</TableCell>
                   <TableCell className="capitalize">{employee.department?.name}</TableCell>
                   <TableCell>{employee?.jobRole?.title}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(employee.status)}>{employee.status.replace('_', ' ')}</Badge>
                   </TableCell>
                   <TableCell>{employee.hireDate ? new Date(employee.hireDate).toLocaleDateString() : 'N/A'}</TableCell>
-                  <TableCell>
+                  <TableCell className="flex gap-x-2">
+                    <Button variant="outline" onClick={() => onEdit(employee)} title="Edit Employee Details">
+                      <Edit className="w-4 h-4" /> Edit
+                    </Button>
+                    {employee.status !== 'terminated' ? (
+                      <Button variant="destructive" onClick={() => onTerminate(employee.id)}>
+                        <Edit className="w-4 h-4" /> Terminate
+                      </Button>
+                    ) : null}
+                    {/*
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="w-8 h-8">
@@ -48,9 +59,9 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onResendI
                         <DropdownMenuItem onClick={() => onEdit(employee)}>
                           <Edit className="w-4 h-4 mr-2" /> Edit Employee Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onResendInstructions(employee)}>
+                         <DropdownMenuItem onClick={() => onResendInstructions(employee)}>
                           <Mail className="w-4 h-4 mr-2" /> Resend Login Instructions
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> 
                         {employee.status !== 'terminated' && (
                           <DropdownMenuItem onClick={() => onTerminate(employee.id)} className="text-red-600">
                             <UserX className="w-4 h-4 mr-2" /> Terminate
@@ -58,6 +69,7 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onResendI
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    */}
                   </TableCell>
                 </TableRow>
               ))

@@ -260,7 +260,7 @@ export default function Payroll() {
           </div>
           <div className="flex gap-3 flex-wrap">
             <Select value={currentPeriod} onValueChange={setCurrentPeriod}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40 bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -279,16 +279,16 @@ export default function Payroll() {
             <Button
               onClick={() => generateMonthlyPayroll(currentPeriod)}
               disabled={generatingPayroll}
-              className="bg-gradient-to-r from-green-700 to-green-800 hover:from-green-800 hover:to-green-900 text-white shadow-lg shadow-green-700/25"
+              className="bg-gradient-to-r from-green-700 to-green-800 hover:from-green-800 hover:to-green-900 text-white"
             >
               {generatingPayroll ? (
                 <>
-                  <Calculator className="w-4 h-4 mr-2 animate-spin" />
+                  <Calculator className="animate-spin" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <Calculator className="w-4 h-4 mr-2" />
+                  <Calculator className="mr-2" />
                   Generate Payroll
                 </>
               )}

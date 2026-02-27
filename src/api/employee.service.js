@@ -10,6 +10,14 @@ export const employeeService = {
     return apiClient.get(`${ApiRoutes.GetEmployees}?page=${page}&rows=${rows}`);
   },
 
+  async getEmployeesV1(options = { page: 1, rows: 10 }, { signal } = { signal: '' }) {
+    let endpoint = ApiRoutes.employee.getEmployees;
+
+    const queryParams = makeQueryParams(options);
+    endpoint = endpoint + `?${queryParams}`;
+    return signal ? apiClient.get(endpoint, { signal }) : apiClient.get(endpoint);
+  },
+
   async getActiveEmployees({ page = 1, rows = 25, options } = { page: 1, rows: 10 }) {
     let endpoint = `${ApiRoutes.employee.getActiveEmployees}?page=${page}&rows=${rows}`;
 
@@ -19,12 +27,19 @@ export const employeeService = {
     }
     return apiClient.get(endpoint);
   },
-  async getActiveEmployeesV1({ options } = { page: 1, rows: 10 }, { signal }) {
+  async getActiveEmployeesV1({ options } = { page: 1, rows: 10 }, { signal } = { signal: '' }) {
     let endpoint = ApiRoutes.employee.getActiveEmployees;
 
     const queryParams = makeQueryParams(options);
     endpoint = endpoint + `?${queryParams}`;
-    return apiClient.get(endpoint, { signal });
+    return signal ? apiClient.get(endpoint, { signal }) : apiClient.get(endpoint);
+  },
+  async getActiveEmployeesV2(options = { page: 1, rows: 10 }, { signal } = { signal: '' }) {
+    let endpoint = ApiRoutes.employee.getActiveEmployees;
+
+    const queryParams = makeQueryParams(options);
+    endpoint = endpoint + `?${queryParams}`;
+    return signal ? apiClient.get(endpoint, { signal }) : apiClient.get(endpoint);
   },
 
   approveMaintenance: async (id) => {

@@ -2,6 +2,7 @@ import { employeeService } from '@/api';
 import { useDebounce } from '@/api/apiClient';
 import { companyService } from '@/api/company.service';
 import { departmentService } from '@/api/department.service';
+import { FormSubmitErrorV1 } from '@/components/shared/submit-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -214,6 +215,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
         <div className="px-4">
           <form onSubmit={handleSubmit} className="space-y-6">
             <h3 className="font-semibold text-lg text-gray-800 border-b pb-2">Personal Information</h3>
+            {error ? <FormSubmitErrorV1>{error}</FormSubmitErrorV1> : null}
             {/* Personal Information Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Employee ID */}
@@ -750,7 +752,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
               </>
             )}
 
-            {error ? <div className="bg-red-100 text-red-900 rounded-lg px-4 py-3">{error}</div> : null}
+            {error ? <FormSubmitErrorV1>{error}</FormSubmitErrorV1> : null}
 
             <div className="flex justify-end gap-2 mt-8 pt-6 border-t">
               <Button type="button" variant="outline" onClick={onCancel}>

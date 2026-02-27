@@ -2,11 +2,12 @@ import { employeeService } from '@/api';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCompanies } from '@/hooks/use-all-companies';
 import { EmployeeBioDataTable } from '@/pages/employees/employee-bio-data-table';
 import { logger } from '@/utils';
-import { Plus, Users } from 'lucide-react';
+import { Filter, Plus, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { EmployeeForm } from './employee-form';
@@ -23,16 +24,18 @@ export function Employees() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState(25);
   const [pages, setPages] = useState(1);
-  const [currentStatus, setCurrentStatus] = useState('active');
+  const [currentTab, setCurrentTab] = useState('active');
+  const [companyId, setCompanyId] = useState('all');
 
   const { allCompanies } = useCompanies();
 
   const loadActiveEmployees = useCallback(async () => {
     setLoading(true);
     try {
-      const employeesData = await employeeService.getActiveEmployees({
+      const employeesData = await employeeService.getActiveEmployeesV2({
         page: currentPage,
         rows,
+        companyId: companyId === 'all' ? '' : companyId,
       });
       setEmployees(employeesData.data);
       setPages(employeesData?.pagination?.pages || 1);
@@ -42,15 +45,16 @@ export function Employees() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, rows]);
+  }, [currentPage, rows, companyId]);
 
   const loadEmployeesByStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const employeesData = await employeeService.getEmployees({
+      const employeesData = await employeeService.getEmployeesV1({
         page: currentPage,
         rows,
-        options: { status: currentStatus },
+        status: currentTab,
+        companyId: companyId === 'all' ? '' : companyId,
       });
       setEmployees(employeesData.data);
       setPages(employeesData?.pagination?.pages || 1);
@@ -60,11 +64,19 @@ export function Employees() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, currentStatus, rows]);
+  }, [currentPage, currentTab, rows, companyId]);
 
   useEffect(() => {
-    currentStatus === 'active' ? loadActiveEmployees() : loadEmployeesByStatus();
-  }, [currentStatus, loadActiveEmployees, loadEmployeesByStatus]);
+    const load = async () => {
+      if (currentTab === 'active') {
+        await loadActiveEmployees();
+      } else {
+        await loadEmployeesByStatus();
+      }
+    };
+
+    load();
+  }, [currentTab, currentPage, rows, companyId, loadActiveEmployees, loadEmployeesByStatus]);
 
   const handleFormSubmit = async (formData) => {
     const { employeeData, createUser } = formData;
@@ -106,11 +118,14 @@ export function Employees() {
       }
       setShowForm(false);
       setEditingEmployee(null);
-      loadActiveEmployees();
-      loadEmployeesByStatus();
+      if (currentTab === 'active') {
+        loadActiveEmployees();
+      } else {
+        loadEmployeesByStatus();
+      }
     } catch (error) {
       logger.error({ caller: 'Employee page - handleSubmit', payload: error });
-      setError(`${error.message || 'Unable to complete request. Kindly contact the administrator'}`);
+      setError(error?.message || 'Unable to complete request. Kindly contact the administrator');
     }
   };
 
@@ -163,27 +178,50 @@ export function Employees() {
               <p className="text-gray-600">Add, manage, and archive company employees</p>
             </div>
           </div>
-          <Button
-            onClick={() => {
-              setEditingEmployee(null);
-              setShowForm(true);
-              setError('');
-            }}
-            className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Employee
-          </Button>
+
+          <div className="grid gap-y-4 md:grid-flow-col gap-x-4">
+            <div className="flex items-center gap-x-5 bg-white p-5 rounded-lg">
+              <Filter className="text-slate-500" />
+              <Select value={companyId} onValueChange={setCompanyId}>
+                <SelectTrigger className="md:min-w-52 bg-white">
+                  <SelectValue placeholder="Select SBU" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">
+                    <span className="inline-block p-2 hover:bg-slate-200 w-full">All SBUs</span>
+                  </SelectItem>
+
+                  {allCompanies?.map((company) => (
+                    <SelectItem key={company.id} value={String(company.id)}>
+                      <span className="inline-block p-2 hover:bg-slate-200 w-full">{company.name}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={() => {
+                setEditingEmployee(null);
+                setShowForm(true);
+                setError('');
+              }}
+              className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Employee
+            </Button>
+          </div>
         </div>
 
         <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
           <Tabs
-            defaultValue="active"
             className="w-full"
             onValueChange={(val) => {
-              setCurrentStatus(val);
+              setCurrentTab(val);
               setCurrentPage(1);
             }}
+            value={currentTab}
           >
             <CardHeader>
               <TabsList className="grid w-full grid-flow-col justify-start">
@@ -202,18 +240,14 @@ export function Employees() {
                   </div>
                 </div>
               ) : (
-                <>
-                  {['active', 'pending_approval', 'on_leave', 'terminated'].map((_currentPage) => (
-                    <TabsContent value={_currentPage} key={_currentPage}>
-                      <EmployeeBioDataTable
-                        employees={employees}
-                        onEdit={handleEdit}
-                        onTerminate={handleTerminate}
-                        onResendInstructions={handleResendInstructions}
-                      />
-                    </TabsContent>
-                  ))}
-                </>
+                <TabsContent value={currentTab}>
+                  <EmployeeBioDataTable
+                    employees={employees}
+                    onEdit={handleEdit}
+                    onTerminate={handleTerminate}
+                    onResendInstructions={handleResendInstructions}
+                  />
+                </TabsContent>
               )}
             </CardContent>
             <CardFooter className="my-8 grid gap-y-4 text-center justify-center items-center">
