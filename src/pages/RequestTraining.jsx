@@ -270,6 +270,50 @@ export default function RequestTraining() {
             const isHrManagerLocal = isHrLikeLocal && (jobTitleLocal.includes('manager') || jobTitleLocal.includes('chief') || jobTitleLocal.includes('head'));
             const isSupervisorLikeLocal = jobTitleLocal.includes('supervisor') || jobTitleLocal.includes('lead') || jobTitleLocal.includes('superintendent') || (hasApprovePermLocal && !isHrLikeLocal);
 
+            // Project policy: if the approver is a manager, route approvals to the central Authorization Center
+            if (jobTitleLocal.includes('manager') && !isHrLikeLocal) {
+                try {
+                    const payload = {
+                        module: 'training',
+                        itemId: requestId,
+                        itemType: 'training_request',
+                        action: approved ? 'approve' : 'reject',
+                        rejectionReason: approved ? null : rejectionReason,
+                        submittedBy: currentUser?.id || currentUser?.email || null,
+                    };
+
+                    const authResponse = await fetch('/api/v1/pending-authorization', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!authResponse.ok) {
+                        let errBody = null;
+                        try {
+                            const ct = authResponse.headers.get('content-type') || '';
+                            if (ct.includes('application/json')) errBody = await authResponse.json();
+                        } catch (e) {
+                            // ignore
+                        }
+                        throw new Error(errBody?.message || 'Failed to submit to Authorization Center');
+                    }
+
+                    showToast.success('Request submitted to Authorization Center for manager approval', 'Success');
+                    setApprovalModal({ open: false, requestId: null, type: null });
+                    setRejectionReason('');
+                    await loadData();
+                    return; // done
+                } catch (error) {
+                    showToast.error('Failed to submit to Authorization Center: ' + (error.message || ''), 'Error');
+                    console.error('Error submitting to Authorization Center:', error);
+                    // fall through to normal handling as a fallback
+                }
+            }
+
             let endpoint;
             if (isSupervisorLikeLocal) {
                 endpoint = `/api/v1/training-requests/${requestId}/supervisor-approval`;

@@ -10,3 +10,5 @@ export { onboardingService } from './onboarding.service';
 export { appraisalService } from './appraisal.service';
 export { departmentService } from './department.service';
 export { trainingService } from './training.service';
+
+export { exitService } from './exit.service';

@@ -33,7 +33,7 @@ export default function RequestDetailsView({ item, moduleName }) {
   const renderJobPosting = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-6">
-        <FieldDisplay label="Job Title" value={item.title} />
+        <FieldDisplay label="Job Title" value={item.title || item.position} />
         <FieldDisplay label="Department" value={item.department} />
         <FieldDisplay label="Employment Type" value={item.employment_type?.replace('_', ' ')} />
         <FieldDisplay label="Location" value={item.location} />
@@ -45,8 +45,8 @@ export default function RequestDetailsView({ item, moduleName }) {
               : 'N/A'
           }
         />
-        <FieldDisplay label="Application Deadline" value={formatDate(item.application_deadline)} />
-        <FieldDisplay label="Hiring Manager" value={item.hiring_manager} />
+        <FieldDisplay label="Application Deadline" value={formatDate(item.application_deadline || item.applicationDeadline)} />
+        <FieldDisplay label="Hiring Manager" value={item.hiring_manager || item.hiringManager} />
         <FieldDisplay label="Status" value={<Badge className={getStatusColor(item.status)}>{item.status}</Badge>} />
       </div>
       <Separator />
@@ -113,17 +113,17 @@ export default function RequestDetailsView({ item, moduleName }) {
   const renderResignation = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-6">
-        <FieldDisplay label="Employee Name" value={item.employee_name} />
-        <FieldDisplay label="Employee Email" value={item.employee_email} />
-        <FieldDisplay label="Department" value={item.employee_department} />
-        <FieldDisplay label="Position" value={item.employee_position} />
-        <FieldDisplay label="Resignation Date" value={formatDate(item.resignation_date)} />
-        <FieldDisplay label="Last Working Day" value={formatDate(item.last_working_day)} />
-        <FieldDisplay label="Notice Period (Days)" value={item.notice_period_days} />
+        <FieldDisplay label="Employee Name" value={item.employee_name || item.employeeName} />
+        <FieldDisplay label="Employee Email" value={item.employee_email || item.employeeEmail} />
+        <FieldDisplay label="Department" value={item.employee_department || item.employeeDepartment} />
+        <FieldDisplay label="Position" value={item.employee_position || item.position} />
+        <FieldDisplay label="Resignation Date" value={formatDate(item.resignation_date || item.resignationDate)} />
+        <FieldDisplay label="Last Working Day" value={formatDate(item.last_working_day || item.lastWorkingDate)} />
+        <FieldDisplay label="Notice Period (Days)" value={item.notice_period_days || item.noticePeriod} />
         <FieldDisplay label="Status" value={<Badge className={getStatusColor(item.status)}>{item.status}</Badge>} />
       </div>
       <Separator />
-      <FieldDisplay label="Reason for Leaving" value={item.reason} fullWidth />
+      <FieldDisplay label="Reason for Leaving" value={item.reason || item.exitReason} fullWidth />
       {item.hr_comments && <FieldDisplay label="HR Comments" value={item.hr_comments} fullWidth />}
     </div>
   );
@@ -281,13 +281,26 @@ export default function RequestDetailsView({ item, moduleName }) {
     Appraisal: renderAppraisal,
   };
 
-  const renderer = RENDERERS[item.type];
+  const moduleRenderers = {
+    loans: renderLoan,
+    payrolls: renderPayroll,
+    leaves: renderLeaveRequest,
+    exits: renderResignation,
+    exit: renderResignation,
+    exit_requests: renderResignation,
+    recruitment: renderJobPosting,
+    recruitments: renderJobPosting,
+    job_postings: renderJobPosting,
+    training: renderTrainingRequest,
+    trainings: renderTrainingRequest,
+    training_requests: renderTrainingRequest,
+  };
+  const moduleKey = moduleName?.toString().toLowerCase().replace(/-/g, '_');
+  const renderer = moduleRenderers[moduleKey] || RENDERERS[item.type];
 
   return (
     <div className="max-h-[70vh] overflow-y-auto px-1">
       {renderer?.()}
-      {moduleName === 'loans' && renderLoan()}
-      {moduleName === 'payrolls' && renderPayroll()}
     </div>
   );
 }
