@@ -132,10 +132,10 @@ export default function DocumentManagement() {
 
     useEffect(() => {
         // Load pending deletions on mount if user has approval permissions
-        if (canApproveDeletions) {
+        if (currentUser && (currentUser.role === 'admin' || currentUser.permissions?.includes('APPROVE_DOCUMENT_DELETION'))) {
             loadPendingDeletions();
         }
-    }, [canApproveDeletions, loadPendingDeletions]);
+    }, [currentUser, loadPendingDeletions]);
 
     const handleCreateFolder = async () => {
         if (!newFolderName) return;
