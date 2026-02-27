@@ -130,13 +130,6 @@ export default function DocumentManagement() {
         loadData(true);
     }, [loadData]); // useEffect depends on the memoized loadData function
 
-    useEffect(() => {
-        // Load pending deletions on mount if user has approval permissions
-        if (currentUser && (currentUser.role === 'admin' || currentUser.permissions?.includes('APPROVE_DOCUMENT_DELETION'))) {
-            loadPendingDeletions();
-        }
-    }, [currentUser, loadPendingDeletions]);
-
     const handleCreateFolder = async () => {
         if (!newFolderName) return;
         try {
@@ -298,6 +291,13 @@ export default function DocumentManagement() {
     const hasPendingDeletion = (itemId) => {
         return pendingDeletions.some(deletion => deletion.itemId === itemId);
     };
+
+    useEffect(() => {
+        // Load pending deletions on mount if user has approval permissions
+        if (currentUser && (currentUser.role === 'admin' || currentUser.permissions?.includes('APPROVE_DOCUMENT_DELETION'))) {
+            loadPendingDeletions();
+        }
+    }, [currentUser, loadPendingDeletions]);
 
     const handleApproveDeletion = (deletionId) => {
         setApprovalDialog({ open: true, deletionId, action: 'approve' });
