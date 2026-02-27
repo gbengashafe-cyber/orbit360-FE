@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toast';
 import { userService } from '@/api';
 import { apiClient, apiRoutes } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -120,7 +120,7 @@ export default function DocumentManagement() {
             const errorMsg = error?.response?.data?.message || error?.message || 'Failed to load document data.';
             console.error("Error loading document data:", error);
             console.error("Error details:", { status: error?.response?.status, data: error?.response?.data });
-            toast.error(errorMsg);
+            showToast.error(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -137,16 +137,16 @@ export default function DocumentManagement() {
             setNewFolderName("");
             setShowFolderForm(false);
             loadData();
-            toast.success(`Folder "${newFolderName}" created successfully.`);
+            showToast.success(`Folder "${newFolderName}" created successfully.`);
         } catch (error) {
             console.error("Error creating folder:", error);
-            toast.error('Failed to create folder.');
+            showToast.error('Failed to create folder.');
         }
     };
 
     const handleFileUpload = async () => {
         if (!uploadData.file || !uploadData.name) {
-            toast.error("Please provide a document name and select a file.");
+            showToast.error("Please provide a document name and select a file.");
             return;
         }
         setIsUploading(true);
@@ -172,11 +172,11 @@ export default function DocumentManagement() {
             setDocuments(prev => [...prev, newDoc]);
             setShowUploadForm(false);
             setUploadData({ file: null, name: "", document_type: "other", access_level: "private" });
-            toast.success(`Document "${newDoc.name}" uploaded successfully.`);
+            showToast.success(`Document "${newDoc.name}" uploaded successfully.`);
             setIsUploading(false);
         } catch (error) {
             console.error("Error uploading file:", error);
-            toast.error(error?.response?.data?.message || 'Failed to upload file.');
+            showToast.error(error?.response?.data?.message || 'Failed to upload file.');
             setIsUploading(false);
         }
     };
@@ -184,7 +184,7 @@ export default function DocumentManagement() {
     const handleAccessChange = async (doc, newLevel) => {
         // Skip for onboarding documents (they are read-only)
         if (doc.source === 'onboarding' || String(doc.id).startsWith('onboarding_')) {
-            toast.error('Onboarding documents are read-only and cannot be modified.');
+            showToast.error('Onboarding documents are read-only and cannot be modified.');
             return;
         }
 
@@ -196,11 +196,11 @@ export default function DocumentManagement() {
             setDocuments(prevDocs =>
                 prevDocs.map(d => d.id === doc.id ? { ...d, access_level: newLevel } : d)
             );
-            toast.success(`Document status changed to ${newLevel}.`);
+            showToast.success(`Document status changed to ${newLevel}.`);
         } catch (error) {
             console.error("Error updating document access level:", error);
             console.error("Document object:", doc);
-            toast.error(error?.response?.data?.message || 'Failed to update document status.');
+            showToast.error(error?.response?.data?.message || 'Failed to update document status.');
         }
     };
 
@@ -218,6 +218,15 @@ export default function DocumentManagement() {
     const handleConfirmDelete = async () => {
         const { itemId, itemType } = deleteConfirmDialog;
         
+        // Check if item already has a pending deletion request
+        const hasPendingDeletion = pendingDeletions.some(deletion => deletion.itemId === itemId);
+        
+        if (hasPendingDeletion) {
+            showToast.error(`This ${itemType} already has a pending deletion request awaiting approval.`);
+            setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
+            return;
+        }
+        
         try {
             if (itemType === 'document') {
                 await apiClient.delete(apiRoutes.DeleteDocument(itemId), {
@@ -228,11 +237,20 @@ export default function DocumentManagement() {
                     data: { requesterComment: '' }
                 });
             }
-            toast.success(`Deletion request for "${deleteConfirmDialog.itemName}" has been submitted to your HR manager for approval.`);
+            showToast.success(`Deletion request for "${deleteConfirmDialog.itemName}" has been submitted to your HR manager for approval.`);
             setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
         } catch (error) {
             console.error(`Error requesting ${itemType} deletion:`, error);
-            toast.error(`Failed to submit ${itemType} deletion request.`);
+            
+            // Handle 409 Conflict - pending deletion already exists
+            if (error?.response?.status === 409) {
+                showToast.error(`This ${itemType} has a pending deletion approval. Please wait for the approval decision.`);
+            } else {
+                const errorMsg = error?.response?.data?.message || `Failed to submit ${itemType} deletion request.`;
+                showToast.error(errorMsg);
+            }
+        } finally {
+            setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
         }
     };
 
@@ -263,7 +281,7 @@ export default function DocumentManagement() {
             setPendingDeletions(deletions);
         } catch (error) {
             console.error('Error loading pending deletions:', error);
-            toast.error('Failed to load pending deletion requests.');
+            showToast.error('Failed to load pending deletion requests.');
         } finally {
             setLoadingDeletions(false);
         }
@@ -293,14 +311,14 @@ export default function DocumentManagement() {
                 ? 'Deletion request approved and document/folder deleted.'
                 : 'Deletion request rejected.';
             
-            toast.success(message);
+            showToast.success(message);
             // Refresh both pending deletions and documents lists
             await loadPendingDeletions();
             await loadData(); // Refresh documents to reflect deletion
             setApprovalDialog({ open: false, deletionId: null, action: null });
         } catch (error) {
             console.error(`Error ${approvalDialog.action}ing deletion:`, error);
-            toast.error(`Failed to ${approvalDialog.action} deletion request.`);
+            showToast.error(`Failed to ${approvalDialog.action} deletion request.`);
         }
     };
 

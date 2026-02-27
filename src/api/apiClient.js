@@ -59,7 +59,7 @@ API.interceptors.response.use(
 
     if (attemptedRefreshToken || isRefreshTokenCall || !unauthorized) {
       logger.error({ caller: 'API call: ' + originalConfig.url, payload: error });
-      return Promise.reject(error.response?.data);
+      return Promise.reject(error);
     }
 
     if (isRefreshing) {
@@ -89,7 +89,7 @@ API.interceptors.response.use(
       processQueue(error);
       LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
       window.location.href = '/login';
-      return Promise.reject(error.response?.data);
+      return Promise.reject(error);
     } finally {
       isRefreshing = false;
     }
