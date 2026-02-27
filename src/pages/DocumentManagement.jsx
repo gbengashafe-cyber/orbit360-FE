@@ -287,6 +287,11 @@ export default function DocumentManagement() {
         }
     }, [canApproveDeletions]);
 
+    // Helper function to check if item has pending deletion
+    const hasPendingDeletion = (itemId) => {
+        return pendingDeletions.some(deletion => deletion.itemId === itemId);
+    };
+
     const handleApproveDeletion = (deletionId) => {
         setApprovalDialog({ open: true, deletionId, action: 'approve' });
     };
@@ -512,86 +517,106 @@ export default function DocumentManagement() {
                         ) : (
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                                 {displayedFolders.map(folder => {
-                                    const isDefaultFolder = defaultFolders.includes(folder.name);
-                                    
-                                    return (
-                                    <div key={folder.id} className="relative group p-4 border rounded-lg text-center cursor-pointer hover:bg-gray-50 flex flex-col items-center justify-center transition-all hover:shadow-lg hover:-translate-y-1 h-40">
-                                        {canManage && !isDefaultFolder && (
-                                        <div className="absolute top-1 right-1 z-10">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                                    <Button variant="ghost" size="icon" className="w-7 h-7">
-                                                        <MoreHorizontal className="w-4 h-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDeleteConfirmDialog({ open: true, itemId: folder.id, itemName: folder.name, itemType: 'folder' }); }} className="text-red-500">
-                                                        <Trash2 className="w-4 h-4 mr-2" /> Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                        )}
-                                        <div onClick={() => setCurrentFolder(folder.id)} className="flex flex-col items-center justify-center w-full">
-                                            <Folder className="w-12 h-12 text-yellow-500 mb-2" />
-                                            <span className="text-sm font-medium break-words w-full">{folder.name}</span>
-                                        </div>
-                                    </div>
-                                    );
-                                })}
+                                     const isDefaultFolder = defaultFolders.includes(folder.name);
+                                     const isPending = hasPendingDeletion(folder.id);
+                                     
+                                     return (
+                                     <div key={folder.id} className={`relative group p-4 border rounded-lg text-center flex flex-col items-center justify-center transition-all h-40 ${isPending ? 'opacity-50 bg-gray-100 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50 hover:shadow-lg hover:-translate-y-1'}`}>
+                                         {isPending && (
+                                         <div className="absolute top-2 left-2 z-10">
+                                             <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                                 Pending Deletion
+                                             </Badge>
+                                         </div>
+                                         )}
+                                         {canManage && !isDefaultFolder && !isPending && (
+                                         <div className="absolute top-1 right-1 z-10">
+                                             <DropdownMenu>
+                                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                     <Button variant="ghost" size="icon" className="w-7 h-7">
+                                                         <MoreHorizontal className="w-4 h-4" />
+                                                     </Button>
+                                                 </DropdownMenuTrigger>
+                                                 <DropdownMenuContent align="end">
+                                                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDeleteConfirmDialog({ open: true, itemId: folder.id, itemName: folder.name, itemType: 'folder' }); }} className="text-red-500">
+                                                         <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                                     </DropdownMenuItem>
+                                                 </DropdownMenuContent>
+                                             </DropdownMenu>
+                                         </div>
+                                         )}
+                                         <div onClick={() => !isPending && setCurrentFolder(folder.id)} className="flex flex-col items-center justify-center w-full">
+                                             <Folder className="w-12 h-12 text-yellow-500 mb-2" />
+                                             <span className="text-sm font-medium break-words w-full">{folder.name}</span>
+                                         </div>
+                                     </div>
+                                     );
+                                 })}
                                 {displayedDocuments.map(doc => {
-                                    const isOnboardingDoc = doc.source === 'onboarding' || String(doc.id).startsWith('onboarding_');
-                                    
-                                    return (
-                                    <div key={doc.id} className="relative group p-4 border rounded-lg text-center flex flex-col items-center justify-between transition-all hover:shadow-lg h-40">
-                                        {canManage && !isOnboardingDoc && (
-                                        <div className="absolute top-1 right-1 z-20">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="w-7 h-7">
-                                                        <MoreHorizontal className="w-4 h-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="z-50">
-                                                    {doc.access_level === 'private' || !doc.access_level ? (
-                                                        <DropdownMenuItem onClick={() => handleAccessChange(doc, 'public')}>
-                                                            <Globe className="w-4 h-4 mr-2" /> Make Public
-                                                        </DropdownMenuItem>
-                                                    ) : (
-                                                        <DropdownMenuItem onClick={() => handleAccessChange(doc, 'private')}>
-                                                            <Lock className="w-4 h-4 mr-2" /> Make Private
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => handleDeleteDocument(doc.id)} className="text-red-500">
-                                                        <Trash2 className="w-4 h-4 mr-2" /> Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                        )}
-                                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center cursor-pointer w-full mt-4">
-                                            {doc.name.toLowerCase().includes("template") || (doc.folder_id && folders.find(f => f.id === doc.folder_id)?.name === "Templates") ? (
-                                                <FileText className="w-12 h-12 text-purple-500 mb-2" />
-                                            ) : (
-                                                <File className="w-12 h-12 text-blue-500 mb-2" />
-                                            )}
-                                            <span className="text-sm font-medium break-words w-full">{doc.name}</span>
-                                        </a>
-                                        <div className="mt-auto flex items-center gap-2">
-                                            {doc.access_level === 'public' ? (
-                                                <Badge variant="outline" className="text-green-700 bg-green-50 border-green-200">
-                                                    <Globe className="w-3 h-3 mr-1" /> Public
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-red-700 bg-red-50 border-red-200">
-                                                    <Lock className="w-3 h-3 mr-1" /> Private
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                    );
-                                })}
+                                     const isOnboardingDoc = doc.source === 'onboarding' || String(doc.id).startsWith('onboarding_');
+                                     const isPending = hasPendingDeletion(doc.id);
+                                     
+                                     return (
+                                     <div key={doc.id} className={`relative group p-4 border rounded-lg text-center flex flex-col items-center justify-between transition-all h-40 ${isPending ? 'opacity-50 bg-gray-100' : 'hover:shadow-lg'}`}>
+                                         {isPending && (
+                                         <div className="absolute top-2 left-2 z-10">
+                                             <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                                 Pending Deletion
+                                             </Badge>
+                                         </div>
+                                         )}
+                                         {canManage && !isOnboardingDoc && !isPending && (
+                                         <div className="absolute top-1 right-1 z-20">
+                                             <DropdownMenu>
+                                                 <DropdownMenuTrigger asChild>
+                                                     <Button variant="ghost" size="icon" className="w-7 h-7">
+                                                         <MoreHorizontal className="w-4 h-4" />
+                                                     </Button>
+                                                 </DropdownMenuTrigger>
+                                                 <DropdownMenuContent align="end" className="z-50">
+                                                     {doc.access_level === 'private' || !doc.access_level ? (
+                                                         <DropdownMenuItem onClick={() => handleAccessChange(doc, 'public')}>
+                                                             <Globe className="w-4 h-4 mr-2" /> Make Public
+                                                         </DropdownMenuItem>
+                                                     ) : (
+                                                         <DropdownMenuItem onClick={() => handleAccessChange(doc, 'private')}>
+                                                             <Lock className="w-4 h-4 mr-2" /> Make Private
+                                                         </DropdownMenuItem>
+                                                     )}
+                                                     <DropdownMenuSeparator />
+                                                     <DropdownMenuItem onClick={() => handleDeleteDocument(doc.id)} className="text-red-500">
+                                                         <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                                     </DropdownMenuItem>
+                                                 </DropdownMenuContent>
+                                             </DropdownMenu>
+                                         </div>
+                                         )}
+                                         <a href={!isPending ? doc.file_url : '#'} target={!isPending ? '_blank' : undefined} rel="noopener noreferrer" className={`flex flex-col items-center justify-center w-full mt-4 ${isPending ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={(e) => isPending && e.preventDefault()}>
+                                             {doc.name.toLowerCase().includes("template") || (doc.folder_id && folders.find(f => f.id === doc.folder_id)?.name === "Templates") ? (
+                                                 <FileText className="w-12 h-12 text-purple-500 mb-2" />
+                                             ) : (
+                                                 <File className="w-12 h-12 text-blue-500 mb-2" />
+                                             )}
+                                             <span className="text-sm font-medium break-words w-full">{doc.name}</span>
+                                         </a>
+                                         <div className="mt-auto flex items-center gap-2">
+                                             {isPending ? (
+                                                 <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                                     Pending Deletion
+                                                 </Badge>
+                                             ) : doc.access_level === 'public' ? (
+                                                 <Badge variant="outline" className="text-green-700 bg-green-50 border-green-200">
+                                                     <Globe className="w-3 h-3 mr-1" /> Public
+                                                 </Badge>
+                                             ) : (
+                                                 <Badge variant="outline" className="text-red-700 bg-red-50 border-red-200">
+                                                     <Lock className="w-3 h-3 mr-1" /> Private
+                                                 </Badge>
+                                             )}
+                                         </div>
+                                     </div>
+                                     );
+                                 })}
                             </div>
                         )}
                         {!loading && displayedFolders.length === 0 && displayedDocuments.length === 0 && (
