@@ -113,14 +113,14 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
         setIsDeleting(true);
         try {
             await apiClient.delete(apiRoutes.DeleteExit(pendingDeleteId));
-            showToast.success('Exit request deleted successfully', 'Success');
+            showToast.success('Exit request deleted successfully');
             setShowDeleteModal(false);
             setPendingDeleteId(null);
             loadData();
             if (onUpdate) onUpdate();
         } catch (error) {
             console.error('Error deleting exit request:', error);
-            showToast.error('Failed to delete exit request. Please try again.', 'Error');
+            showToast.error('Failed to delete exit request. Please try again.');
         } finally {
             setIsDeleting(false);
         }
@@ -193,12 +193,12 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
             setShowForm(false);
             resetForm();
             loadData();
-            showToast.success('Resignation submitted successfully. HR will be notified.', 'Success');
+            showToast.success('Resignation submitted successfully. HR will be notified.');
             if (onUpdate) onUpdate();
         } catch (error) {
             console.error('Error submitting resignation:', error);
             const errorMsg = error?.response?.data?.message || error.message || 'Failed to submit resignation';
-            showToast.error(errorMsg, 'Error');
+            showToast.error(errorMsg);
         } finally {
             setIsSubmitting(false);
             setPendingSubmitData(null);
