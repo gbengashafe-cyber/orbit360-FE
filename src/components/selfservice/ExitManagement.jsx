@@ -235,12 +235,15 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
         } else if (value === 'yes') {
             // Allow "Completed" status directly
             setFormData({ ...formData, handover_status: value });
+            showToast.success('Handover status set to Completed');
         }
     };
 
     const confirmHandoverStatus = () => {
         if (pendingHandoverStatus) {
             setFormData({ ...formData, handover_status: pendingHandoverStatus });
+            const statusLabel = pendingHandoverStatus === 'in_progress' ? 'In Progress' : 'Not Started';
+            showToast.success(`Handover status updated to ${statusLabel}`);
         }
         setShowHandoverWarning(false);
         setPendingHandoverStatus(null);

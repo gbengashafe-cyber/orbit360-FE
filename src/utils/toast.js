@@ -28,5 +28,6 @@ export const showToast = {
     if (notificationCallback) {
       notificationCallback(`${title}: ${message}`, 'warning', 3500);
     }
+    Exit Process & Offboarding Form
   },
 };
