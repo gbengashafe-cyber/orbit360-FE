@@ -404,14 +404,23 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
                                 <div className="space-y-3">
                                     <div>
                                         <p className="text-sm text-gray-600 mb-1"><strong>Status:</strong></p>
-                                        <Select value={activeRequest.handoverStatus || 'in_progress'} onValueChange={handleHandoverStatusChangeInProgress}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                                <SelectItem value="yes">Completed</SelectItem>
-                                                <SelectItem value="no">Not Started</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        {isHrAdmin ? (
+                                            <Select value={activeRequest.handoverStatus || 'in_progress'} onValueChange={handleHandoverStatusChangeInProgress}>
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="in_progress">In Progress</SelectItem>
+                                                    <SelectItem value="yes">Completed</SelectItem>
+                                                    <SelectItem value="no">Not Started</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <div className="p-2 bg-gray-100 rounded border text-gray-700">
+                                                {activeRequest.handoverStatus === 'in_progress' && 'In Progress'}
+                                                {activeRequest.handoverStatus === 'yes' && 'Completed'}
+                                                {activeRequest.handoverStatus === 'no' && 'Not Started'}
+                                                {!activeRequest.handoverStatus && 'In Progress'}
+                                            </div>
+                                        )}
                                     </div>
                                     <p className="text-sm"><strong>Recipient:</strong> {activeRequest.handoverRecipientName || 'N/A'}</p>
                                 </div>
