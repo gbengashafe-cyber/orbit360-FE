@@ -24,8 +24,9 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
+    DialogDescription,
 } from '@/components/ui/dialog';
-import { GraduationCap, Plus, BookOpen, CheckCircle, AlertTriangle } from 'lucide-react';
+import { GraduationCap, Plus, BookOpen, CheckCircle, AlertTriangle, Eye, Trash2 } from 'lucide-react';
 
 export default function RequestTraining() {
     const [requests, setRequests] = useState([]);
@@ -45,6 +46,9 @@ export default function RequestTraining() {
     });
     const [rejectionReason, setRejectionReason] = useState('');
     const [selectedRequest, setSelectedRequest] = useState(null);
+    const [detailsModal, setDetailsModal] = useState({ open: false });
+    const [deletingId, setDeletingId] = useState(null);
+    const [requestToDelete, setRequestToDelete] = useState(null);
     const [requestsNeedingApproval, setRequestsNeedingApproval] = useState([]);
     const [isApproving, setIsApproving] = useState(false);
     const [processingAction, setProcessingAction] = useState('');
@@ -313,6 +317,40 @@ export default function RequestTraining() {
         }
     };
 
+        const handleDeleteRequest = async (requestId) => {
+            if (!requestId) return;
+            setDeletingId(requestId);
+            try {
+                const response = await fetch(`/api/v1/training-requests/${requestId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    let errorBody = null;
+                    try {
+                        const contentType = response.headers.get('content-type') || '';
+                        if (contentType.includes('application/json')) {
+                            errorBody = await response.json();
+                        }
+                    } catch {
+                        // ignore
+                    }
+                    throw new Error(errorBody?.message || 'Failed to delete request');
+                }
+
+                showToast.success('Request deleted successfully!', 'Success');
+                await loadData();
+            } catch (err) {
+                showToast.error(err.message || 'Failed to delete request', 'Error');
+                console.error('Error deleting request:', err);
+            } finally {
+                setDeletingId(null);
+            }
+        };
+
     const getStatusColor = (status) => {
         const colors = {
             PENDING: 'bg-blue-100 text-blue-700',
@@ -335,6 +373,33 @@ export default function RequestTraining() {
             critical: 'bg-red-100 text-red-700'
         };
         return colors[priority] || 'bg-gray-100 text-gray-700';
+    };
+
+    // Check whether a request belongs to the current user/employee
+    const isOwnedByCurrentUser = (request) => {
+        if (!request) return false;
+        const candidateIds = [];
+        // common variants on the request object
+        candidateIds.push(request.employeeId, request.employee_id, request.requesterId, request.requester_id, request.createdBy, request.created_by, request.userId, request.user_id);
+        if (request.employee && (request.employee.id || request.employee.employeeId)) {
+            candidateIds.push(request.employee.id, request.employee.employeeId);
+        }
+        if (request.requester && (request.requester.id || request.requester.employeeId)) {
+            candidateIds.push(request.requester.id, request.requester.employeeId);
+        }
+        if (request.creator && (request.creator.id)) candidateIds.push(request.creator.id);
+        if (request.requestedBy && (request.requestedBy.id)) candidateIds.push(request.requestedBy.id);
+
+        const ownerCandidates = [
+            currentEmployee?.id,
+            currentEmployee?.employeeId,
+            currentEmployee?.userId,
+            currentUser?.id,
+            currentUser?.userId,
+            currentUser?.employeeId
+        ];
+
+        return candidateIds.some(cid => cid !== undefined && cid !== null && ownerCandidates.some(own => own !== undefined && own !== null && String(cid) === String(own)));
     };
 
     // Determine approval-capable users from job title and permissions (some users have role='user')
@@ -658,7 +723,8 @@ export default function RequestTraining() {
                                         <TableHead>Status</TableHead>
                                         <TableHead>Priority</TableHead>
                                         <TableHead>Timeframe</TableHead>
-                                        <TableHead>Date</TableHead>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -685,6 +751,31 @@ export default function RequestTraining() {
                                             <TableCell>
                                                 {new Date(request.createdAt || request.created_date).toLocaleDateString()}
                                             </TableCell>
+                                                <TableCell className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        className="bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                                        onClick={() => {
+                                                            setSelectedRequest(request);
+                                                            setDetailsModal({ open: true });
+                                                        }}
+                                                    >
+                                                        <Eye className="w-4 h-4 mr-2" />
+                                                        Details
+                                                    </Button>
+
+                                                    {(request.status || '').toString().toUpperCase() === 'PENDING' && isOwnedByCurrentUser(request) && (
+                                                        <Button
+                                                            size="sm"
+                                                            className="bg-red-600 hover:bg-red-700"
+                                                            onClick={() => setRequestToDelete(request)}
+                                                            disabled={deletingId === request.id}
+                                                        >
+                                                            <Trash2 className="w-4 h-4 mr-2" />
+                                                            {deletingId === request.id ? 'Deleting...' : 'Delete'}
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -701,6 +792,67 @@ export default function RequestTraining() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Details Modal */}
+            <Dialog open={detailsModal.open} onOpenChange={(open) => setDetailsModal({ ...detailsModal, open })}>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <div className="flex items-start justify-between w-full">
+                            <div>
+                                <DialogTitle className="text-xl md:text-2xl">{selectedRequest?.trainingTitle || 'Training Request Details'}</DialogTitle>
+                                <div className="mt-2">
+                                    <Badge className={getStatusColor(selectedRequest?.status)}>
+                                        {(selectedRequest?.status || '').replace('_', ' ')}
+                                    </Badge>
+                                </div>
+                            </div>
+                            <div />
+                        </div>
+                    </DialogHeader>
+
+                    <div className="space-y-6 p-4">
+                        <div className="bg-white p-6 rounded-lg shadow-sm border">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="col-span-2">
+                                    <p className="text-sm text-gray-600"><strong>Type:</strong> {(selectedRequest?.trainingType || selectedRequest?.training_type) || 'Not specified'}</p>
+                                    <p className="text-sm text-gray-600 mt-1"><strong>Priority:</strong> {selectedRequest?.priority || 'medium'}</p>
+                                    <p className="text-sm text-gray-600 mt-1"><strong>Delivery:</strong> {(selectedRequest?.deliveryMethod || selectedRequest?.preferred_delivery_method) || 'Not specified'}</p>
+                                    <p className="text-sm text-gray-600 mt-1"><strong>Timeframe:</strong> {(selectedRequest?.preferredTimeframe || selectedRequest?.preferred_timeframe) || 'Not specified'}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm text-gray-600"><strong>Cost</strong></p>
+                                    <p className="text-lg font-semibold mt-1">₦{selectedRequest?.estimatedCost ?? selectedRequest?.estimated_cost ?? '0'}</p>
+                                    <p className="text-sm text-gray-500 mt-2">Requested on {selectedRequest ? new Date(selectedRequest.createdAt || selectedRequest.created_date).toLocaleDateString() : ''}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <Label className="text-sm text-gray-600">Description</Label>
+                            <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{selectedRequest?.trainingDescription || selectedRequest?.training_description || 'No description provided.'}</p>
+                        </div>
+
+                        <div>
+                            <Label className="text-sm text-gray-600">Business Justification</Label>
+                            <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{selectedRequest?.businessJustification || selectedRequest?.business_justification || 'Not specified'}</p>
+                        </div>
+
+                        <div>
+                            <Label className="text-sm text-gray-600">Skills to Gain</Label>
+                            <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{selectedRequest?.skillsToGain || selectedRequest?.skills_to_gain || 'Not specified'}</p>
+                        </div>
+
+                        {(selectedRequest?.status || '').toString().toUpperCase().includes('REJECT') && (
+                            <div className="bg-red-50 border border-red-100 p-4 rounded">
+                                <Label className="text-sm text-red-700">Rejection Reason</Label>
+                                <p className="text-sm text-red-800 mt-2 whitespace-pre-wrap">{selectedRequest?.rejectionReason || selectedRequest?.rejection_reason || 'No reason provided.'}</p>
+                            </div>
+                        )}
+
+                        
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Approval Modal */}
             <Dialog open={approvalModal.open} onOpenChange={(open) => setApprovalModal({ ...approvalModal, open })}>
@@ -766,6 +918,28 @@ export default function RequestTraining() {
                                 Cancel
                             </Button>
                         </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!requestToDelete} onOpenChange={() => setRequestToDelete(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Are you sure?</DialogTitle>
+                        <DialogDescription>
+                            This will permanently delete the training request <strong className="text-red-600">{requestToDelete?.trainingTitle || requestToDelete?.training_title || requestToDelete?.id}</strong>. This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end gap-3">
+                        <Button variant="outline" onClick={() => setRequestToDelete(null)}>Cancel</Button>
+                        <Button variant="destructive" onClick={async () => {
+                            const id = requestToDelete?.id;
+                            setRequestToDelete(null);
+                            await handleDeleteRequest(id);
+                        }} disabled={deletingId !== null}>
+                            {deletingId ? 'Deleting...' : 'Confirm Deletion'}
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
