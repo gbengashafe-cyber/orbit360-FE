@@ -257,33 +257,45 @@ export default function DocumentManagement() {
             });
             
             if (itemType === 'document') {
-                await apiClient.delete(apiRoutes.DeleteDocument(itemId), {
-                    data: { requesterComment: '' }
-                });
+                await apiClient.delete(apiRoutes.DeleteDocument(itemId));
             } else if (itemType === 'folder') {
-                await apiClient.delete(apiRoutes.DeleteFolder(itemId), {
-                    data: { requesterComment: '' }
-                });
+                await apiClient.delete(apiRoutes.DeleteFolder(itemId));
             }
             showToast.success(`Deletion request for "${itemName}" has been submitted to your HR manager for approval.`);
-            // Reload pending deletions to show updated list
+            // Reload both documents and pending deletions to show updated list
+            await loadData(); // Refresh to show item as greyed out
             if (currentUser && (currentUser.role === 'admin' || currentUser.permissions?.includes('APPROVE_DOCUMENT_DELETION'))) {
                 await loadPendingDeletions();
             }
             setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
         } catch (error) {
-            console.error(`Error requesting ${itemType} deletion:`, error);
-            console.error('Error response:', error?.response?.data);
+            console.error(`[DELETION ERROR] Error requesting ${itemType} deletion:`, error);
+            console.error('[DELETION ERROR] Error is instance of Error?', error instanceof Error);
+            console.error('[DELETION ERROR] Full error:', { error, response: error?.response, message: error?.message });
             
-            // Handle specific error cases
-            if (error?.response?.status === 409) {
-                showToast.error(`This ${itemType} already has a pending deletion request. Please wait for the approval decision.`);
-            } else if (error?.response?.data?.message) {
-                // Use backend error message if available
-                showToast.error(error.response.data.message);
+            // Axios error structure: error.response.status and error.response.data
+            const statusCode = error?.response?.status;
+            const errorData = error?.response?.data;
+            const backendMessage = errorData?.message;
+            const fallbackMessage = error?.message;
+            
+            console.log('[DELETION ERROR] Extracted:', { statusCode, backendMessage, fallbackMessage, errorData });
+            
+            // Debug what we're about to pass to toast
+            let toastMessage = '';
+            if (statusCode === 409) {
+                toastMessage = `This ${itemType} has a pending deletion approval. Please wait for the approval decision.`;
+                console.log('[DELETION ERROR] Using 409 message:', toastMessage);
+            } else if (backendMessage) {
+                toastMessage = backendMessage;
+                console.log('[DELETION ERROR] Using backend message:', toastMessage);
             } else {
-                showToast.error(`Failed to submit ${itemType} deletion request.`);
+                toastMessage = `Failed to submit ${itemType} deletion request.`;
+                console.log('[DELETION ERROR] Using fallback message:', toastMessage);
             }
+            
+            console.log('[DELETION ERROR] Final toast message:', toastMessage);
+            showToast.error(toastMessage);
         } finally {
             setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
         }
@@ -444,11 +456,13 @@ export default function DocumentManagement() {
                             <Label htmlFor="rejection-reason" className="text-red-600">Rejection Reason (Required)</Label>
                             <textarea
                                 id="rejection-reason"
+                                autoFocus
                                 value={approvalDialog.rejectionReason}
                                 onChange={(e) => setApprovalDialog({ ...approvalDialog, rejectionReason: e.target.value })}
                                 placeholder="Explain why this deletion request is being rejected..."
                                 className="w-full p-2 border rounded-lg mt-2 focus:outline-none focus:ring-2 focus:ring-red-500"
                                 rows={3}
+                                spellCheck="true"
                             />
                         </div>
                     )}
