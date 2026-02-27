@@ -57,7 +57,8 @@ export default function DocumentManagement() {
     const [pendingDeletions, setPendingDeletions] = useState([]);
     const [loadingDeletions, setLoadingDeletions] = useState(false);
     const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ open: false, itemId: null, itemName: '', itemType: 'document' });
-    const [approvalDialog, setApprovalDialog] = useState({ open: false, deletionId: null, action: null, rejectionReason: '' });
+    const [approvalDialog, setApprovalDialog] = useState({ open: false, deletionId: null, action: null });
+    const [rejectionReason, setRejectionReason] = useState('');
 
     const initializeDefaultStructure = useCallback(async () => {
         try {
@@ -355,7 +356,7 @@ export default function DocumentManagement() {
     };
 
     const handleConfirmApprovalAction = async () => {
-        const { deletionId, action, rejectionReason } = approvalDialog;
+        const { deletionId, action } = approvalDialog;
         
         // Validate rejection reason if rejecting
         if (action === 'reject' && (!rejectionReason || rejectionReason.trim() === '')) {
@@ -389,7 +390,8 @@ export default function DocumentManagement() {
             // Refresh both pending deletions and documents lists
             await loadPendingDeletions();
             await loadData(); // Refresh documents to reflect deletion
-            setApprovalDialog({ open: false, deletionId: null, action: null, rejectionReason: '' });
+            setApprovalDialog({ open: false, deletionId: null, action: null });
+            setRejectionReason('');
         } catch (error) {
             console.error(`Error ${approvalDialog.action}ing deletion:`, error);
             showToast.error(`Failed to ${approvalDialog.action} deletion request.`);
@@ -438,7 +440,12 @@ export default function DocumentManagement() {
 
     // Approval action dialog (for HR managers approving/rejecting deletions)
     const ApprovalActionDialog = () => (
-        <Dialog open={approvalDialog.open} onOpenChange={(open) => !open && setApprovalDialog({ open: false, deletionId: null, action: null, rejectionReason: '' })}>
+        <Dialog open={approvalDialog.open} onOpenChange={(open) => {
+            if (!open) {
+                setApprovalDialog({ open: false, deletionId: null, action: null });
+                setRejectionReason('');
+            }
+        }}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>
@@ -457,8 +464,8 @@ export default function DocumentManagement() {
                             <textarea
                                 id="rejection-reason"
                                 autoFocus
-                                value={approvalDialog.rejectionReason}
-                                onChange={(e) => setApprovalDialog({ ...approvalDialog, rejectionReason: e.target.value })}
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
                                 placeholder="Explain why this deletion request is being rejected..."
                                 className="w-full p-2 border rounded-lg mt-2 focus:outline-none focus:ring-2 focus:ring-red-500"
                                 rows={3}
@@ -469,7 +476,10 @@ export default function DocumentManagement() {
                     <div className="flex gap-3 justify-end">
                         <Button
                             variant="outline"
-                            onClick={() => setApprovalDialog({ open: false, deletionId: null, action: null, rejectionReason: '' })}
+                            onClick={() => {
+                                setApprovalDialog({ open: false, deletionId: null, action: null });
+                                setRejectionReason('');
+                            }}
                         >
                             Cancel
                         </Button>
