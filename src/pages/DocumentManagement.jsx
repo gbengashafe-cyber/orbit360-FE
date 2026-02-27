@@ -57,7 +57,7 @@ export default function DocumentManagement() {
     const [pendingDeletions, setPendingDeletions] = useState([]);
     const [loadingDeletions, setLoadingDeletions] = useState(false);
     const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ open: false, itemId: null, itemName: '', itemType: 'document' });
-    const [approvalDialog, setApprovalDialog] = useState({ open: false, deletionId: null, action: null });
+    const [approvalDialog, setApprovalDialog] = useState({ open: false, deletionId: null, action: null, rejectionReason: '' });
 
     const initializeDefaultStructure = useCallback(async () => {
         try {
@@ -133,6 +133,14 @@ export default function DocumentManagement() {
     const handleCreateFolder = async () => {
         if (!newFolderName) return;
         try {
+            // Log audit action
+            console.log(`[AUDIT] Folder created:`, { 
+                name: newFolderName, 
+                parentFolderId: currentFolder,
+                timestamp: new Date().toISOString(),
+                user: currentUser?.email 
+            });
+            
             await apiClient.post(apiRoutes.CreateFolder, { name: newFolderName, parent_folder_id: currentFolder });
             setNewFolderName("");
             setShowFolderForm(false);
@@ -151,6 +159,16 @@ export default function DocumentManagement() {
         }
         setIsUploading(true);
         try {
+            // Log audit action
+            console.log(`[AUDIT] Document uploaded:`, { 
+                name: uploadData.name, 
+                type: uploadData.document_type,
+                accessLevel: uploadData.access_level,
+                folderId: currentFolder,
+                timestamp: new Date().toISOString(),
+                user: currentUser?.email 
+            });
+            
             // Create FormData for multipart upload
             const formData = new FormData();
             formData.append('name', uploadData.name);
@@ -189,6 +207,16 @@ export default function DocumentManagement() {
         }
 
         try {
+            // Log audit action
+            console.log(`[AUDIT] Document access changed:`, { 
+                documentId: doc.id, 
+                documentName: doc.name, 
+                oldLevel: doc.access_level,
+                newLevel,
+                timestamp: new Date().toISOString(),
+                user: currentUser?.email 
+            });
+            
             console.log("Updating document:", { docId: doc.id, docName: doc.name, newLevel });
             const response = await apiClient.put(apiRoutes.UpdateDocument(doc.id), { access_level: newLevel });
             console.log("Update response:", response);
@@ -228,6 +256,15 @@ export default function DocumentManagement() {
         }
         
         try {
+            // Log audit action
+            console.log(`[AUDIT] ${itemType} deletion requested:`, { 
+                itemId, 
+                itemType,
+                itemName,
+                timestamp: new Date().toISOString(),
+                user: currentUser?.email 
+            });
+            
             if (itemType === 'document') {
                 await apiClient.delete(apiRoutes.DeleteDocument(itemId), {
                     data: { requesterComment: '' }
@@ -308,26 +345,41 @@ export default function DocumentManagement() {
     };
 
     const handleConfirmApprovalAction = async () => {
-        const { deletionId, action } = approvalDialog;
+        const { deletionId, action, rejectionReason } = approvalDialog;
+        
+        // Validate rejection reason if rejecting
+        if (action === 'reject' && (!rejectionReason || rejectionReason.trim() === '')) {
+            showToast.error('Rejection reason is mandatory.');
+            return;
+        }
         
         try {
             const url = action === 'approve' 
                 ? apiRoutes.hrDocumentDeletionRequests.approve(deletionId)
                 : apiRoutes.hrDocumentDeletionRequests.reject(deletionId);
             
+            // Log audit action
+            console.log(`[AUDIT] Document deletion ${action}:`, { 
+                deletionId, 
+                action, 
+                rejectionReason: action === 'reject' ? rejectionReason : null,
+                timestamp: new Date().toISOString(),
+                user: currentUser?.email 
+            });
+            
             await apiClient.post(url, {
-                reviewerComment: ''
+                reviewerComment: action === 'reject' ? rejectionReason : ''
             });
             
             const message = action === 'approve' 
                 ? 'Deletion request approved and document/folder deleted.'
-                : 'Deletion request rejected.';
+                : `Deletion request rejected. Reason: ${rejectionReason}`;
             
             showToast.success(message);
             // Refresh both pending deletions and documents lists
             await loadPendingDeletions();
             await loadData(); // Refresh documents to reflect deletion
-            setApprovalDialog({ open: false, deletionId: null, action: null });
+            setApprovalDialog({ open: false, deletionId: null, action: null, rejectionReason: '' });
         } catch (error) {
             console.error(`Error ${approvalDialog.action}ing deletion:`, error);
             showToast.error(`Failed to ${approvalDialog.action} deletion request.`);
@@ -376,7 +428,7 @@ export default function DocumentManagement() {
 
     // Approval action dialog (for HR managers approving/rejecting deletions)
     const ApprovalActionDialog = () => (
-        <Dialog open={approvalDialog.open} onOpenChange={(open) => !open && setApprovalDialog({ open: false, deletionId: null, action: null })}>
+        <Dialog open={approvalDialog.open} onOpenChange={(open) => !open && setApprovalDialog({ open: false, deletionId: null, action: null, rejectionReason: '' })}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>
@@ -389,10 +441,23 @@ export default function DocumentManagement() {
                             ? 'This will permanently delete the document/folder. This action cannot be undone.'
                             : 'The deletion request will be rejected and the document/folder will remain intact.'}
                     </p>
+                    {approvalDialog.action === 'reject' && (
+                        <div>
+                            <Label htmlFor="rejection-reason" className="text-red-600">Rejection Reason (Required)</Label>
+                            <textarea
+                                id="rejection-reason"
+                                value={approvalDialog.rejectionReason}
+                                onChange={(e) => setApprovalDialog({ ...approvalDialog, rejectionReason: e.target.value })}
+                                placeholder="Explain why this deletion request is being rejected..."
+                                className="w-full p-2 border rounded-lg mt-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                rows={3}
+                            />
+                        </div>
+                    )}
                     <div className="flex gap-3 justify-end">
                         <Button
                             variant="outline"
-                            onClick={() => setApprovalDialog({ open: false, deletionId: null, action: null })}
+                            onClick={() => setApprovalDialog({ open: false, deletionId: null, action: null, rejectionReason: '' })}
                         >
                             Cancel
                         </Button>
