@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { userService, employeeService } from '@/api';
 import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +47,7 @@ export default function RequestTraining() {
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [requestsNeedingApproval, setRequestsNeedingApproval] = useState([]);
     const [isApproving, setIsApproving] = useState(false);
+    const [processingAction, setProcessingAction] = useState('');
 
     const [formData, setFormData] = useState({
         training_type: '',
@@ -74,6 +75,16 @@ export default function RequestTraining() {
             const userResponse = await userService.getCurrentUser();
             const user = userResponse?.data || userResponse;
             setCurrentUser(user);
+            // DEBUG: log current user role and job role for troubleshooting approval visibility
+            try {
+                console.log('[RequestTraining] currentUser:', user);
+                console.log('[RequestTraining] currentUser.role:', user?.role);
+                const jobTitle = (user?.JobRole?.title || user?.jobRole?.title || user?.jobRoleTitle || '').toString();
+                console.log('[RequestTraining] jobTitle:', jobTitle);
+                console.log('[RequestTraining] permissions:', user?.permissions);
+            } catch {
+                // ignore
+            }
 
             const employeeResponse = await employeeService.getUserEmployeeData();
             const employeeRecord = employeeResponse?.data || employeeResponse;
@@ -85,21 +96,46 @@ export default function RequestTraining() {
                         'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
                     }
                 });
-                const result = await response.json();
+                let result = null;
+                try {
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        result = await response.json();
+                    }
+                } catch (err) {
+                    console.warn('Could not parse training requests response as JSON:', err);
+                }
                 const allRequests = result?.data || [];
                 setRequests(allRequests);
 
-                // Filter requests needing approval based on user role
-                if (user?.role === 'supervisor' || user?.role === 'admin' || user?.role === 'admin_officer') {
-                    const needApproval = allRequests.filter(r => 
+                // Determine approval-role flags using JobRole.title and permissions (handles role='user')
+                const jobTitleRaw = (user?.JobRole?.title || user?.jobRole?.title || user?.jobRoleTitle || '')
+                    .toString()
+                    .toLowerCase();
+                const permissions = Array.isArray(user?.permissions) ? user.permissions.map(p => p.toString().toLowerCase()) : [];
+
+                const hasApprovePermission = permissions.some(p => p.startsWith('approve') || p.includes('approve'));
+                const isHrLike = jobTitleRaw.includes('hr') || jobTitleRaw.includes('human') || jobTitleRaw.includes('human resource') || (hasApprovePermission && permissions.some(p => p.includes('hr')));
+                const isHrManager = isHrLike && (jobTitleRaw.includes('manager') || jobTitleRaw.includes('chief') || jobTitleRaw.includes('head'));
+                const isSupervisorLike = jobTitleRaw.includes('supervisor') || jobTitleRaw.includes('superintendent') || jobTitleRaw.includes('lead') || (hasApprovePermission && !isHrLike);
+
+                console.log('[RequestTraining] computedFlags:', { jobTitleRaw, hasApprovePermission, isHrLike, isHrManager, isSupervisorLike });
+
+                if (isSupervisorLike) {
+                    const needApproval = allRequests.filter(r =>
                         r.status === 'PENDING' || r.status === 'SUPERVISOR_REJECTED'
                     );
                     setRequestsNeedingApproval(needApproval);
-                } else if (user?.role === 'hr_officer' || user?.role === 'hr_manager') {
-                    const needApproval = allRequests.filter(r => 
+                    console.log('[RequestTraining] supervisor-like pending:', needApproval.length, needApproval.map(x => x.id));
+                } else if (isHrLike) {
+                    const needApproval = allRequests.filter(r =>
                         r.status === 'PENDING' || r.status === 'SUPERVISOR_APPROVED' || r.status === 'SUPERVISOR_REJECTED'
                     );
                     setRequestsNeedingApproval(needApproval);
+                    console.log('[RequestTraining] hr-like pending:', needApproval.length, needApproval.map(x => x.id));
+                } else {
+                    setRequestsNeedingApproval([]);
+                    console.log('[RequestTraining] no approval role detected for jobTitle=', jobTitleRaw, 'permissions=', permissions);
                 }
             } catch (error) {
                 console.warn('Could not fetch training requests:', error);
@@ -163,8 +199,16 @@ export default function RequestTraining() {
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to submit request');
+                let errorBody = null;
+                try {
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        errorBody = await response.json();
+                    }
+                } catch (err) {
+                    console.warn('Failed to parse error response as JSON:', err);
+                }
+                throw new Error(errorBody?.message || 'Failed to submit request');
             }
 
             showToast.success('Your training request has been submitted successfully!', 'Success');
@@ -198,17 +242,38 @@ export default function RequestTraining() {
         }
     };
 
-    const handleApproval = async (requestId, approved) => {
+    const handleApproval = async (requestId, approved, e) => {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+
         if (!approved && !rejectionReason.trim()) {
             showToast.error('Rejection reason is required', 'Error');
             return;
         }
 
+        if (isApproving) return; // avoid concurrent actions
+
         setIsApproving(true);
+        setProcessingAction(approved ? 'approve' : 'reject');
+
         try {
-            const endpoint = currentUser?.role === 'supervisor' || currentUser?.role === 'admin' || currentUser?.role === 'admin_officer'
-                ? `/api/v1/training-requests/${requestId}/supervisor-approval`
-                : `/api/v1/training-requests/${requestId}/hr-approval`;
+            // Determine endpoint using job title / permissions so users with role='user' but HR job titles are handled
+            const jobTitleLocal = (currentUser?.JobRole?.title || currentUser?.jobRole?.title || currentUser?.jobRoleTitle || '')
+                .toString()
+                .toLowerCase();
+            const permsLocal = Array.isArray(currentUser?.permissions) ? currentUser.permissions.map(p => p.toString().toLowerCase()) : [];
+            const hasApprovePermLocal = permsLocal.some(p => p.startsWith('approve') || p.includes('approve'));
+            const isHrLikeLocal = jobTitleLocal.includes('hr') || jobTitleLocal.includes('human') || jobTitleLocal.includes('human resource') || permsLocal.some(p => p.includes('hr'));
+            const isHrManagerLocal = isHrLikeLocal && (jobTitleLocal.includes('manager') || jobTitleLocal.includes('chief') || jobTitleLocal.includes('head'));
+            const isSupervisorLikeLocal = jobTitleLocal.includes('supervisor') || jobTitleLocal.includes('lead') || jobTitleLocal.includes('superintendent') || (hasApprovePermLocal && !isHrLikeLocal);
+
+            let endpoint;
+            if (isSupervisorLikeLocal) {
+                endpoint = `/api/v1/training-requests/${requestId}/supervisor-approval`;
+            } else if (isHrManagerLocal) {
+                endpoint = `/api/v1/training-requests/${requestId}/final-approval`;
+            } else {
+                endpoint = `/api/v1/training-requests/${requestId}/hr-approval`;
+            }
 
             const response = await fetch(endpoint, {
                 method: 'PUT',
@@ -223,11 +288,19 @@ export default function RequestTraining() {
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to process approval');
+                let errorBody = null;
+                try {
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        errorBody = await response.json();
+                    }
+                } catch (err) {
+                    console.warn('Failed to parse approval error response as JSON:', err);
+                }
+                throw new Error(errorBody?.message || 'Failed to process approval');
             }
 
-            showToast.success(`Request ${approved ? 'approved' : 'rejected'} successfully!`, 'Success');
+                showToast.success(`Request ${approved ? 'approved' : 'rejected'} successfully!`, 'Success');
             setApprovalModal({ open: false, requestId: null, type: null });
             setRejectionReason('');
             await loadData();
@@ -236,6 +309,7 @@ export default function RequestTraining() {
             console.error('Error processing approval:', error);
         } finally {
             setIsApproving(false);
+            setProcessingAction('');
         }
     };
 
@@ -263,11 +337,15 @@ export default function RequestTraining() {
         return colors[priority] || 'bg-gray-100 text-gray-700';
     };
 
-    const isApprovalRole = currentUser?.role === 'supervisor' || 
-                          currentUser?.role === 'admin' || 
-                          currentUser?.role === 'admin_officer' ||
-                          currentUser?.role === 'hr_officer' ||
-                          currentUser?.role === 'hr_manager';
+    // Determine approval-capable users from job title and permissions (some users have role='user')
+    const jobTitleRaw = (currentUser?.JobRole?.title || currentUser?.jobRole?.title || currentUser?.jobRoleTitle || '')
+        .toString()
+        .toLowerCase();
+    const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions.map(p => p.toString().toLowerCase()) : [];
+    const hasApprovePermission = permissions.some(p => p.startsWith('approve') || p.includes('approve'));
+    const isHrLike = jobTitleRaw.includes('hr') || jobTitleRaw.includes('human') || jobTitleRaw.includes('human resource') || permissions.some(p => p.includes('hr'));
+    const isSupervisorLike = jobTitleRaw.includes('supervisor') || jobTitleRaw.includes('lead') || jobTitleRaw.includes('superintendent') || (hasApprovePermission && !isHrLike);
+    const isApprovalRole = isSupervisorLike || isHrLike || hasApprovePermission;
 
     if (loading) {
         return <div className="p-8 text-center">Loading training requests...</div>;
@@ -495,7 +573,7 @@ export default function RequestTraining() {
                 )}
 
                 {/* Approval Needed Section */}
-                {isApprovalRole && requestsNeedingApproval.length > 0 && (
+                {isApprovalRole && (
                     <Card className="bg-white/90 border-orange-200 shadow-xl shadow-orange-200/50">
                         <CardHeader>
                             <CardTitle className="text-orange-700">
@@ -503,53 +581,63 @@ export default function RequestTraining() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="bg-orange-50">
-                                            <TableHead>ID</TableHead>
-                                            <TableHead>Title</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Priority</TableHead>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {requestsNeedingApproval.map((request) => (
-                                            <TableRow key={request.id}>
-                                                <TableCell className="font-medium">{request.id?.substring(0, 8)}</TableCell>
-                                                <TableCell>{request.trainingTitle || request.training_title}</TableCell>
-                                                <TableCell>
-                                                    <Badge className={getStatusColor(request.status)}>
-                                                        {(request.status || '').replace('_', ' ')}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge className={getPriorityColor(request.priority)}>
-                                                        {request.priority}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {new Date(request.createdAt || request.created_date).toLocaleDateString()}
-                                                </TableCell>
-                                                <TableCell className="flex gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-green-600 hover:bg-green-700"
-                                                        onClick={() => {
-                                                            setSelectedRequest(request);
-                                                            setApprovalModal({ open: true, requestId: request.id, type: 'approval' });
-                                                        }}
-                                                    >
-                                                        Review
-                                                    </Button>
-                                                </TableCell>
+                            {requestsNeedingApproval.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow className="bg-orange-50">
+                                                <TableHead>ID</TableHead>
+                                                <TableHead>Title</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead>Priority</TableHead>
+                                                <TableHead>Date</TableHead>
+                                                <TableHead>Actions</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {requestsNeedingApproval.map((request) => (
+                                                <TableRow key={request.id}>
+                                                    <TableCell className="font-medium">{request.id?.substring(0, 8)}</TableCell>
+                                                    <TableCell>{request.trainingTitle || request.training_title}</TableCell>
+                                                    <TableCell>
+                                                        <Badge className={getStatusColor(request.status)}>
+                                                            {(request.status || '').replace('_', ' ')}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge className={getPriorityColor(request.priority)}>
+                                                            {request.priority}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {new Date(request.createdAt || request.created_date).toLocaleDateString()}
+                                                    </TableCell>
+                                                    <TableCell className="flex gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            className="bg-green-600 hover:bg-green-700"
+                                                            onClick={() => {
+                                                                setSelectedRequest(request);
+                                                                setApprovalModal({ open: true, requestId: request.id, type: 'approval' });
+                                                            }}
+                                                        >
+                                                            Review
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            ) : (
+                                <div className="p-6 text-center text-gray-600">
+                                    <p className="font-medium">No requests pending your approval.</p>
+                                    <p className="text-sm mt-1">You will see requests here when they require your action.</p>
+                                    <div className="mt-4">
+                                        <Button size="sm" onClick={loadData}>Refresh</Button>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}
@@ -649,28 +737,31 @@ export default function RequestTraining() {
                             />
                         </div>
 
-                        <div className="flex gap-3">
+                            <div className="flex gap-3">
                             <Button
+                                type="button"
                                 className="flex-1 bg-green-600 hover:bg-green-700"
-                                onClick={() => handleApproval(selectedRequest.id, true)}
-                                disabled={isApproving}
+                                onClick={(e) => handleApproval(selectedRequest.id, true, e)}
+                                disabled={processingAction === 'approve'}
                             >
-                                {isApproving ? 'Processing...' : 'Approve'}
+                                {processingAction === 'approve' ? 'Processing...' : 'Approve'}
                             </Button>
                             <Button
+                                type="button"
                                 className="flex-1 bg-red-600 hover:bg-red-700"
-                                onClick={() => handleApproval(selectedRequest.id, false)}
-                                disabled={isApproving}
+                                onClick={(e) => handleApproval(selectedRequest.id, false, e)}
+                                disabled={processingAction === 'reject'}
                             >
-                                {isApproving ? 'Processing...' : 'Reject'}
+                                {processingAction === 'reject' ? 'Processing...' : 'Reject'}
                             </Button>
                             <Button
+                                type="button"
                                 variant="outline"
                                 onClick={() => {
                                     setApprovalModal({ open: false, requestId: null, type: null });
                                     setRejectionReason('');
                                 }}
-                                disabled={isApproving}
+                                disabled={processingAction !== ''}
                             >
                                 Cancel
                             </Button>
