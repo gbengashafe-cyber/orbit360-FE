@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { showToast } from '@/utils/toast';
 import { userService } from '@/api';
 import { apiClient, apiRoutes } from '@/api';
@@ -58,7 +58,7 @@ export default function DocumentManagement() {
     const [loadingDeletions, setLoadingDeletions] = useState(false);
     const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ open: false, itemId: null, itemName: '', itemType: 'document' });
     const [approvalDialog, setApprovalDialog] = useState({ open: false, deletionId: null, action: null });
-    const [rejectionReason, setRejectionReason] = useState('');
+    const rejectionReasonRef = useRef('');
 
     const initializeDefaultStructure = useCallback(async () => {
         try {
@@ -357,9 +357,10 @@ export default function DocumentManagement() {
 
     const handleConfirmApprovalAction = async () => {
         const { deletionId, action } = approvalDialog;
+        const currentReason = rejectionReasonRef.current;
         
         // Validate rejection reason if rejecting
-        if (action === 'reject' && (!rejectionReason || rejectionReason.trim() === '')) {
+        if (action === 'reject' && (!currentReason || currentReason.trim() === '')) {
             showToast.error('Rejection reason is mandatory.');
             return;
         }
@@ -373,25 +374,25 @@ export default function DocumentManagement() {
             console.log(`[AUDIT] Document deletion ${action}:`, { 
                 deletionId, 
                 action, 
-                rejectionReason: action === 'reject' ? rejectionReason : null,
+                rejectionReason: action === 'reject' ? currentReason : null,
                 timestamp: new Date().toISOString(),
                 user: currentUser?.email 
             });
             
             await apiClient.post(url, {
-                reviewerComment: action === 'reject' ? rejectionReason : ''
+                reviewerComment: action === 'reject' ? currentReason : ''
             });
             
             const message = action === 'approve' 
                 ? 'Deletion request approved and document/folder deleted.'
-                : `Deletion request rejected. Reason: ${rejectionReason}`;
+                : `Deletion request rejected. Reason: ${currentReason}`;
             
             showToast.success(message);
             // Refresh both pending deletions and documents lists
             await loadPendingDeletions();
             await loadData(); // Refresh documents to reflect deletion
             setApprovalDialog({ open: false, deletionId: null, action: null });
-            setRejectionReason('');
+            rejectionReasonRef.current = '';
         } catch (error) {
             console.error(`Error ${approvalDialog.action}ing deletion:`, error);
             showToast.error(`Failed to ${approvalDialog.action} deletion request.`);
@@ -443,7 +444,7 @@ export default function DocumentManagement() {
         <Dialog open={approvalDialog.open} onOpenChange={(open) => {
             if (!open) {
                 setApprovalDialog({ open: false, deletionId: null, action: null });
-                setRejectionReason('');
+                rejectionReasonRef.current = '';
             }
         }}>
             <DialogContent>
@@ -464,8 +465,10 @@ export default function DocumentManagement() {
                             <textarea
                                 id="rejection-reason"
                                 autoFocus
-                                value={rejectionReason}
-                                onChange={(e) => setRejectionReason(e.target.value)}
+                                defaultValue={rejectionReasonRef.current}
+                                onChange={(e) => {
+                                    rejectionReasonRef.current = e.target.value;
+                                }}
                                 placeholder="Explain why this deletion request is being rejected..."
                                 className="w-full p-2 border rounded-lg mt-2 focus:outline-none focus:ring-2 focus:ring-red-500"
                                 rows={3}
@@ -478,7 +481,7 @@ export default function DocumentManagement() {
                             variant="outline"
                             onClick={() => {
                                 setApprovalDialog({ open: false, deletionId: null, action: null });
-                                setRejectionReason('');
+                                rejectionReasonRef.current = '';
                             }}
                         >
                             Cancel
