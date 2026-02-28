@@ -220,6 +220,15 @@ export class ApiRoutes {
   static SubmitPerformanceAppraisal = (id) => `/v1/performance/appraisals/${id}/submit`;
   static ReviewPerformanceAppraisal = (id) => `/v1/performance/appraisals/${id}/review`;
 
+  // Training Requests
+  static TrainingRequests = '/v1/training-requests';
+  static SubmitTrainingRequest = () => `${ApiRoutes.TrainingRequests}`;
+  static GetTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}`;
+  static SupervisorApproveTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}/supervisor-approval`;
+  static HRApproveTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}/hr-approval`;
+  static FinalApproveTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}/final-approval`;
+  static DeleteTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}`;
+
   // Companies
 
   static company = {

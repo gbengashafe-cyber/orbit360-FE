@@ -1,4 +1,4 @@
-import { employeeService, leaveService, payrollService } from '@/api';
+import { appraisalService, employeeService, exitService, leaveService, payrollService, recruitmentService, trainingService } from '@/api';
 import { authorizationService } from '@/api/authorization.service';
 import { loanService } from '@/api/loan.service';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
@@ -13,15 +13,20 @@ import { AuthorizationViewDialog } from '../authorization-center/authorization-c
 import { TransactionsTable } from '../authorization-center/transaction-table';
 
 export default function AuthorizationCenterWIP() {
+  const TRAINING_MODULE_KEY = 'training_requests';
+  const EXIT_MODULE_KEY = 'exits';
+  const RECRUITMENT_MODULE_KEY = 'recruitment';
+  const normalizeModuleName = (moduleName = '') => moduleName.toString().toLowerCase().replace(/-/g, '_');
+  const normalizeStatus = (status = '') => status.toString().toUpperCase();
   const [loading, setLoading] = useState(true);
-  const [jobPostings, setJobPostings] = useState([]);
-  const [leaveRequests, setLeaveRequests] = useState([]);
+  // const [jobPostings, setJobPostings] = useState([]);
+  // const [leaveRequests, setLeaveRequests] = useState([]);
   const [loans, setLoans] = useState([]);
-  const [resignations, setResignations] = useState([]);
-  const [redeployments, setRedeployments] = useState([]);
-  const [newStaffRequests, setNewStaffRequests] = useState([]);
-  const [staffComplaints, setStaffComplaints] = useState([]);
-  const [appraisals, setAppraisals] = useState([]);
+  // const [resignations, setResignations] = useState([]);
+  // const [redeployments, setRedeployments] = useState([]);
+  // const [newStaffRequests, setNewStaffRequests] = useState([]);
+  // const [staffComplaints, setStaffComplaints] = useState([]);
+  // const [appraisals, setAppraisals] = useState([]);
   const [viewingItem, setViewingItem] = useState(null);
   const [activeModule, setActiveModule] = useState('loans');
   const [tabIsLoading, setTabIsLoading] = useState(true);
@@ -29,19 +34,120 @@ export default function AuthorizationCenterWIP() {
   const [pendingStats, setPendingStats] = useState({ total: 0, breakdown: {} });
   const [pendingItems, setPendingItems] = useState({});
   const [pendingItemsPagination, setPendingItemsPagination] = useState({});
+  const [trainingPendingAll, setTrainingPendingAll] = useState([]);
+  const [exitPendingAll, setExitPendingAll] = useState([]);
+  const [recruitmentPendingAll, setRecruitmentPendingAll] = useState([]);
   const [rows, setRows] = useState(25);
   const [approverNote, setApprovalNote] = useState('');
   const [authorizeError, setAuthorizeError] = useState('');
+  const { currentUser } = useGlobalContext();
+
+  const getTrainingPendingForCurrentUser = useCallback(async () => {
+    const jobTitle = currentUser?.employeeData?.jobRole?.title?.toString().toLowerCase() || '';
+    const isHrLike = jobTitle.includes('hr') || jobTitle.includes('human');
+    const isHrManager = isHrLike && ['manager', 'chief', 'head'].some((keyword) => jobTitle.includes(keyword));
+    const isSupervisorLike = ['supervisor', 'lead', 'superintendent'].some((keyword) => jobTitle.includes(keyword));
+
+    const response = await trainingService.getRequests();
+    const allRequests = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
+    const nonApprovedRequests = allRequests.filter(
+      (request) => !normalizeStatus(request.status).includes('APPROVED'),
+    );
+
+    if (isSupervisorLike) {
+      return nonApprovedRequests.filter((request) =>
+        ['PENDING', 'SUPERVISOR_REJECTED'].includes(normalizeStatus(request.status)),
+      );
+    }
+
+    if (isHrManager) {
+      return nonApprovedRequests.filter((request) =>
+        ['PENDING', 'SUPERVISOR_REJECTED', 'HR_REVIEWING', 'HR_REJECTED', 'FINAL_REJECTED'].includes(
+          normalizeStatus(request.status),
+        ),
+      );
+    }
+
+    return nonApprovedRequests.filter((request) =>
+      ['PENDING', 'SUPERVISOR_REJECTED', 'HR_REVIEWING', 'HR_REJECTED'].includes(normalizeStatus(request.status)),
+    );
+  }, [currentUser]);
+
+  const getExitPendingForCurrentUser = useCallback(async () => {
+    const response = await exitService.getExits(1, 1000);
+    const allExits = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
+    return allExits.filter((item) => normalizeStatus(item.status) === 'SUBMITTED');
+  }, []);
+
+  const getRecruitmentPendingForCurrentUser = useCallback(async () => {
+    const response = await recruitmentService.getJobPostings(1, 1000);
+    const allJobs = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
+    return allJobs.filter((item) => normalizeStatus(item.status) === 'PENDING_APPROVAL');
+  }, []);
 
   const getPendingCount = useCallback(async () => {
     try {
       const result = await authorizationService.getPendingCount();
-      setPendingStats(result.data);
+      const backendStats = result.data || { total: 0, breakdown: {} };
+      let nextStats = { ...backendStats, breakdown: { ...(backendStats.breakdown || {}) } };
+
+      try {
+        const trainingItems = await getTrainingPendingForCurrentUser();
+        setTrainingPendingAll(trainingItems);
+
+        const hasTrainingModule =
+          typeof nextStats.breakdown.training !== 'undefined' ||
+          typeof nextStats.breakdown.trainings !== 'undefined' ||
+          typeof nextStats.breakdown[TRAINING_MODULE_KEY] !== 'undefined';
+
+        if (!hasTrainingModule && trainingItems.length > 0) {
+          nextStats.breakdown[TRAINING_MODULE_KEY] = trainingItems.length;
+          nextStats.total = Number(nextStats.total || 0) + trainingItems.length;
+        }
+      } catch (trainingError) {
+        logger.error({ caller: 'Load training pending fallback', payload: trainingError });
+      }
+
+      try {
+        const exitItems = await getExitPendingForCurrentUser();
+        setExitPendingAll(exitItems);
+
+        const hasExitModule =
+          typeof nextStats.breakdown.exit !== 'undefined' ||
+          typeof nextStats.breakdown.exits !== 'undefined' ||
+          typeof nextStats.breakdown.exit_requests !== 'undefined';
+
+        if (!hasExitModule && exitItems.length > 0) {
+          nextStats.breakdown[EXIT_MODULE_KEY] = exitItems.length;
+          nextStats.total = Number(nextStats.total || 0) + exitItems.length;
+        }
+      } catch (exitError) {
+        logger.error({ caller: 'Load exit pending fallback', payload: exitError });
+      }
+
+      try {
+        const recruitmentItems = await getRecruitmentPendingForCurrentUser();
+        setRecruitmentPendingAll(recruitmentItems);
+
+        const hasRecruitmentModule =
+          typeof nextStats.breakdown.recruitment !== 'undefined' ||
+          typeof nextStats.breakdown.recruitments !== 'undefined' ||
+          typeof nextStats.breakdown.job_postings !== 'undefined';
+
+        if (!hasRecruitmentModule && recruitmentItems.length > 0) {
+          nextStats.breakdown[RECRUITMENT_MODULE_KEY] = recruitmentItems.length;
+          nextStats.total = Number(nextStats.total || 0) + recruitmentItems.length;
+        }
+      } catch (recruitmentError) {
+        logger.error({ caller: 'Load recruitment pending fallback', payload: recruitmentError });
+      }
+
+      setPendingStats(nextStats);
     } catch (error) {
       logger.error({ caller: 'List pending auth count', error });
       toast.error('Error', { description: error.message || 'Could not load pending authorization count' });
     }
-  }, []);
+  }, [EXIT_MODULE_KEY, RECRUITMENT_MODULE_KEY, getExitPendingForCurrentUser, getRecruitmentPendingForCurrentUser, getTrainingPendingForCurrentUser]);
 
   useEffect(() => {
     getPendingCount();
@@ -55,6 +161,43 @@ export default function AuthorizationCenterWIP() {
         return;
       }
       setTabIsLoading(true);
+
+      if (normalizeModuleName(activeModule) === TRAINING_MODULE_KEY) {
+        const page = Number(currentPagination) || 1;
+        const start = (page - 1) * rows;
+        const items = trainingPendingAll.slice(start, start + rows);
+        const pages = Math.max(1, Math.ceil(trainingPendingAll.length / rows));
+
+        setPendingItems((prev) => ({ ...prev, [activeModule]: items }));
+        setPendingItemsPagination((prev) => ({ ...prev, [activeModule]: { page, pages, total: trainingPendingAll.length } }));
+        return;
+      }
+
+      if (normalizeModuleName(activeModule) === EXIT_MODULE_KEY) {
+        const page = Number(currentPagination) || 1;
+        const start = (page - 1) * rows;
+        const items = exitPendingAll.slice(start, start + rows);
+        const pages = Math.max(1, Math.ceil(exitPendingAll.length / rows));
+
+        setPendingItems((prev) => ({ ...prev, [activeModule]: items }));
+        setPendingItemsPagination((prev) => ({ ...prev, [activeModule]: { page, pages, total: exitPendingAll.length } }));
+        return;
+      }
+
+      if (normalizeModuleName(activeModule) === RECRUITMENT_MODULE_KEY) {
+        const page = Number(currentPagination) || 1;
+        const start = (page - 1) * rows;
+        const items = recruitmentPendingAll.slice(start, start + rows);
+        const pages = Math.max(1, Math.ceil(recruitmentPendingAll.length / rows));
+
+        setPendingItems((prev) => ({ ...prev, [activeModule]: items }));
+        setPendingItemsPagination((prev) => ({
+          ...prev,
+          [activeModule]: { page, pages, total: recruitmentPendingAll.length },
+        }));
+        return;
+      }
+
       const result = await authorizationService.getModulePending(activeModule, {
         rows,
         page: currentPagination,
@@ -67,7 +210,18 @@ export default function AuthorizationCenterWIP() {
     } finally {
       setTabIsLoading(false);
     }
-  }, [activeModule, currentPagination, pendingStats.breakdown, rows]);
+  }, [
+    EXIT_MODULE_KEY,
+    RECRUITMENT_MODULE_KEY,
+    TRAINING_MODULE_KEY,
+    activeModule,
+    currentPagination,
+    exitPendingAll,
+    pendingStats.breakdown,
+    recruitmentPendingAll,
+    rows,
+    trainingPendingAll,
+  ]);
 
   useEffect(() => {
     loadPendingModuleItems();
@@ -77,14 +231,12 @@ export default function AuthorizationCenterWIP() {
     loadData();
   }, []);
 
-  const { currentUser } = useGlobalContext();
-
   const loadData = async () => {
     setLoading(true);
     try {
       const pendingResponse = await authorizationService.getPending({ rows: 25, page: 1 });
 
-      setLoans(pendingResponse.data?.loans);
+      setLoans(pendingResponse.data?.loans || []);
     } catch (error) {
       logger.error({ caller: 'List pending auth items', payload: error });
       toast.error('Error', { description: error.message || 'Error loading data' });
@@ -96,17 +248,10 @@ export default function AuthorizationCenterWIP() {
   const handleAuthorize = async (item, action, moduleName) => {
     setAuthorizing(true);
     try {
-      const newStatus = action === 'approve' ? (item.type === 'Job Posting' ? 'authorized' : 'approved') : 'rejected';
-      const updateData = {
-        status: newStatus,
-        approved_by: currentUser.email,
-        approved_date: new Date().toISOString().split('T')[0],
-      };
-
       let responsePayload;
 
       // Update based on transaction type
-      switch (moduleName) {
+      switch (normalizeModuleName(moduleName)) {
         case 'loans': {
           if (action === 'reject' && !approverNote) {
             setAuthorizeError('Note is required if action is `Reject`');
@@ -133,33 +278,49 @@ export default function AuthorizationCenterWIP() {
             ? (responsePayload = await leaveService.updateLeaveStatus(item.id, 'APPROVED'))
             : (responsePayload = await leaveService.updateLeaveStatus(item.id, 'REJECTED'));
           break;
-        case 'Appraisal':
-          await base44.entities.Appraisal.update(item.id, {
-            ...updateData,
-            status: action === 'approve' ? 'approved' : 'rejected',
-            hr_approval_date: new Date().toISOString(),
-          });
+        case 'training':
+        case 'trainings':
+        case 'training_requests': {
+          const jobTitle = currentUser?.employeeData?.jobRole?.title?.toString().toLowerCase() || '';
+          const isHrLike = jobTitle.includes('hr') || jobTitle.includes('human');
+          const isHrManager = isHrLike && ['manager', 'chief', 'head'].some((keyword) => jobTitle.includes(keyword));
+          const isSupervisorLike = ['supervisor', 'lead', 'superintendent'].some((keyword) => jobTitle.includes(keyword));
 
-          // Send email notification to employee
-          if (item.employee_email) {
-            try {
-              await base44.integrations.Core.SendEmail({
-                to: item.employee_email,
-                subject: `Appraisal ${action === 'approve' ? 'Approved' : 'Rejected'} - ${item.cycle_name}`,
-                body: `
-                  <h3>Your Performance Appraisal Has Been ${action === 'approve' ? 'Approved' : 'Rejected'}</h3>
-                  <p><strong>Cycle:</strong> ${item.cycle_name}</p>
-                  <p><strong>Status:</strong> ${action === 'approve' ? 'Approved' : 'Rejected'}</p>
-                  <p><strong>Approved By:</strong> ${currentUser.email}</p>
-                  <p>Please log in to view your complete appraisal details.</p>
-                `,
-                from_name: 'Orbit360 HR System',
-              });
-            } catch (e) {
-              console.warn('Failed to send email notification:', e);
-            }
+          if (isSupervisorLike) {
+            responsePayload = await trainingService.supervisorApprove(item.id, action === 'approve', approverNote);
+          } else if (isHrManager) {
+            responsePayload = await trainingService.finalApprove(item.id, action === 'approve', approverNote);
+          } else {
+            responsePayload = await trainingService.hrApprove(item.id, action === 'approve', approverNote);
           }
           break;
+        }
+        case 'exit':
+        case 'exits':
+        case 'exit_requests': {
+          responsePayload = await exitService.approveExit(item.id, action === 'approve' ? 'approved' : 'rejected');
+          break;
+        }
+        case 'recruitment':
+        case 'recruitments':
+        case 'job_postings': {
+          if (action === 'approve') {
+            responsePayload = await recruitmentService.approveJobPosting(item.id, currentUser?.id || currentUser?.email);
+          } else {
+            responsePayload = await recruitmentService.rejectJobPosting(item.id);
+          }
+          break;
+        }
+        case 'appraisal':
+        case 'appraisals': {
+          responsePayload = await appraisalService.reviewAppraisal(item.id, {
+            status: action === 'approve' ? 'approved' : 'rejected',
+            reviewed_by: currentUser?.id || currentUser?.email,
+            review_note: approverNote,
+            reviewed_at: new Date().toISOString(),
+          });
+          break;
+        }
         default:
           throw new Error(`Authorization is not handled for module '${moduleName}'`);
       }
@@ -186,9 +347,8 @@ export default function AuthorizationCenterWIP() {
     }
   };
 
-  const canAuthorize =
-    currentUser?.employeeData?.jobRole?.title?.toLowerCase().includes('head') ||
-    currentUser?.employeeData?.jobRole?.title?.toLowerCase().includes('manager');
+  const jobTitle = currentUser?.employeeData?.jobRole?.title?.toLowerCase() || '';
+  const canAuthorize = jobTitle.includes('head') || jobTitle.includes('manager') || jobTitle.includes('supervisor');
 
   if (loading) {
     return (

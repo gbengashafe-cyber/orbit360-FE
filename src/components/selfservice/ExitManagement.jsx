@@ -113,14 +113,14 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
         setIsDeleting(true);
         try {
             await apiClient.delete(apiRoutes.DeleteExit(pendingDeleteId));
-            showToast.success('Exit request deleted successfully', 'Success');
+            showToast.success('Exit request deleted successfully');
             setShowDeleteModal(false);
             setPendingDeleteId(null);
             loadData();
             if (onUpdate) onUpdate();
         } catch (error) {
             console.error('Error deleting exit request:', error);
-            showToast.error('Failed to delete exit request. Please try again.', 'Error');
+            showToast.error('Failed to delete exit request. Please try again.');
         } finally {
             setIsDeleting(false);
         }
@@ -193,12 +193,12 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
             setShowForm(false);
             resetForm();
             loadData();
-            showToast.success('Resignation submitted successfully. HR will be notified.', 'Success');
+            showToast.success('Resignation submitted successfully. HR will be notified.');
             if (onUpdate) onUpdate();
         } catch (error) {
             console.error('Error submitting resignation:', error);
             const errorMsg = error?.response?.data?.message || error.message || 'Failed to submit resignation';
-            showToast.error(errorMsg, 'Error');
+            showToast.error(errorMsg);
         } finally {
             setIsSubmitting(false);
             setPendingSubmitData(null);
@@ -235,12 +235,15 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
         } else if (value === 'yes') {
             // Allow "Completed" status directly
             setFormData({ ...formData, handover_status: value });
+            showToast.success('Handover status set to Completed');
         }
     };
 
     const confirmHandoverStatus = () => {
         if (pendingHandoverStatus) {
             setFormData({ ...formData, handover_status: pendingHandoverStatus });
+            const statusLabel = pendingHandoverStatus === 'in_progress' ? 'In Progress' : 'Not Started';
+            showToast.success(`Handover status updated to ${statusLabel}`);
         }
         setShowHandoverWarning(false);
         setPendingHandoverStatus(null);
@@ -404,14 +407,23 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
                                 <div className="space-y-3">
                                     <div>
                                         <p className="text-sm text-gray-600 mb-1"><strong>Status:</strong></p>
-                                        <Select value={activeRequest.handoverStatus || 'in_progress'} onValueChange={handleHandoverStatusChangeInProgress}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                                <SelectItem value="yes">Completed</SelectItem>
-                                                <SelectItem value="no">Not Started</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        {isHrAdmin ? (
+                                            <Select value={activeRequest.handoverStatus || 'in_progress'} onValueChange={handleHandoverStatusChangeInProgress}>
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="in_progress">In Progress</SelectItem>
+                                                    <SelectItem value="yes">Completed</SelectItem>
+                                                    <SelectItem value="no">Not Started</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <div className="p-2 bg-gray-100 rounded border text-gray-700">
+                                                {activeRequest.handoverStatus === 'in_progress' && 'In Progress'}
+                                                {activeRequest.handoverStatus === 'yes' && 'Completed'}
+                                                {activeRequest.handoverStatus === 'no' && 'Not Started'}
+                                                {!activeRequest.handoverStatus && 'In Progress'}
+                                            </div>
+                                        )}
                                     </div>
                                     <p className="text-sm"><strong>Recipient:</strong> {activeRequest.handoverRecipientName || 'N/A'}</p>
                                 </div>

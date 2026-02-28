@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import ApprovalActionDialog from './ApprovalActionDialog';
 
 
 const defaultFolders = [
@@ -58,6 +59,7 @@ export default function DocumentManagement() {
     const [loadingDeletions, setLoadingDeletions] = useState(false);
     const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ open: false, itemId: null, itemName: '', itemType: 'document' });
     const [approvalDialog, setApprovalDialog] = useState({ open: false, deletionId: null, action: null });
+    const [rejectionReason, setRejectionReason] = useState('');
 
     const initializeDefaultStructure = useCallback(async () => {
         try {
@@ -133,6 +135,14 @@ export default function DocumentManagement() {
     const handleCreateFolder = async () => {
         if (!newFolderName) return;
         try {
+            // Log audit action
+            console.log(`[AUDIT] Folder created:`, { 
+                name: newFolderName, 
+                parentFolderId: currentFolder,
+                timestamp: new Date().toISOString(),
+                user: currentUser?.email 
+            });
+            
             await apiClient.post(apiRoutes.CreateFolder, { name: newFolderName, parent_folder_id: currentFolder });
             setNewFolderName("");
             setShowFolderForm(false);
@@ -151,6 +161,16 @@ export default function DocumentManagement() {
         }
         setIsUploading(true);
         try {
+            // Log audit action
+            console.log(`[AUDIT] Document uploaded:`, { 
+                name: uploadData.name, 
+                type: uploadData.document_type,
+                accessLevel: uploadData.access_level,
+                folderId: currentFolder,
+                timestamp: new Date().toISOString(),
+                user: currentUser?.email 
+            });
+            
             // Create FormData for multipart upload
             const formData = new FormData();
             formData.append('name', uploadData.name);
@@ -189,6 +209,16 @@ export default function DocumentManagement() {
         }
 
         try {
+            // Log audit action
+            console.log(`[AUDIT] Document access changed:`, { 
+                documentId: doc.id, 
+                documentName: doc.name, 
+                oldLevel: doc.access_level,
+                newLevel,
+                timestamp: new Date().toISOString(),
+                user: currentUser?.email 
+            });
+            
             console.log("Updating document:", { docId: doc.id, docName: doc.name, newLevel });
             const response = await apiClient.put(apiRoutes.UpdateDocument(doc.id), { access_level: newLevel });
             console.log("Update response:", response);
@@ -216,39 +246,58 @@ export default function DocumentManagement() {
     };
 
     const handleConfirmDelete = async () => {
-        const { itemId, itemType } = deleteConfirmDialog;
-        
-        // Check if item already has a pending deletion request
-        const hasPendingDeletion = pendingDeletions.some(deletion => deletion.itemId === itemId);
-        
-        if (hasPendingDeletion) {
-            showToast.error(`This ${itemType} already has a pending deletion request awaiting approval.`);
-            setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
-            return;
-        }
+        const { itemId, itemType, itemName } = deleteConfirmDialog;
         
         try {
+            // Log audit action
+            console.log(`[AUDIT] ${itemType} deletion requested:`, { 
+                itemId, 
+                itemType,
+                itemName,
+                timestamp: new Date().toISOString(),
+                user: currentUser?.email 
+            });
+            
             if (itemType === 'document') {
-                await apiClient.delete(apiRoutes.DeleteDocument(itemId), {
-                    data: { requesterComment: '' }
-                });
+                await apiClient.delete(apiRoutes.DeleteDocument(itemId));
             } else if (itemType === 'folder') {
-                await apiClient.delete(apiRoutes.DeleteFolder(itemId), {
-                    data: { requesterComment: '' }
-                });
+                await apiClient.delete(apiRoutes.DeleteFolder(itemId));
             }
-            showToast.success(`Deletion request for "${deleteConfirmDialog.itemName}" has been submitted to your HR manager for approval.`);
+            showToast.success(`Deletion request for "${itemName}" has been submitted to your HR manager for approval.`);
+            // Reload both documents and pending deletions to show updated list
+            await loadData(); // Refresh to show item as greyed out
+            if (currentUser && (currentUser.role === 'admin' || currentUser.permissions?.includes('APPROVE_DOCUMENT_DELETION'))) {
+                await loadPendingDeletions();
+            }
             setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
         } catch (error) {
-            console.error(`Error requesting ${itemType} deletion:`, error);
+            console.error(`[DELETION ERROR] Error requesting ${itemType} deletion:`, error);
+            console.error('[DELETION ERROR] Error is instance of Error?', error instanceof Error);
+            console.error('[DELETION ERROR] Full error:', { error, response: error?.response, message: error?.message });
             
-            // Handle 409 Conflict - pending deletion already exists
-            if (error?.response?.status === 409) {
-                showToast.error(`This ${itemType} has a pending deletion approval. Please wait for the approval decision.`);
+            // Axios error structure: error.response.status and error.response.data
+            const statusCode = error?.response?.status;
+            const errorData = error?.response?.data;
+            const backendMessage = errorData?.message;
+            const fallbackMessage = error?.message;
+            
+            console.log('[DELETION ERROR] Extracted:', { statusCode, backendMessage, fallbackMessage, errorData });
+            
+            // Debug what we're about to pass to toast
+            let toastMessage = '';
+            if (statusCode === 409) {
+                toastMessage = `This ${itemType} has a pending deletion approval. Please wait for the approval decision.`;
+                console.log('[DELETION ERROR] Using 409 message:', toastMessage);
+            } else if (backendMessage) {
+                toastMessage = backendMessage;
+                console.log('[DELETION ERROR] Using backend message:', toastMessage);
             } else {
-                const errorMsg = error?.response?.data?.message || `Failed to submit ${itemType} deletion request.`;
-                showToast.error(errorMsg);
+                toastMessage = `Failed to submit ${itemType} deletion request.`;
+                console.log('[DELETION ERROR] Using fallback message:', toastMessage);
             }
+            
+            console.log('[DELETION ERROR] Final toast message:', toastMessage);
+            showToast.error(toastMessage);
         } finally {
             setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
         }
@@ -287,6 +336,18 @@ export default function DocumentManagement() {
         }
     }, [canApproveDeletions]);
 
+    // Helper function to check if item has pending deletion
+    const hasPendingDeletion = (itemId) => {
+        return pendingDeletions.some(deletion => deletion.itemId === itemId);
+    };
+
+    useEffect(() => {
+        // Load pending deletions on mount if user has approval permissions
+        if (currentUser && (currentUser.role === 'admin' || currentUser.permissions?.includes('APPROVE_DOCUMENT_DELETION'))) {
+            loadPendingDeletions();
+        }
+    }, [currentUser, loadPendingDeletions]);
+
     const handleApproveDeletion = (deletionId) => {
         setApprovalDialog({ open: true, deletionId, action: 'approve' });
     };
@@ -298,27 +359,44 @@ export default function DocumentManagement() {
     const handleConfirmApprovalAction = async () => {
         const { deletionId, action } = approvalDialog;
         
+        // Validate rejection reason if rejecting
+        if (action === 'reject' && (!rejectionReason || rejectionReason.trim() === '')) {
+            showToast.error('Rejection reason is mandatory.');
+            return;
+        }
+        
         try {
             const url = action === 'approve' 
                 ? apiRoutes.hrDocumentDeletionRequests.approve(deletionId)
                 : apiRoutes.hrDocumentDeletionRequests.reject(deletionId);
             
+            // Log audit action
+            console.log(`[AUDIT] Document deletion ${action}:`, { 
+                deletionId, 
+                action, 
+                rejectionReason: action === 'reject' ? rejectionReason : null,
+                timestamp: new Date().toISOString(),
+                user: currentUser?.email 
+            });
+            
             await apiClient.post(url, {
-                reviewerComment: ''
+                reviewerComment: action === 'reject' ? rejectionReason : ''
             });
             
             const message = action === 'approve' 
                 ? 'Deletion request approved and document/folder deleted.'
-                : 'Deletion request rejected.';
+                : `Deletion request rejected. Reason: ${rejectionReason}`;
             
             showToast.success(message);
             // Refresh both pending deletions and documents lists
             await loadPendingDeletions();
             await loadData(); // Refresh documents to reflect deletion
             setApprovalDialog({ open: false, deletionId: null, action: null });
+            setRejectionReason('');
         } catch (error) {
             console.error(`Error ${approvalDialog.action}ing deletion:`, error);
-            showToast.error(`Failed to ${approvalDialog.action} deletion request.`);
+            const errorMsg = error?.response?.data?.message || `Failed to ${approvalDialog.action} deletion request.`;
+            showToast.error(errorMsg);
         }
     };
 
@@ -362,39 +440,7 @@ export default function DocumentManagement() {
         </Dialog>
     );
 
-    // Approval action dialog (for HR managers approving/rejecting deletions)
-    const ApprovalActionDialog = () => (
-        <Dialog open={approvalDialog.open} onOpenChange={(open) => !open && setApprovalDialog({ open: false, deletionId: null, action: null })}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>
-                        {approvalDialog.action === 'approve' ? 'Approve Deletion Request' : 'Reject Deletion Request'}
-                    </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                    <p className="text-gray-700">
-                        {approvalDialog.action === 'approve' 
-                            ? 'This will permanently delete the document/folder. This action cannot be undone.'
-                            : 'The deletion request will be rejected and the document/folder will remain intact.'}
-                    </p>
-                    <div className="flex gap-3 justify-end">
-                        <Button
-                            variant="outline"
-                            onClick={() => setApprovalDialog({ open: false, deletionId: null, action: null })}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            className={approvalDialog.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
-                            onClick={handleConfirmApprovalAction}
-                        >
-                            {approvalDialog.action === 'approve' ? 'Approve' : 'Reject'}
-                        </Button>
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
+
 
     if (!canView) {
         return (
@@ -493,7 +539,17 @@ export default function DocumentManagement() {
                 </div>
 
                 <DeleteConfirmationDialog />
-                <ApprovalActionDialog />
+                <ApprovalActionDialog 
+                    open={approvalDialog.open}
+                    action={approvalDialog.action}
+                    rejectionReason={rejectionReason}
+                    onReasonChange={setRejectionReason}
+                    onClose={() => {
+                        setApprovalDialog({ open: false, deletionId: null, action: null });
+                        setRejectionReason('');
+                    }}
+                    onConfirm={handleConfirmApprovalAction}
+                />
 
                 {activeTab === 'documents' ? (
                 <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
@@ -512,86 +568,106 @@ export default function DocumentManagement() {
                         ) : (
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                                 {displayedFolders.map(folder => {
-                                    const isDefaultFolder = defaultFolders.includes(folder.name);
-                                    
-                                    return (
-                                    <div key={folder.id} className="relative group p-4 border rounded-lg text-center cursor-pointer hover:bg-gray-50 flex flex-col items-center justify-center transition-all hover:shadow-lg hover:-translate-y-1 h-40">
-                                        {canManage && !isDefaultFolder && (
-                                        <div className="absolute top-1 right-1 z-10">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                                    <Button variant="ghost" size="icon" className="w-7 h-7">
-                                                        <MoreHorizontal className="w-4 h-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDeleteConfirmDialog({ open: true, itemId: folder.id, itemName: folder.name, itemType: 'folder' }); }} className="text-red-500">
-                                                        <Trash2 className="w-4 h-4 mr-2" /> Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                        )}
-                                        <div onClick={() => setCurrentFolder(folder.id)} className="flex flex-col items-center justify-center w-full">
-                                            <Folder className="w-12 h-12 text-yellow-500 mb-2" />
-                                            <span className="text-sm font-medium break-words w-full">{folder.name}</span>
-                                        </div>
-                                    </div>
-                                    );
-                                })}
+                                     const isDefaultFolder = defaultFolders.includes(folder.name);
+                                     const isPending = hasPendingDeletion(folder.id);
+                                     
+                                     return (
+                                     <div key={folder.id} className={`relative group p-4 border rounded-lg text-center flex flex-col items-center justify-center transition-all h-40 ${isPending ? 'opacity-50 bg-gray-100 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50 hover:shadow-lg hover:-translate-y-1'}`}>
+                                         {isPending && (
+                                         <div className="absolute top-2 left-2 z-10">
+                                             <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                                 Pending Deletion
+                                             </Badge>
+                                         </div>
+                                         )}
+                                         {canManage && !isDefaultFolder && !isPending && (
+                                         <div className="absolute top-1 right-1 z-10">
+                                             <DropdownMenu>
+                                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                     <Button variant="ghost" size="icon" className="w-7 h-7">
+                                                         <MoreHorizontal className="w-4 h-4" />
+                                                     </Button>
+                                                 </DropdownMenuTrigger>
+                                                 <DropdownMenuContent align="end">
+                                                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDeleteConfirmDialog({ open: true, itemId: folder.id, itemName: folder.name, itemType: 'folder' }); }} className="text-red-500">
+                                                         <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                                     </DropdownMenuItem>
+                                                 </DropdownMenuContent>
+                                             </DropdownMenu>
+                                         </div>
+                                         )}
+                                         <div onClick={() => !isPending && setCurrentFolder(folder.id)} className="flex flex-col items-center justify-center w-full">
+                                             <Folder className="w-12 h-12 text-yellow-500 mb-2" />
+                                             <span className="text-sm font-medium break-words w-full">{folder.name}</span>
+                                         </div>
+                                     </div>
+                                     );
+                                 })}
                                 {displayedDocuments.map(doc => {
-                                    const isOnboardingDoc = doc.source === 'onboarding' || String(doc.id).startsWith('onboarding_');
-                                    
-                                    return (
-                                    <div key={doc.id} className="relative group p-4 border rounded-lg text-center flex flex-col items-center justify-between transition-all hover:shadow-lg h-40">
-                                        {canManage && !isOnboardingDoc && (
-                                        <div className="absolute top-1 right-1 z-20">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="w-7 h-7">
-                                                        <MoreHorizontal className="w-4 h-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="z-50">
-                                                    {doc.access_level === 'private' || !doc.access_level ? (
-                                                        <DropdownMenuItem onClick={() => handleAccessChange(doc, 'public')}>
-                                                            <Globe className="w-4 h-4 mr-2" /> Make Public
-                                                        </DropdownMenuItem>
-                                                    ) : (
-                                                        <DropdownMenuItem onClick={() => handleAccessChange(doc, 'private')}>
-                                                            <Lock className="w-4 h-4 mr-2" /> Make Private
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => handleDeleteDocument(doc.id)} className="text-red-500">
-                                                        <Trash2 className="w-4 h-4 mr-2" /> Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                        )}
-                                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center cursor-pointer w-full mt-4">
-                                            {doc.name.toLowerCase().includes("template") || (doc.folder_id && folders.find(f => f.id === doc.folder_id)?.name === "Templates") ? (
-                                                <FileText className="w-12 h-12 text-purple-500 mb-2" />
-                                            ) : (
-                                                <File className="w-12 h-12 text-blue-500 mb-2" />
-                                            )}
-                                            <span className="text-sm font-medium break-words w-full">{doc.name}</span>
-                                        </a>
-                                        <div className="mt-auto flex items-center gap-2">
-                                            {doc.access_level === 'public' ? (
-                                                <Badge variant="outline" className="text-green-700 bg-green-50 border-green-200">
-                                                    <Globe className="w-3 h-3 mr-1" /> Public
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-red-700 bg-red-50 border-red-200">
-                                                    <Lock className="w-3 h-3 mr-1" /> Private
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                    );
-                                })}
+                                     const isOnboardingDoc = doc.source === 'onboarding' || String(doc.id).startsWith('onboarding_');
+                                     const isPending = hasPendingDeletion(doc.id);
+                                     
+                                     return (
+                                     <div key={doc.id} className={`relative group p-4 border rounded-lg text-center flex flex-col items-center justify-between transition-all h-40 ${isPending ? 'opacity-50 bg-gray-100' : 'hover:shadow-lg'}`}>
+                                         {isPending && (
+                                         <div className="absolute top-2 left-2 z-10">
+                                             <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                                 Pending Deletion
+                                             </Badge>
+                                         </div>
+                                         )}
+                                         {canManage && !isOnboardingDoc && !isPending && (
+                                         <div className="absolute top-1 right-1 z-20">
+                                             <DropdownMenu>
+                                                 <DropdownMenuTrigger asChild>
+                                                     <Button variant="ghost" size="icon" className="w-7 h-7">
+                                                         <MoreHorizontal className="w-4 h-4" />
+                                                     </Button>
+                                                 </DropdownMenuTrigger>
+                                                 <DropdownMenuContent align="end" className="z-50">
+                                                     {doc.access_level === 'private' || !doc.access_level ? (
+                                                         <DropdownMenuItem onClick={() => handleAccessChange(doc, 'public')}>
+                                                             <Globe className="w-4 h-4 mr-2" /> Make Public
+                                                         </DropdownMenuItem>
+                                                     ) : (
+                                                         <DropdownMenuItem onClick={() => handleAccessChange(doc, 'private')}>
+                                                             <Lock className="w-4 h-4 mr-2" /> Make Private
+                                                         </DropdownMenuItem>
+                                                     )}
+                                                     <DropdownMenuSeparator />
+                                                     <DropdownMenuItem onClick={() => handleDeleteDocument(doc.id)} className="text-red-500">
+                                                         <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                                     </DropdownMenuItem>
+                                                 </DropdownMenuContent>
+                                             </DropdownMenu>
+                                         </div>
+                                         )}
+                                         <a href={!isPending ? doc.file_url : '#'} target={!isPending ? '_blank' : undefined} rel="noopener noreferrer" className={`flex flex-col items-center justify-center w-full mt-4 ${isPending ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={(e) => isPending && e.preventDefault()}>
+                                             {doc.name.toLowerCase().includes("template") || (doc.folder_id && folders.find(f => f.id === doc.folder_id)?.name === "Templates") ? (
+                                                 <FileText className="w-12 h-12 text-purple-500 mb-2" />
+                                             ) : (
+                                                 <File className="w-12 h-12 text-blue-500 mb-2" />
+                                             )}
+                                             <span className="text-sm font-medium break-words w-full">{doc.name}</span>
+                                         </a>
+                                         <div className="mt-auto flex items-center gap-2">
+                                             {isPending ? (
+                                                 <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                                     Pending Deletion
+                                                 </Badge>
+                                             ) : doc.access_level === 'public' ? (
+                                                 <Badge variant="outline" className="text-green-700 bg-green-50 border-green-200">
+                                                     <Globe className="w-3 h-3 mr-1" /> Public
+                                                 </Badge>
+                                             ) : (
+                                                 <Badge variant="outline" className="text-red-700 bg-red-50 border-red-200">
+                                                     <Lock className="w-3 h-3 mr-1" /> Private
+                                                 </Badge>
+                                             )}
+                                         </div>
+                                     </div>
+                                     );
+                                 })}
                             </div>
                         )}
                         {!loading && displayedFolders.length === 0 && displayedDocuments.length === 0 && (
