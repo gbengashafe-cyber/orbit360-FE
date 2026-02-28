@@ -1,11 +1,8 @@
-import React from 'react';
 import { useNotification } from '@/context/NotificationContext';
-import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 
 export const NotificationBar = () => {
   const { notifications, removeNotification } = useNotification();
-
-  console.log('🔔 NotificationBar - Current notifications:', notifications);
 
   const getIcon = (type) => {
     switch (type) {
@@ -42,9 +39,7 @@ export const NotificationBar = () => {
       {notifications.map((notification) => (
         <div
           key={notification.id}
-          className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg ${getStyles(
-            notification.type
-          )}`}
+          className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg ${getStyles(notification.type)}`}
         >
           <div className="flex-shrink-0 mt-0.5">{getIcon(notification.type)}</div>
           <div className="flex-1">

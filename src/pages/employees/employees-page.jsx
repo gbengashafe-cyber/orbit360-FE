@@ -1,4 +1,5 @@
 import { employeeService } from '@/api';
+import { DebouncedSearch } from '@/components/shared/debounced-search';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -7,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCompanies } from '@/hooks/use-all-companies';
 import { EmployeeBioDataTable } from '@/pages/employees/employee-bio-data-table';
 import { logger } from '@/utils';
-import { Filter, Plus, Users } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { FilterIcon, Plus, Users } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { EmployeeForm } from './employee-form';
 import { WelcomeDialog } from './welcome-dialog';
@@ -26,57 +27,64 @@ export function Employees() {
   const [pages, setPages] = useState(1);
   const [currentTab, setCurrentTab] = useState('active');
   const [companyId, setCompanyId] = useState('all');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const abortRef = useRef(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const { allCompanies } = useCompanies();
 
-  const loadActiveEmployees = useCallback(async () => {
-    setLoading(true);
-    try {
-      const employeesData = await employeeService.getActiveEmployeesV2({
-        page: currentPage,
-        rows,
-        companyId: companyId === 'all' ? '' : companyId,
-      });
-      setEmployees(employeesData.data);
-      setPages(employeesData?.pagination?.pages || 1);
-    } catch (error) {
-      logger.error({ caller: 'Loading active employees', payload: error });
-      toast.error('Error', { description: `${error.message ? error.message : 'Unable to load employees data.'}` });
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, rows, companyId]);
-
-  const loadEmployeesByStatus = useCallback(async () => {
-    setLoading(true);
-    try {
-      const employeesData = await employeeService.getEmployeesV1({
-        page: currentPage,
-        rows,
-        status: currentTab,
-        companyId: companyId === 'all' ? '' : companyId,
-      });
-      setEmployees(employeesData.data);
-      setPages(employeesData?.pagination?.pages || 1);
-    } catch (error) {
-      logger.error({ caller: 'Loading employees by status', payload: error });
-      toast.error('Error', { description: `${error.message ? error.message : 'Unable to load employees data.'}` });
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, currentTab, rows, companyId]);
-
   useEffect(() => {
-    const load = async () => {
-      if (currentTab === 'active') {
-        await loadActiveEmployees();
-      } else {
-        await loadEmployeesByStatus();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const loadEmployees = async () => {
+      setLoading(true);
+      setIsSearching(!!searchQuery);
+
+      try {
+        const params = {
+          page: currentPage,
+          rows,
+          search: searchQuery,
+          companyId: companyId === 'all' ? '' : companyId,
+        };
+
+        let response;
+
+        if (currentTab === 'active') {
+          response = await employeeService.getActiveEmployeesV2(params, { signal: controller.signal });
+        } else {
+          response = await employeeService.getEmployeesV1(
+            {
+              ...params,
+              status: currentTab,
+            },
+            { signal: controller.signal },
+          );
+        }
+
+        setEmployees(response.data);
+        setPages(response?.pagination?.pages || 1);
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+
+        logger.error({ caller: 'Fetching employees', payload: error });
+        toast.error('Error', {
+          description: error.message || 'Unable to load employees data.',
+        });
+      } finally {
+        setLoading(false);
+        setIsSearching(false);
       }
     };
 
-    load();
-  }, [currentTab, currentPage, rows, companyId, loadActiveEmployees, loadEmployeesByStatus]);
+    loadEmployees();
+    return () => {
+      controller.abort();
+    };
+  }, [companyId, currentPage, currentTab, rows, searchQuery, refreshKey]);
 
   const handleFormSubmit = async (formData) => {
     const { employeeData, createUser } = formData;
@@ -118,11 +126,7 @@ export function Employees() {
       }
       setShowForm(false);
       setEditingEmployee(null);
-      if (currentTab === 'active') {
-        loadActiveEmployees();
-      } else {
-        loadEmployeesByStatus();
-      }
+      setRefreshKey((prev) => prev + 1);
     } catch (error) {
       logger.error({ caller: 'Employee page - handleSubmit', payload: error });
       setError(error?.message || 'Unable to complete request. Kindly contact the administrator');
@@ -157,7 +161,7 @@ export function Employees() {
     if (window.confirm('Are you sure you want to terminate this employee? Their record will be moved to the ex-staff archive.')) {
       try {
         const response = await employeeService.submitModificationRequest(employeeId, { status: 'terminated' });
-        loadEmployeesByStatus();
+        setRefreshKey((prev) => prev + 1);
         toast.success('Success', { description: response.message ?? 'Employee terminated successfully.' });
       } catch (error) {
         setError(`Failed to terminate employee: ${error.message}`);
@@ -180,26 +184,6 @@ export function Employees() {
           </div>
 
           <div className="grid gap-y-4 md:grid-flow-col gap-x-4">
-            <div className="flex items-center gap-x-5 bg-white p-5 rounded-lg">
-              <Filter className="text-slate-500" />
-              <Select value={companyId} onValueChange={setCompanyId}>
-                <SelectTrigger className="md:min-w-52 bg-white">
-                  <SelectValue placeholder="Select SBU" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  <SelectItem value="all">
-                    <span className="inline-block p-2 hover:bg-slate-200 w-full">All SBUs</span>
-                  </SelectItem>
-
-                  {allCompanies?.map((company) => (
-                    <SelectItem key={company.id} value={String(company.id)}>
-                      <span className="inline-block p-2 hover:bg-slate-200 w-full">{company.name}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <Button
               onClick={() => {
                 setEditingEmployee(null);
@@ -215,6 +199,39 @@ export function Employees() {
         </div>
 
         <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
+          <div className="grid gap-4 md:grid-flow-col px-7 pt-5">
+            <div className="relative flex items-center">
+              <FilterIcon className="absolute left-3 w-4 text-muted-foreground" />
+              <Select value={companyId} onValueChange={setCompanyId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select SBU" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">
+                    <span className="ps-6 inline-block p-2 hover:bg-slate-200 w-full">All SBUs</span>
+                  </SelectItem>
+
+                  {allCompanies?.map((company) => (
+                    <SelectItem key={company.id} value={String(company.id)}>
+                      <span className="ps-6 inline-block p-2 hover:bg-slate-200 w-full">{company.name}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DebouncedSearch
+              value={searchInput}
+              placeholder="Search employees"
+              onChange={setSearchInput}
+              onSearch={(val) => {
+                setCurrentPage(1);
+                setSearchQuery(val);
+              }}
+              loading={isSearching}
+            />
+          </div>
           <Tabs
             className="w-full"
             onValueChange={(val) => {

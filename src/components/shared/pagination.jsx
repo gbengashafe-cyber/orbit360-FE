@@ -16,7 +16,7 @@ export function PaginationIconsOnly({ setCurrentPage, setRows, rows, pages, curr
       <Field orientation="horizontal" className="w-fit">
         <FieldLabel htmlFor="select-rows-per-page">Rows per page</FieldLabel>
         <Select
-          defaultValue={rows}
+          value={rows}
           onValueChange={(val) => {
             setRows(val);
             setCurrentPage(1);
@@ -27,7 +27,7 @@ export function PaginationIconsOnly({ setCurrentPage, setRows, rows, pages, curr
           </SelectTrigger>
           <SelectContent align="start">
             <SelectGroup>
-              {/* <SelectItem value={1}>1</SelectItem> */}
+              {import.meta.env.DEV ? <SelectItem value={1}>1</SelectItem> : null}
               <SelectItem value={10}>10</SelectItem>
               <SelectItem value={25}>25</SelectItem>
               <SelectItem value={50}>50</SelectItem>
