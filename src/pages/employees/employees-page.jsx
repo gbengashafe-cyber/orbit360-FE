@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCompanies } from '@/hooks/use-all-companies';
 import { EmployeeBioDataTable } from '@/pages/employees/employee-bio-data-table';
 import { logger } from '@/utils';
-import { FilterIcon, Plus, Users } from 'lucide-react';
+import { FilterIcon, Plus, RefreshCw, Users } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { EmployeeForm } from './employee-form';
@@ -34,6 +34,10 @@ export function Employees() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { allCompanies } = useCompanies();
+
+  const refresh = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -126,7 +130,7 @@ export function Employees() {
       }
       setShowForm(false);
       setEditingEmployee(null);
-      setRefreshKey((prev) => prev + 1);
+      refresh();
     } catch (error) {
       logger.error({ caller: 'Employee page - handleSubmit', payload: error });
       setError(error?.message || 'Unable to complete request. Kindly contact the administrator');
@@ -161,7 +165,7 @@ export function Employees() {
     if (window.confirm('Are you sure you want to terminate this employee? Their record will be moved to the ex-staff archive.')) {
       try {
         const response = await employeeService.submitModificationRequest(employeeId, { status: 'terminated' });
-        setRefreshKey((prev) => prev + 1);
+        refresh();
         toast.success('Success', { description: response.message ?? 'Employee terminated successfully.' });
       } catch (error) {
         setError(`Failed to terminate employee: ${error.message}`);
@@ -184,6 +188,9 @@ export function Employees() {
           </div>
 
           <div className="grid gap-y-4 md:grid-flow-col gap-x-4">
+            <Button variant="outline" size="icon" onClick={refresh}>
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
             <Button
               onClick={() => {
                 setEditingEmployee(null);
