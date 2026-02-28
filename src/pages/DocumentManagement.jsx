@@ -60,6 +60,8 @@ export default function DocumentManagement() {
     const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ open: false, itemId: null, itemName: '', itemType: 'document' });
     const [approvalDialog, setApprovalDialog] = useState({ open: false, deletionId: null, action: null });
     const [rejectionReason, setRejectionReason] = useState('');
+    const [isDeletingRequest, setIsDeletingRequest] = useState(false);
+    const [isProcessingApprovalAction, setIsProcessingApprovalAction] = useState(false);
 
     const initializeDefaultStructure = useCallback(async () => {
         try {
@@ -247,6 +249,7 @@ export default function DocumentManagement() {
 
     const handleConfirmDelete = async () => {
         const { itemId, itemType, itemName } = deleteConfirmDialog;
+        setIsDeletingRequest(true);
         
         try {
             // Log audit action
@@ -299,6 +302,7 @@ export default function DocumentManagement() {
             console.log('[DELETION ERROR] Final toast message:', toastMessage);
             showToast.error(toastMessage);
         } finally {
+            setIsDeletingRequest(false);
             setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' });
         }
     };
@@ -365,6 +369,7 @@ export default function DocumentManagement() {
             return;
         }
         
+        setIsProcessingApprovalAction(true);
         try {
             const url = action === 'approve' 
                 ? apiRoutes.hrDocumentDeletionRequests.approve(deletionId)
@@ -397,6 +402,8 @@ export default function DocumentManagement() {
             console.error(`Error ${approvalDialog.action}ing deletion:`, error);
             const errorMsg = error?.response?.data?.message || `Failed to ${approvalDialog.action} deletion request.`;
             showToast.error(errorMsg);
+        } finally {
+            setIsProcessingApprovalAction(false);
         }
     };
 
@@ -424,15 +431,18 @@ export default function DocumentManagement() {
                     <div className="flex gap-3 justify-end">
                         <Button
                             variant="outline"
+                            disabled={isDeletingRequest}
                             onClick={() => setDeleteConfirmDialog({ open: false, itemId: null, itemName: '', itemType: 'document' })}
                         >
                             Cancel
                         </Button>
                         <Button
                             className="bg-red-600 hover:bg-red-700"
+                            disabled={isDeletingRequest}
                             onClick={handleConfirmDelete}
                         >
-                            Delete
+                            {isDeletingRequest && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            {isDeletingRequest ? 'Deleting...' : 'Delete'}
                         </Button>
                     </div>
                 </div>
@@ -543,8 +553,10 @@ export default function DocumentManagement() {
                     open={approvalDialog.open}
                     action={approvalDialog.action}
                     rejectionReason={rejectionReason}
+                    isLoading={isProcessingApprovalAction}
                     onReasonChange={setRejectionReason}
                     onClose={() => {
+                        if (isProcessingApprovalAction) return;
                         setApprovalDialog({ open: false, deletionId: null, action: null });
                         setRejectionReason('');
                     }}
