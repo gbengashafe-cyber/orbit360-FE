@@ -347,8 +347,19 @@ export default function AuthorizationCenterWIP() {
     }
   };
 
-  const jobTitle = currentUser?.employeeData?.jobRole?.title?.toLowerCase() || '';
-  const canAuthorize = jobTitle.includes('head') || jobTitle.includes('manager') || jobTitle.includes('supervisor');
+  const jobTitle = (currentUser?.employeeData?.jobRole?.title || '').toString().toLowerCase();
+  const userRole = (currentUser?.role || '').toString().toLowerCase();
+  const permissions = Array.isArray(currentUser?.permissions)
+    ? currentUser.permissions.map((permission) => permission?.toString().toLowerCase())
+    : [];
+  const isManagementRole = jobTitle.includes('head') || jobTitle.includes('manager') || jobTitle.includes('supervisor');
+  const isHrLike = jobTitle.includes('hr') || jobTitle.includes('human');
+  const hasApprovalPermission =
+    permissions.includes('approve_exits') ||
+    permissions.includes('approve_recruitment') ||
+    permissions.includes('approve_all_requests') ||
+    permissions.some((permission) => permission.includes('approve'));
+  const canAuthorize = isManagementRole || isHrLike || hasApprovalPermission || userRole === 'admin';
 
   if (loading) {
     return (
@@ -442,6 +453,7 @@ export default function AuthorizationCenterWIP() {
             authorizing={authorizing}
             moduleName={activeModule}
             setApprovalNote={setApprovalNote}
+            approverNote={approverNote}
           />
         ) : null}
       </div>
