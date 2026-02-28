@@ -1,12 +1,21 @@
-import { appraisalService, employeeService, exitService, leaveService, payrollService, recruitmentService, trainingService } from '@/api';
+import {
+  appraisalService,
+  employeeService,
+  exitService,
+  leaveService,
+  payrollService,
+  recruitmentService,
+  trainingService,
+} from '@/api';
 import { authorizationService } from '@/api/authorization.service';
 import { loanService } from '@/api/loan.service';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGlobalContext } from '@/state/context';
 import { logger } from '@/utils';
-import { ClipboardList, Loader2, XCircle } from 'lucide-react';
+import { ClipboardList, RefreshCw, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { AuthorizationViewDialog } from '../authorization-center/authorization-center-dialog';
@@ -21,7 +30,6 @@ export default function AuthorizationCenterWIP() {
   const [loading, setLoading] = useState(true);
   // const [jobPostings, setJobPostings] = useState([]);
   // const [leaveRequests, setLeaveRequests] = useState([]);
-  const [loans, setLoans] = useState([]);
   // const [resignations, setResignations] = useState([]);
   // const [redeployments, setRedeployments] = useState([]);
   // const [newStaffRequests, setNewStaffRequests] = useState([]);
@@ -41,6 +49,11 @@ export default function AuthorizationCenterWIP() {
   const [approverNote, setApprovalNote] = useState('');
   const [authorizeError, setAuthorizeError] = useState('');
   const { currentUser } = useGlobalContext();
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refresh = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   const getTrainingPendingForCurrentUser = useCallback(async () => {
     const jobTitle = currentUser?.employeeData?.jobRole?.title?.toString().toLowerCase() || '';
@@ -50,9 +63,7 @@ export default function AuthorizationCenterWIP() {
 
     const response = await trainingService.getRequests();
     const allRequests = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
-    const nonApprovedRequests = allRequests.filter(
-      (request) => !normalizeStatus(request.status).includes('APPROVED'),
-    );
+    const nonApprovedRequests = allRequests.filter((request) => !normalizeStatus(request.status).includes('APPROVED'));
 
     if (isSupervisorLike) {
       return nonApprovedRequests.filter((request) =>
@@ -86,6 +97,7 @@ export default function AuthorizationCenterWIP() {
   }, []);
 
   const getPendingCount = useCallback(async () => {
+    setLoading(true);
     try {
       const result = await authorizationService.getPendingCount();
       const backendStats = result.data || { total: 0, breakdown: {} };
@@ -146,12 +158,20 @@ export default function AuthorizationCenterWIP() {
     } catch (error) {
       logger.error({ caller: 'List pending auth count', error });
       toast.error('Error', { description: error.message || 'Could not load pending authorization count' });
+    } finally {
+      setLoading(false);
     }
-  }, [EXIT_MODULE_KEY, RECRUITMENT_MODULE_KEY, getExitPendingForCurrentUser, getRecruitmentPendingForCurrentUser, getTrainingPendingForCurrentUser]);
+  }, [
+    EXIT_MODULE_KEY,
+    RECRUITMENT_MODULE_KEY,
+    getExitPendingForCurrentUser,
+    getRecruitmentPendingForCurrentUser,
+    getTrainingPendingForCurrentUser,
+  ]);
 
   useEffect(() => {
     getPendingCount();
-  }, [getPendingCount]);
+  }, [getPendingCount, refreshKey]);
 
   const currentPagination = pendingItemsPagination[activeModule]?.page || 1;
 
@@ -225,25 +245,25 @@ export default function AuthorizationCenterWIP() {
 
   useEffect(() => {
     loadPendingModuleItems();
-  }, [loadPendingModuleItems]);
+  }, [loadPendingModuleItems, refreshKey]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // useEffect(() => {
+  //   loadData();
+  // }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const pendingResponse = await authorizationService.getPending({ rows: 25, page: 1 });
+  // const loadData = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const pendingResponse = await authorizationService.getPending({ rows: 25, page: 1 });
 
-      setLoans(pendingResponse.data?.loans || []);
-    } catch (error) {
-      logger.error({ caller: 'List pending auth items', payload: error });
-      toast.error('Error', { description: error.message || 'Error loading data' });
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     // setLoans(pendingResponse.data?.loans || []);
+  //   } catch (error) {
+  //     logger.error({ caller: 'List pending auth items', payload: error });
+  //     toast.error('Error', { description: error.message || 'Error loading data' });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleAuthorize = async (item, action, moduleName) => {
     setAuthorizing(true);
@@ -335,7 +355,6 @@ export default function AuthorizationCenterWIP() {
       setViewingItem(null);
       await getPendingCount();
       await loadPendingModuleItems();
-      await loadData();
     } catch (error) {
       logger.error({ caller: 'Handle item authorization', payload: error });
       setAuthorizeError(error.message || 'Unable to process this request. Kindly contact the system administrator');
@@ -361,14 +380,6 @@ export default function AuthorizationCenterWIP() {
     permissions.some((permission) => permission.includes('approve'));
   const canAuthorize = isManagementRole || isHrLike || hasApprovalPermission || userRole === 'admin';
 
-  if (loading) {
-    return (
-      <div className="p-8 flex justify-center items-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-700" />
-      </div>
-    );
-  }
-
   return (
     <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
       <div className="max-w-7xl mx-auto space-y-8">
@@ -382,18 +393,22 @@ export default function AuthorizationCenterWIP() {
           </div>
         </div>
 
-        <div className="grid lg:justify-items-end">
-          <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
+        <div className="grid lg:grid-flow-col gap-4 lg:justify-between items-end">
+          <Card className=" bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
             <CardContent className="p-6">
               <div className="flex gap-x-8 items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Pending Authorization</p>
-                  <p className="text-2xl font-bold text-yellow-600">{pendingStats.total || 0}</p>
+                  <p className="text-2xl font-bold text-yellow-600">{loading ? pendingStats.total : 0}</p>
                 </div>
                 <XCircle className="w-8 h-8 text-yellow-600" />
               </div>
             </CardContent>
           </Card>
+
+          <Button variant="outline" size="icon" onClick={refresh} title={'Refresh'}>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
 
         <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
