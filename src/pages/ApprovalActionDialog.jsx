@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -12,6 +13,7 @@ const ApprovalActionDialog = ({
     open,
     action,
     rejectionReason,
+    isLoading = false,
     onReasonChange,
     onClose,
     onConfirm,
@@ -41,6 +43,7 @@ const ApprovalActionDialog = ({
                                 id="rejection-reason"
                                 autoFocus
                                 value={rejectionReason}
+                                disabled={isLoading}
                                 onChange={(e) => onReasonChange(e.target.value)}
                                 placeholder="Explain why this deletion request is being rejected..."
                                 className="w-full p-2 border rounded-lg mt-2 focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -52,15 +55,18 @@ const ApprovalActionDialog = ({
                     <div className="flex gap-3 justify-end">
                         <Button
                             variant="outline"
+                            disabled={isLoading}
                             onClick={onClose}
                         >
                             Cancel
                         </Button>
                         <Button
+                            disabled={isLoading}
                             className={action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
                             onClick={onConfirm}
                         >
-                            {action === 'approve' ? 'Approve' : 'Reject'}
+                            {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            {isLoading ? (action === 'approve' ? 'Approving...' : 'Rejecting...') : (action === 'approve' ? 'Approve' : 'Reject')}
                         </Button>
                     </div>
                 </div>
