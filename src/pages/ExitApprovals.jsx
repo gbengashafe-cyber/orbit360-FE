@@ -20,6 +20,7 @@ export default function ExitApprovals() {
   const [currentUser, setCurrentUser] = useState(null);
   const [pendingExits, setPendingExits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [canViewApprovals, setCanViewApprovals] = useState(false);
   const [approvalDialog, setApprovalDialog] = useState({
     open: false,
     exitId: null,
@@ -42,8 +43,21 @@ export default function ExitApprovals() {
       const user = userResponse?.data || userResponse;
       setCurrentUser(user);
 
-      const canApprove = user?.permissions?.includes('APPROVE_EXITS');
-      if (!canApprove) {
+      const permissions = Array.isArray(user?.permissions)
+        ? user.permissions.map((permission) => permission?.toString().toLowerCase())
+        : [];
+      const jobTitle = (user?.JobRole?.title || user?.jobRole?.title || user?.jobRoleTitle || '').toString().toLowerCase();
+      const userRole = (user?.role || '').toString().toLowerCase();
+
+      const hasExitPermission = permissions.includes('approve_exits')
+        || permissions.includes('manage_exits')
+        || permissions.includes('approve_all_requests');
+      const isHrLike = jobTitle.includes('hr') || jobTitle.includes('human resource') || jobTitle.includes('human resources');
+      const isAdminLike = ['admin', 'admin_officer', 'super_admin'].includes(userRole);
+      const hasAccess = hasExitPermission || isHrLike || isAdminLike;
+
+      setCanViewApprovals(hasAccess);
+      if (!hasAccess) {
         showToast.error('You do not have permission to approve exit requests', 'Access Denied');
         setLoading(false);
         return;
@@ -100,6 +114,18 @@ export default function ExitApprovals() {
     return (
       <div className="p-8 flex justify-center items-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-blue-700" />
+      </div>
+    );
+  }
+
+  if (!canViewApprovals) {
+    return (
+      <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
+        <div className="max-w-7xl mx-auto">
+          <Alert variant="destructive">
+            <AlertDescription>Access Denied: You do not have permission to view exit approvals.</AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
