@@ -14,15 +14,6 @@ import { Archive, BarChart3, Layers3, MoreHorizontal, PlayCircle, Settings } fro
 import { Link } from 'react-router';
 
 export default function ProjectCard({ project, stats, onEdit, onArchive }) {
-  const getStatusColor = (status) => {
-    const colors = {
-      active: 'bg-green-100 text-green-700',
-      archived: 'bg-gray-100 text-gray-700',
-      on_hold: 'bg-yellow-100 text-yellow-700',
-    };
-    return colors[status] || 'bg-gray-100 text-gray-700';
-  };
-
   const getMethodologyColor = (methodology) => {
     const colors = {
       scrum: 'bg-blue-100 text-blue-700',

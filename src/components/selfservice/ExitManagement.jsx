@@ -1,32 +1,31 @@
-import React, { useState, useEffect } from 'react';
 import { apiClient, apiRoutes } from '@/api';
-import { showToast } from '@/utils/toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
+import { showToast } from '@/utils/toast';
 import {
-  FileText,
-  AlertTriangle,
-  Calendar,
-  Building,
-  User as UserIcon,
-  Hand,
-  Briefcase,
-  Landmark,
-  Star,
-  CheckCircle,
-  Clock,
-  Shield,
-  XCircle,
   AlertCircle,
+  AlertTriangle,
+  Briefcase,
+  Building,
+  Calendar,
+  FileText,
+  Hand,
+  Landmark,
+  Shield,
+  Star,
+  User as UserIcon,
+  XCircle,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const FormSection = ({ title, icon, children }) => (
   <Card>
@@ -41,15 +40,6 @@ const FormSection = ({ title, icon, children }) => (
 );
 
 const ApprovalStatusDisplay = ({ title, status, date, comments }) => {
-  const getStatusColor = (status) =>
-    ({
-      pending: 'bg-yellow-100 text-yellow-800',
-      approved: 'bg-green-100 text-green-800',
-      cleared: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
-      issues: 'bg-orange-100 text-orange-800',
-    })[status] || 'bg-gray-100 text-gray-800';
-
   return (
     <div>
       <h4 className="font-semibold">{title}</h4>
@@ -299,17 +289,6 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
       setPendingHandoverStatus(null);
     }
   };
-
-  const getStatusColor = (status) =>
-    ({
-      submitted: 'bg-orange-100 text-orange-700',
-      under_review: 'bg-blue-100 text-blue-700',
-      clearance_pending: 'bg-yellow-100 text-yellow-700',
-      approved: 'bg-green-100 text-green-700',
-      completed: 'bg-green-100 text-green-700',
-      rejected: 'bg-red-100 text-red-700',
-      withdrawn: 'bg-gray-100 text-gray-700',
-    })[status] || 'bg-gray-100 text-gray-700';
 
   const activeRequest = resignationRequests.find((r) => !['completed', 'withdrawn', 'rejected'].includes(r.status));
 

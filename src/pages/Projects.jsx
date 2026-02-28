@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
 import ProjectForm from '../components/projects/ProjectForm';
+import { getStatusColor } from './authorization-center/authorization-center.util';
 
 export default function Projects() {
   const [projects, setProjects] = useState([]);
@@ -72,15 +73,6 @@ export default function Projects() {
   const handleEdit = (project) => {
     setEditingProject(project);
     setShowForm(true);
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      active: 'bg-green-100 text-green-700',
-      archived: 'bg-gray-100 text-gray-700',
-      on_hold: 'bg-yellow-100 text-yellow-700',
-    };
-    return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
   const getMethodologyColor = (methodology) => {

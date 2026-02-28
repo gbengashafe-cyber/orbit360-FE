@@ -1,21 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Goal, Employee } from '@/api/entities';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Employee, Goal } from '@/api/entities';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Target, Plus, Edit, Trash2, Calendar, TrendingUp } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
+import { Edit, Plus, Target, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function GoalManagement({ currentUser }) {
   const [goals, setGoals] = useState([]);
@@ -36,7 +31,7 @@ export default function GoalManagement({ currentUser }) {
     unit: '',
     start_date: new Date().toISOString().split('T')[0],
     due_date: '',
-    key_results: ['']
+    key_results: [''],
   });
 
   useEffect(() => {
@@ -46,8 +41,8 @@ export default function GoalManagement({ currentUser }) {
   const loadData = async () => {
     try {
       const [employeesData] = await Promise.all([Employee.list()]);
-      const employee = employeesData.find(e => e.email === currentUser.email);
-      
+      const employee = employeesData.find((e) => e.email === currentUser.email);
+
       if (employee) {
         const goalsData = await Goal.filter({ employee_id: employee.id });
         setGoals(goalsData);
@@ -70,7 +65,7 @@ export default function GoalManagement({ currentUser }) {
         target_value: parseFloat(formData.target_value) || 0,
         weight: parseFloat(formData.weight) || 0,
         current_value: 0,
-        status: 'not_started'
+        status: 'not_started',
       };
 
       if (editingGoal) {
@@ -93,7 +88,7 @@ export default function GoalManagement({ currentUser }) {
     setFormData({
       ...goal,
       start_date: goal.start_date || new Date().toISOString().split('T')[0],
-      key_results: goal.key_results || ['']
+      key_results: goal.key_results || [''],
     });
     setShowForm(true);
   };
@@ -111,12 +106,12 @@ export default function GoalManagement({ currentUser }) {
 
   const updateGoalProgress = async (goalId, newValue) => {
     try {
-      const goal = goals.find(g => g.id === goalId);
+      const goal = goals.find((g) => g.id === goalId);
       const newStatus = newValue >= goal.target_value ? 'completed' : newValue > 0 ? 'in_progress' : 'not_started';
-      
-      await Goal.update(goalId, { 
+
+      await Goal.update(goalId, {
         current_value: newValue,
-        status: newStatus
+        status: newStatus,
       });
       loadData();
     } catch (error) {
@@ -136,19 +131,8 @@ export default function GoalManagement({ currentUser }) {
       unit: '',
       start_date: new Date().toISOString().split('T')[0],
       due_date: '',
-      key_results: ['']
+      key_results: [''],
     });
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      not_started: 'bg-gray-100 text-gray-700',
-      in_progress: 'bg-blue-100 text-blue-700',
-      completed: 'bg-green-100 text-green-700',
-      overdue: 'bg-red-100 text-red-700',
-      cancelled: 'bg-orange-100 text-orange-700'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
   if (loading) {
@@ -165,7 +149,12 @@ export default function GoalManagement({ currentUser }) {
         </div>
         <Dialog open={showForm} onOpenChange={setShowForm}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingGoal(null); resetForm(); }}>
+            <Button
+              onClick={() => {
+                setEditingGoal(null);
+                resetForm();
+              }}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Goal
             </Button>
@@ -181,13 +170,13 @@ export default function GoalManagement({ currentUser }) {
                   <Input
                     id="title"
                     value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     required
                   />
                 </div>
                 <div>
                   <Label htmlFor="goal_type">Goal Type</Label>
-                  <Select value={formData.goal_type} onValueChange={(value) => setFormData({...formData, goal_type: value})}>
+                  <Select value={formData.goal_type} onValueChange={(value) => setFormData({ ...formData, goal_type: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -206,7 +195,7 @@ export default function GoalManagement({ currentUser }) {
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
                 />
               </div>
@@ -214,7 +203,7 @@ export default function GoalManagement({ currentUser }) {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="category">Category</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -228,7 +217,7 @@ export default function GoalManagement({ currentUser }) {
                 </div>
                 <div>
                   <Label htmlFor="priority">Priority</Label>
-                  <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value})}>
+                  <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -248,7 +237,7 @@ export default function GoalManagement({ currentUser }) {
                     min="0"
                     max="100"
                     value={formData.weight}
-                    onChange={(e) => setFormData({...formData, weight: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
                   />
                 </div>
               </div>
@@ -260,7 +249,7 @@ export default function GoalManagement({ currentUser }) {
                     id="target_value"
                     type="number"
                     value={formData.target_value}
-                    onChange={(e) => setFormData({...formData, target_value: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, target_value: e.target.value })}
                   />
                 </div>
                 <div>
@@ -268,7 +257,7 @@ export default function GoalManagement({ currentUser }) {
                   <Input
                     id="unit"
                     value={formData.unit}
-                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                     placeholder="%, $, hours, etc."
                   />
                 </div>
@@ -278,7 +267,7 @@ export default function GoalManagement({ currentUser }) {
                     id="due_date"
                     type="date"
                     value={formData.due_date}
-                    onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                     required
                   />
                 </div>
@@ -294,7 +283,7 @@ export default function GoalManagement({ currentUser }) {
                       onChange={(e) => {
                         const newResults = [...formData.key_results];
                         newResults[index] = e.target.value;
-                        setFormData({...formData, key_results: newResults});
+                        setFormData({ ...formData, key_results: newResults });
                       }}
                       placeholder={`Key Result ${index + 1}`}
                       className="mt-2"
@@ -305,7 +294,7 @@ export default function GoalManagement({ currentUser }) {
                     variant="outline"
                     size="sm"
                     className="mt-2"
-                    onClick={() => setFormData({...formData, key_results: [...formData.key_results, '']})}
+                    onClick={() => setFormData({ ...formData, key_results: [...formData.key_results, ''] })}
                   >
                     Add Key Result
                   </Button>
@@ -316,9 +305,7 @@ export default function GoalManagement({ currentUser }) {
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">
-                  {editingGoal ? 'Update Goal' : 'Create Goal'}
-                </Button>
+                <Button type="submit">{editingGoal ? 'Update Goal' : 'Create Goal'}</Button>
               </div>
             </form>
           </DialogContent>
@@ -337,9 +324,7 @@ export default function GoalManagement({ currentUser }) {
                     {goal.title}
                   </CardTitle>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge className={getStatusColor(goal.status)}>
-                      {goal.status.replace('_', ' ')}
-                    </Badge>
+                    <Badge className={getStatusColor(goal.status)}>{goal.status.replace('_', ' ')}</Badge>
                     <Badge variant="outline">{goal.category}</Badge>
                     <Badge variant="outline">{goal.priority} priority</Badge>
                     <Badge variant="outline">{goal.weight}% weight</Badge>
@@ -357,7 +342,7 @@ export default function GoalManagement({ currentUser }) {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-4">{goal.description}</p>
-              
+
               {goal.target_value > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
@@ -388,7 +373,9 @@ export default function GoalManagement({ currentUser }) {
                   <h4 className="font-medium mb-2">Key Results:</h4>
                   <ul className="space-y-1">
                     {goal.key_results.map((result, index) => (
-                      <li key={index} className="text-sm text-gray-600">• {result}</li>
+                      <li key={index} className="text-sm text-gray-600">
+                        • {result}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -408,7 +395,13 @@ export default function GoalManagement({ currentUser }) {
               <Target className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <h3 className="text-lg font-semibold mb-2 text-gray-700">No goals set yet</h3>
               <p className="text-gray-500 mb-4">Create your first performance goal to get started</p>
-              <Button onClick={() => { setEditingGoal(null); resetForm(); setShowForm(true); }}>
+              <Button
+                onClick={() => {
+                  setEditingGoal(null);
+                  resetForm();
+                  setShowForm(true);
+                }}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Goal
               </Button>

@@ -1,31 +1,17 @@
-import React, { useState, useEffect } from 'react';
 import { complaintService } from '@/api/complaint.service';
-import { apiClient, apiRoutes } from '@/api';
-import { useNotification } from '@/context/NotificationContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { CheckCircle, AlertTriangle, Eye } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { useNotification } from '@/context/NotificationContext';
+import { AlertTriangle, CheckCircle, Eye } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { getStatusColor } from './authorization-center/authorization-center.util';
 
 export default function ComplaintManagement() {
   const { addNotification } = useNotification();
@@ -106,16 +92,6 @@ export default function ComplaintManagement() {
     } finally {
       setUpdating(false);
     }
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      open: 'bg-blue-100 text-blue-700',
-      under_review: 'bg-yellow-100 text-yellow-700',
-      resolved: 'bg-green-100 text-green-700',
-      closed: 'bg-gray-100 text-gray-700',
-    };
-    return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
   const getSeverityColor = (severity) => {
@@ -252,24 +228,19 @@ export default function ComplaintManagement() {
                         <TableCell className="capitalize">{complaint.complaint_type?.replace('_', ' ')}</TableCell>
                         <TableCell>{complaint.title}</TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(complaint.status)}>
-                            {complaint.status?.replace('_', ' ')}
-                          </Badge>
+                          <Badge className={getStatusColor(complaint.status)}>{complaint.status?.replace('_', ' ')}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getSeverityColor(complaint.severity)}>
-                            {complaint.severity}
-                          </Badge>
+                          <Badge className={getSeverityColor(complaint.severity)}>{complaint.severity}</Badge>
                         </TableCell>
                         <TableCell>{new Date(complaint.reported_date).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Dialog open={showDetailsModal && selectedComplaint?.id === complaint.id} onOpenChange={setShowDetailsModal}>
+                          <Dialog
+                            open={showDetailsModal && selectedComplaint?.id === complaint.id}
+                            onOpenChange={setShowDetailsModal}
+                          >
                             <DialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewDetails(complaint)}
-                              >
+                              <Button variant="outline" size="sm" onClick={() => handleViewDetails(complaint)}>
                                 <Eye className="w-4 h-4 mr-1" />
                                 View
                               </Button>
@@ -301,9 +272,7 @@ export default function ComplaintManagement() {
 
                                   <div>
                                     <Label className="text-sm font-semibold">Description</Label>
-                                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
-                                      {complaint.description}
-                                    </p>
+                                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{complaint.description}</p>
                                   </div>
 
                                   <div>
@@ -319,9 +288,7 @@ export default function ComplaintManagement() {
                                       <Label htmlFor="status">Status</Label>
                                       <Select
                                         value={updateData.status}
-                                        onValueChange={(value) =>
-                                          setUpdateData({ ...updateData, status: value })
-                                        }
+                                        onValueChange={(value) => setUpdateData({ ...updateData, status: value })}
                                       >
                                         <SelectTrigger>
                                           <SelectValue />
@@ -355,11 +322,7 @@ export default function ComplaintManagement() {
                                   </div>
 
                                   <div className="flex justify-end gap-3 pt-4 border-t">
-                                    <Button
-                                      variant="outline"
-                                      onClick={() => setShowDetailsModal(false)}
-                                      disabled={updating}
-                                    >
+                                    <Button variant="outline" onClick={() => setShowDetailsModal(false)} disabled={updating}>
                                       Cancel
                                     </Button>
                                     <Button

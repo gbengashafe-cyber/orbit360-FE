@@ -1,17 +1,18 @@
-import { employeeService, recruitmentService, userService, departmentService } from '@/api';
-import { useGlobalContext } from '@/state/context';
+import { employeeService, recruitmentService, userService } from '@/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useGlobalContext } from '@/state/context';
 import { showToast } from '@/utils/toast';
-import { Briefcase, Calendar, Check, Copy, Linkedin, Plus, TrendingUp, Users, X, FileText } from 'lucide-react';
+import { Briefcase, Calendar, Check, Copy, FileText, Linkedin, Plus, TrendingUp, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import ApplicationPipeline from '../components/recruitment/ApplicationPipeline';
 import JobPostingForm from '../components/recruitment/JobPostingForm';
+import { getStatusColor } from './authorization-center/authorization-center.util';
 
 export default function Recruitment() {
   const [jobPostings, setJobPostings] = useState([]);
@@ -39,77 +40,80 @@ export default function Recruitment() {
   const { currentUser: contextUser } = useGlobalContext();
 
   const loadCurrentUser = async () => {
-     try {
-       const user = await userService.getCurrentUser();
-       setCurrentUser(user?.data || user);
+    try {
+      const user = await userService.getCurrentUser();
+      setCurrentUser(user?.data || user);
 
-       // Check if user is a Managing Director - use context employee data
-       const currentEmployee = contextUser?.employeeData;
-       
-       const isMDUser = currentEmployee?.position === 'Managing Director' || currentEmployee?.jobRole?.title === 'MANAGING DIRECTOR';
-       console.log('Current user:', user?.data?.email || user?.email);
-       console.log('Current employee:', currentEmployee?.position || currentEmployee?.jobRole?.title);
-       console.log('Is Managing Director:', isMDUser);
-       setIsMD(isMDUser);
-     } catch (error) {
-       console.error('Error loading current user:', error);
-     }
-   };
+      // Check if user is a Managing Director - use context employee data
+      const currentEmployee = contextUser?.employeeData;
+
+      const isMDUser =
+        currentEmployee?.position === 'Managing Director' || currentEmployee?.jobRole?.title === 'MANAGING DIRECTOR';
+      console.log('Current user:', user?.data?.email || user?.email);
+      console.log('Current employee:', currentEmployee?.position || currentEmployee?.jobRole?.title);
+      console.log('Is Managing Director:', isMDUser);
+      setIsMD(isMDUser);
+    } catch (error) {
+      console.error('Error loading current user:', error);
+    }
+  };
 
   const loadData = async () => {
-     console.log('loadData called');
-     setLoading(true);
-     setAccessDenied(false);
-     setErrorMessage('');
-     try {
-       // Fetch recruitment data without authentication
-       const [jobsResponse, applicationsResponse, statsResponse] = await Promise.all([
-         recruitmentService.getJobPostings(1, 100),
-         recruitmentService.getJobApplications(1, 100),
-         recruitmentService.getDashboardStats(),
-       ]);
+    console.log('loadData called');
+    setLoading(true);
+    setAccessDenied(false);
+    setErrorMessage('');
+    try {
+      // Fetch recruitment data without authentication
+      const [jobsResponse, applicationsResponse, statsResponse] = await Promise.all([
+        recruitmentService.getJobPostings(1, 100),
+        recruitmentService.getJobApplications(1, 100),
+        recruitmentService.getDashboardStats(),
+      ]);
 
-       // Set job postings
-       const jobs = Array.isArray(jobsResponse) ? jobsResponse : jobsResponse?.data || [];
-       setJobPostings(jobs);
+      // Set job postings
+      const jobs = Array.isArray(jobsResponse) ? jobsResponse : jobsResponse?.data || [];
+      setJobPostings(jobs);
 
-       // Set applications
-       const applications = Array.isArray(applicationsResponse) ? applicationsResponse : applicationsResponse?.data || [];
-       setApplications(applications);
+      // Set applications
+      const applications = Array.isArray(applicationsResponse) ? applicationsResponse : applicationsResponse?.data || [];
+      setApplications(applications);
 
-       // Set dashboard stats from API
-       const stats = statsResponse?.data || statsResponse || {};
-       setDashboardStats({
-         activeJobs: stats.activeJobs || 0,
-         totalApplications: stats.totalApplications || 0,
-         pendingInterviews: stats.pendingInterviews || 0,
-         hireRate: stats.hireRate || 0,
-       });
+      // Set dashboard stats from API
+      const stats = statsResponse?.data || statsResponse || {};
+      setDashboardStats({
+        activeJobs: stats.activeJobs || 0,
+        totalApplications: stats.totalApplications || 0,
+        pendingInterviews: stats.pendingInterviews || 0,
+        hireRate: stats.hireRate || 0,
+      });
 
-       console.log('Recruitment data loaded successfully');
-     } catch (error) {
-       console.error('Error loading recruitment data:', error);
-       if (error?.response?.status === 403) {
-         setAccessDenied(true);
-         setErrorMessage('Only HR personnel can access the Recruitment module.');
-       } else {
-         setErrorMessage(error?.message || 'Failed to load recruitment data');
-       }
-     } finally {
-       setLoading(false);
-     }
-   };
+      console.log('Recruitment data loaded successfully');
+    } catch (error) {
+      console.error('Error loading recruitment data:', error);
+      if (error?.response?.status === 403) {
+        setAccessDenied(true);
+        setErrorMessage('Only HR personnel can access the Recruitment module.');
+      } else {
+        setErrorMessage(error?.message || 'Failed to load recruitment data');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getManagingDirectorEmails = async () => {
-     try {
-       const response = await employeeService.getEmployees(1, 100);
-       const employees = response?.data || response || [];
-       return employees.filter((e) => e.position === 'Managing Director' || e.jobRole?.title === 'MANAGING DIRECTOR').map((e) => e.email);
-     } catch (error) {
-       console.warn('Could not fetch Managing Directors:', error);
-       return [];
-     }
-   };
+    try {
+      const response = await employeeService.getEmployees(1, 100);
+      const employees = response?.data || response || [];
+      return employees
+        .filter((e) => e.position === 'Managing Director' || e.jobRole?.title === 'MANAGING DIRECTOR')
+        .map((e) => e.email);
+    } catch (error) {
+      console.warn('Could not fetch Managing Directors:', error);
+      return [];
+    }
+  };
 
   if (accessDenied || errorMessage) {
     return (
@@ -124,7 +128,9 @@ export default function Recruitment() {
                 <div>
                   <h2 className="text-2xl font-bold text-red-900">Access Denied</h2>
                   <p className="text-red-700 mt-2">{errorMessage || 'Only HR personnel can access the Recruitment module.'}</p>
-                  <p className="text-red-600 text-sm mt-2">If you believe you should have access, please contact your HR administrator.</p>
+                  <p className="text-red-600 text-sm mt-2">
+                    If you believe you should have access, please contact your HR administrator.
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -199,18 +205,6 @@ export default function Recruitment() {
       console.error('Error closing role:', error);
       showToast.error(error.message || 'Failed to close job posting', 'Error');
     }
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      draft: 'bg-gray-100 text-gray-700',
-      pending_approval: 'bg-orange-100 text-orange-700',
-      active: 'bg-green-100 text-green-700',
-      closed: 'bg-red-100 text-red-700',
-      on_hold: 'bg-yellow-100 text-yellow-700',
-      rejected: 'bg-red-200 text-red-800',
-    };
-    return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
   if (loading) {
