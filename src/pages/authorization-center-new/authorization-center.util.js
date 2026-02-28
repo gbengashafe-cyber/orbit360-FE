@@ -57,7 +57,7 @@ export const getTransactionProps = (transaction, moduleName) => {
     initiator = '_',
     createdAt = transaction.createdAt ? format(new Date(transaction.createdAt), 'dd-MMM-yyyy') : '_';
 
-  switch (normalizedModuleName) {
+  switch (moduleName) {
     case 'loans':
       type = transaction?.loanType?.name;
       description = `${transaction.employee.firstName} - ${transaction.principalAmount}`;
@@ -78,6 +78,18 @@ export const getTransactionProps = (transaction, moduleName) => {
       description = `${transaction.employee.firstName} ${transaction.employee.lastName}`;
       initiator = `${transaction?.employee?.firstName} ${transaction?.employee?.lastName}`;
       break;
+    case 'job postings':
+      {
+        type = transaction?.employment_type;
+        description = transaction?.description?.substring(0, 50);
+        initiator = transaction?.created_by;
+      }
+
+      break;
+    default:
+      break;
+  }
+  switch (normalizedModuleName) {
     case 'training':
     case 'trainings':
     case 'training_requests':
@@ -128,21 +140,11 @@ export const getTransactionProps = (transaction, moduleName) => {
       break;
     case 'recruitment':
     case 'recruitments':
-    case 'job_postings':
-      type = firstValidValue(transaction.employment_type?.replace('_', ' '), 'Job Posting');
-      description = firstValidValue(transaction.title, transaction.position, transaction.department) || '_';
-      initiator =
-        firstValidValue(
-          transaction.hiring_manager,
-          transaction.created_by_name,
-          transaction.createdByName,
-          transaction.created_by,
-          transaction.createdBy,
-        ) || '_';
       break;
 
     default:
       break;
   }
+
   return { type, description, initiator, createdAt };
 };

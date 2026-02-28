@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
+import { getStatusColor } from '@/pages/authorization-center-new/authorization-center.util';
 import { format } from 'date-fns';
 import { LoanUtil } from '../cooperative/loan.utils';
 

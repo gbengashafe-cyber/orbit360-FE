@@ -2,7 +2,6 @@ import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
 import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
 import Analytics from './Analytics';
 import Appraisals from './Appraisals';
-import AuthorizationCenter from './authorization-center';
 import AuthorizationCenterWIP from './authorization-center-new';
 import ClientAuth from './ClientAuth';
 import CompanyDocuments from './CompanyDocuments';
@@ -169,7 +168,6 @@ function PagesContent() {
         <Route path="/" element={<Dashboard />} />
 
         <Route path="/Dashboard" element={<Dashboard />} />
-        <Route path="/authorization-center-old" element={<AuthorizationCenter />} />
         <Route path="/authorization-center" element={<AuthorizationCenterWIP />} />
 
         <Route path="/ClientAuth" element={<ClientAuth />} />

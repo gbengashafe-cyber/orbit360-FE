@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
+import { getStatusColor } from '@/pages/authorization-center-new/authorization-center.util';
 import { Edit, Users } from 'lucide-react';
 
 // export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onResendInstructions }) => {

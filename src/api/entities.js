@@ -1,117 +1,111 @@
-import { base44 } from './base44Client';
+export const TrainingProgram = '';
 
+export const EmailCampaign = '';
 
-export const TrainingProgram = base44.entities.TrainingProgram;
+export const Activity = '';
 
-export const EmailCampaign = base44.entities.EmailCampaign;
+export const Employee = '';
 
-export const Activity = base44.entities.Activity;
+export const PayrollRecord = '';
 
-export const Employee = base44.entities.Employee;
+export const JobPosting = '';
 
-export const PayrollRecord = base44.entities.PayrollRecord;
+export const JobApplication = '';
 
-export const JobPosting = base44.entities.JobPosting;
+export const EmailTemplate = '';
 
-export const JobApplication = base44.entities.JobApplication;
+export const ScheduledEmail = '';
 
-export const EmailTemplate = base44.entities.EmailTemplate;
+export const SocialPost = '';
 
-export const ScheduledEmail = base44.entities.ScheduledEmail;
+export const Project = '';
 
-export const SocialPost = base44.entities.SocialPost;
+export const Issue = '';
 
-export const Project = base44.entities.Project;
+export const Sprint = '';
 
-export const Issue = base44.entities.Issue;
+export const IssueComment = '';
 
-export const Sprint = base44.entities.Sprint;
+export const IssueLink = '';
 
-export const IssueComment = base44.entities.IssueComment;
+export const WorkLog = '';
 
-export const IssueLink = base44.entities.IssueLink;
+export const HRDocument = '';
 
-export const WorkLog = base44.entities.WorkLog;
+export const HRFolder = '';
 
-export const HRDocument = base44.entities.HRDocument;
+export const PerformanceReview = '';
 
-export const HRFolder = base44.entities.HRFolder;
+export const Goal = '';
 
-export const PerformanceReview = base44.entities.PerformanceReview;
+export const Feedback = '';
 
-export const Goal = base44.entities.Goal;
+export const CheckIn = '';
 
-export const Feedback = base44.entities.Feedback;
+export const DevelopmentPlan = '';
 
-export const CheckIn = base44.entities.CheckIn;
+export const Recognition = '';
 
-export const DevelopmentPlan = base44.entities.DevelopmentPlan;
+export const PerformanceImprovementPlan = '';
 
-export const Recognition = base44.entities.Recognition;
+export const EngagementSurvey = '';
 
-export const PerformanceImprovementPlan = base44.entities.PerformanceImprovementPlan;
+export const SurveyResponse = '';
 
-export const EngagementSurvey = base44.entities.EngagementSurvey;
+export const OnboardingDocument = '';
 
-export const SurveyResponse = base44.entities.SurveyResponse;
+export const ExpenseRequest = '';
 
-export const OnboardingDocument = base44.entities.OnboardingDocument;
+export const ExpenseCategory = '';
 
-export const ExpenseRequest = base44.entities.ExpenseRequest;
+export const ExpenseLog = '';
 
-export const ExpenseCategory = base44.entities.ExpenseCategory;
+export const ExpenseAttachment = '';
 
-export const ExpenseLog = base44.entities.ExpenseLog;
+export const LeaveRequest = '';
 
-export const ExpenseAttachment = base44.entities.ExpenseAttachment;
+export const ResignationRequest = '';
 
-export const LeaveRequest = base44.entities.LeaveRequest;
+export const AnnualAppraisal = '';
 
-export const ResignationRequest = base44.entities.ResignationRequest;
+export const MeetingMinutes = '';
 
-export const AnnualAppraisal = base44.entities.AnnualAppraisal;
+export const StaffComplaint = '';
 
-export const MeetingMinutes = base44.entities.MeetingMinutes;
+export const TrainingRequest = '';
 
-export const StaffComplaint = base44.entities.StaffComplaint;
+export const Vendor = '';
 
-export const TrainingRequest = base44.entities.TrainingRequest;
+export const RedeploymentRequest = '';
 
-export const Vendor = base44.entities.Vendor;
+export const NewStaffRequest = '';
 
-export const RedeploymentRequest = base44.entities.RedeploymentRequest;
+export const Budget = '';
 
-export const NewStaffRequest = base44.entities.NewStaffRequest;
+export const SmartContent = '';
 
-export const Budget = base44.entities.Budget;
+export const ContentSchedule = '';
 
-export const SmartContent = base44.entities.SmartContent;
+export const UserArchive = '';
 
-export const ContentSchedule = base44.entities.ContentSchedule;
+export const Loan = '';
 
-export const UserArchive = base44.entities.UserArchive;
+export const LoanPayment = '';
 
-export const Loan = base44.entities.Loan;
+export const LeaveAttachment = '';
 
-export const LoanPayment = base44.entities.LoanPayment;
+export const KPI = '';
 
-export const LeaveAttachment = base44.entities.LeaveAttachment;
+export const AppraisalCycle = '';
 
-export const KPI = base44.entities.KPI;
+export const Appraisal = '';
 
-export const AppraisalCycle = base44.entities.AppraisalCycle;
+export const AppraisalKPI = '';
 
-export const Appraisal = base44.entities.Appraisal;
+export const Contact = '';
 
-export const AppraisalKPI = base44.entities.AppraisalKPI;
+export const Deal = '';
 
-export const Contact = base44.entities.Contact;
+export const Scroll = '';
 
-export const Deal = base44.entities.Deal;
-
-export const Scroll = base44.entities.Scroll;
-
-
-
-// auth sdk:
-export const User = base44.auth;
+export const User = '';

@@ -65,9 +65,12 @@ export class ApiRoutes {
   static CreateJobPosting = '/v1/recruitment/postings';
   static UpdateJobPosting = (id) => `/v1/recruitment/postings/${id}`;
   static DeleteJobPosting = (id) => `/v1/recruitment/postings/${id}`;
-  static ApproveJobPosting = (id) => `/v1/recruitment/postings/${id}/approve`;
-  static RejectJobPosting = (id) => `/v1/recruitment/postings/${id}/reject`;
   static CloseJobPosting = (id) => `/v1/recruitment/postings/${id}/close`;
+
+  static jobPosting = {
+    approve: (id) => `/v1/recruitment/postings/${id}/approve`,
+    reject: (id) => `/v1/recruitment/postings/${id}/reject`,
+  };
 
   // Recruitment - Job Applications
   static GetJobApplications = '/v1/recruitment/applications';

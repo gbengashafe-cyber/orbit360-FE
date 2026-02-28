@@ -18,13 +18,12 @@ import { logger } from '@/utils';
 import { ClipboardList, RefreshCw, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { AuthorizationViewDialog } from '../authorization-center/authorization-center-dialog';
-import { TransactionsTable } from '../authorization-center/transaction-table';
+import { AuthorizationViewDialog } from './authorization-center-dialog';
+import { TransactionsTable } from './transaction-table';
 
 export default function AuthorizationCenterWIP() {
   const TRAINING_MODULE_KEY = 'training_requests';
   const EXIT_MODULE_KEY = 'exits';
-  const RECRUITMENT_MODULE_KEY = 'recruitment';
   const normalizeModuleName = (moduleName = '') => moduleName.toString().toLowerCase().replace(/-/g, '_');
   const normalizeStatus = (status = '') => status.toString().toUpperCase();
   const [loading, setLoading] = useState(true);
@@ -44,7 +43,6 @@ export default function AuthorizationCenterWIP() {
   const [pendingItemsPagination, setPendingItemsPagination] = useState({});
   const [trainingPendingAll, setTrainingPendingAll] = useState([]);
   const [exitPendingAll, setExitPendingAll] = useState([]);
-  const [recruitmentPendingAll, setRecruitmentPendingAll] = useState([]);
   const [rows, setRows] = useState(25);
   const [approverNote, setApprovalNote] = useState('');
   const [authorizeError, setAuthorizeError] = useState('');
@@ -90,12 +88,6 @@ export default function AuthorizationCenterWIP() {
     return allExits.filter((item) => normalizeStatus(item.status) === 'SUBMITTED');
   }, []);
 
-  const getRecruitmentPendingForCurrentUser = useCallback(async () => {
-    const response = await recruitmentService.getJobPostings(1, 1000);
-    const allJobs = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
-    return allJobs.filter((item) => normalizeStatus(item.status) === 'PENDING_APPROVAL');
-  }, []);
-
   const getPendingCount = useCallback(async () => {
     setLoading(true);
     try {
@@ -137,23 +129,6 @@ export default function AuthorizationCenterWIP() {
         logger.error({ caller: 'Load exit pending fallback', payload: exitError });
       }
 
-      try {
-        const recruitmentItems = await getRecruitmentPendingForCurrentUser();
-        setRecruitmentPendingAll(recruitmentItems);
-
-        const hasRecruitmentModule =
-          typeof nextStats.breakdown.recruitment !== 'undefined' ||
-          typeof nextStats.breakdown.recruitments !== 'undefined' ||
-          typeof nextStats.breakdown.job_postings !== 'undefined';
-
-        if (!hasRecruitmentModule && recruitmentItems.length > 0) {
-          nextStats.breakdown[RECRUITMENT_MODULE_KEY] = recruitmentItems.length;
-          nextStats.total = Number(nextStats.total || 0) + recruitmentItems.length;
-        }
-      } catch (recruitmentError) {
-        logger.error({ caller: 'Load recruitment pending fallback', payload: recruitmentError });
-      }
-
       setPendingStats(nextStats);
     } catch (error) {
       logger.error({ caller: 'List pending auth count', error });
@@ -161,13 +136,7 @@ export default function AuthorizationCenterWIP() {
     } finally {
       setLoading(false);
     }
-  }, [
-    EXIT_MODULE_KEY,
-    RECRUITMENT_MODULE_KEY,
-    getExitPendingForCurrentUser,
-    getRecruitmentPendingForCurrentUser,
-    getTrainingPendingForCurrentUser,
-  ]);
+  }, [EXIT_MODULE_KEY, getExitPendingForCurrentUser, getTrainingPendingForCurrentUser]);
 
   useEffect(() => {
     getPendingCount();
@@ -204,20 +173,6 @@ export default function AuthorizationCenterWIP() {
         return;
       }
 
-      if (normalizeModuleName(activeModule) === RECRUITMENT_MODULE_KEY) {
-        const page = Number(currentPagination) || 1;
-        const start = (page - 1) * rows;
-        const items = recruitmentPendingAll.slice(start, start + rows);
-        const pages = Math.max(1, Math.ceil(recruitmentPendingAll.length / rows));
-
-        setPendingItems((prev) => ({ ...prev, [activeModule]: items }));
-        setPendingItemsPagination((prev) => ({
-          ...prev,
-          [activeModule]: { page, pages, total: recruitmentPendingAll.length },
-        }));
-        return;
-      }
-
       const result = await authorizationService.getModulePending(activeModule, {
         rows,
         page: currentPagination,
@@ -232,13 +187,11 @@ export default function AuthorizationCenterWIP() {
     }
   }, [
     EXIT_MODULE_KEY,
-    RECRUITMENT_MODULE_KEY,
     TRAINING_MODULE_KEY,
     activeModule,
     currentPagination,
     exitPendingAll,
     pendingStats.breakdown,
-    recruitmentPendingAll,
     rows,
     trainingPendingAll,
   ]);
@@ -247,36 +200,18 @@ export default function AuthorizationCenterWIP() {
     loadPendingModuleItems();
   }, [loadPendingModuleItems, refreshKey]);
 
-  // useEffect(() => {
-  //   loadData();
-  // }, []);
-
-  // const loadData = async () => {
-  //   setLoading(true);
-  //   try {
-  //     const pendingResponse = await authorizationService.getPending({ rows: 25, page: 1 });
-
-  //     // setLoans(pendingResponse.data?.loans || []);
-  //   } catch (error) {
-  //     logger.error({ caller: 'List pending auth items', payload: error });
-  //     toast.error('Error', { description: error.message || 'Error loading data' });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const handleAuthorize = async (item, action, moduleName) => {
     setAuthorizing(true);
     try {
       let responsePayload;
 
-      // Update based on transaction type
-      switch (normalizeModuleName(moduleName)) {
+      if (['loans', 'payrolls', 'employees', 'leaves'].includes(moduleName) && action === 'reject' && !approverNote) {
+        setAuthorizeError('Note is required if action is `Reject`');
+        return;
+      }
+
+      switch (moduleName) {
         case 'loans': {
-          if (action === 'reject' && !approverNote) {
-            setAuthorizeError('Note is required if action is `Reject`');
-            return;
-          }
           action === 'approve'
             ? (responsePayload = await loanService.approveLoan(item.id, { approverNote }))
             : (responsePayload = await loanService.rejectLoan(item.id, { approverNote }));
@@ -293,11 +228,22 @@ export default function AuthorizationCenterWIP() {
             ? (responsePayload = await employeeService.approveMaintenance(item.id))
             : (responsePayload = await employeeService.rejectMaintenance(item.id));
           break;
+        case 'job postings':
+          action === 'approve'
+            ? (responsePayload = await recruitmentService.approveJobPosting(item.id))
+            : (responsePayload = await recruitmentService.rejectJobPosting(item.id));
+          break;
         case 'leaves':
           action === 'approve'
             ? (responsePayload = await leaveService.updateLeaveStatus(item.id, 'APPROVED'))
             : (responsePayload = await leaveService.updateLeaveStatus(item.id, 'REJECTED'));
           break;
+
+        default:
+          throw new Error(`Authorization is not handled for module '${moduleName}'`);
+      }
+
+      switch (normalizeModuleName(moduleName)) {
         case 'training':
         case 'trainings':
         case 'training_requests': {
@@ -342,7 +288,7 @@ export default function AuthorizationCenterWIP() {
           break;
         }
         default:
-          throw new Error(`Authorization is not handled for module '${moduleName}'`);
+          break;
       }
 
       if (responsePayload?.message) {
@@ -393,13 +339,13 @@ export default function AuthorizationCenterWIP() {
           </div>
         </div>
 
-        <div className="grid lg:grid-flow-col gap-4 lg:justify-between items-end">
+        <div className="grid md:grid-flow-col gap-4 md:justify-between items-end">
           <Card className=" bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
             <CardContent className="p-6">
               <div className="flex gap-x-8 items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Pending Authorization</p>
-                  <p className="text-2xl font-bold text-yellow-600">{loading ? pendingStats.total : 0}</p>
+                  <p className="text-2xl font-bold text-yellow-600">{loading ? 0 : pendingStats.total}</p>
                 </div>
                 <XCircle className="w-8 h-8 text-yellow-600" />
               </div>
@@ -417,44 +363,40 @@ export default function AuthorizationCenterWIP() {
           </CardHeader>
           <CardContent>
             <Tabs value={activeModule} onValueChange={setActiveModule}>
-              <TabsList className="grid grid-flow-col justify-center gap-x-4 w-full">
+              <TabsList className="flex flex-wrap justify-start h-auto gap-x-4">
                 {Object.keys(pendingStats.breakdown)?.length
                   ? Object.keys(pendingStats.breakdown).map((_module, index) => (
-                      <TabsTrigger value={_module} key={index} className="capitalize px-8">
+                      <TabsTrigger value={_module} key={index} className="capitalize py-3 px-8">
                         {_module} ({pendingStats?.breakdown?.[_module]})
                       </TabsTrigger>
                     ))
                   : null}
               </TabsList>
 
-              {Object.keys(pendingStats.breakdown)?.length
-                ? Object.keys(pendingStats.breakdown).map((_module, index) => (
-                    <TabsContent value={_module} key={index} className=" mt-6">
-                      <TransactionsTable
-                        moduleName={activeModule}
-                        transactions={pendingItems[activeModule]}
-                        setViewingItem={setViewingItem}
-                        pagination={pendingItemsPagination[activeModule]}
-                        setRows={setRows}
-                        isLoading={tabIsLoading}
-                      />
-                      <div className="my-6 mt-14">
-                        <PaginationIconsOnly
-                          currentPage={pendingItemsPagination[activeModule]?.page}
-                          pages={pendingItemsPagination[activeModule]?.pages || 1}
-                          setRows={setRows}
-                          setCurrentPage={(val) =>
-                            setPendingItemsPagination((prev) => ({
-                              ...prev,
-                              [activeModule]: { ...prev[activeModule], page: val },
-                            }))
-                          }
-                          rows={rows}
-                        />
-                      </div>
-                    </TabsContent>
-                  ))
-                : null}
+              <TabsContent value={activeModule} className=" mt-6">
+                <TransactionsTable
+                  moduleName={activeModule}
+                  transactions={pendingItems[activeModule]}
+                  setViewingItem={setViewingItem}
+                  pagination={pendingItemsPagination[activeModule]}
+                  setRows={setRows}
+                  isLoading={tabIsLoading}
+                />
+                <div className="my-6 mt-14">
+                  <PaginationIconsOnly
+                    currentPage={pendingItemsPagination[activeModule]?.page}
+                    pages={pendingItemsPagination[activeModule]?.pages || 1}
+                    setRows={setRows}
+                    setCurrentPage={(val) =>
+                      setPendingItemsPagination((prev) => ({
+                        ...prev,
+                        [activeModule]: { ...prev[activeModule], page: val },
+                      }))
+                    }
+                    rows={rows}
+                  />
+                </div>
+              </TabsContent>
             </Tabs>
           </CardContent>
         </Card>

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
+import { getStatusColor } from '@/pages/authorization-center-new/authorization-center.util';
 import { logger } from '@/utils';
 import { Banknote, Download, Plus, RefreshCw, Trash2, View } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';

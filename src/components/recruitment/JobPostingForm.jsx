@@ -1,77 +1,79 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, Save, Loader2, X } from "lucide-react";
-import { recruitmentService } from "@/api/recruitment.service";
+import { recruitmentService } from '@/api/recruitment.service';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useDepartments } from '@/hooks/use-departments';
+import { format } from 'date-fns';
+import { Calendar as CalendarIcon, Loader2, Save, X } from 'lucide-react';
+import { useState } from 'react';
 
-const DEPARTMENTS = ["hr", "sales", "marketing", "finance", "operations", "it", "admin"];
-const EMPLOYMENT_TYPES = ["full_time", "part_time", "contract", "temporary"];
+const EMPLOYMENT_TYPES = ['full_time', 'part_time', 'contract', 'temporary'];
 
 export default function JobPostingForm({ onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
-    title: "",
-    department: "",
-    employment_type: "full_time",
-    location: "",
-    salary_range_min: "",
-    salary_range_max: "",
-    description: "",
-    requirements: "",
-    hiring_manager: ""
+    title: '',
+    department: '',
+    employment_type: 'full_time',
+    location: '',
+    salary_range_min: '',
+    salary_range_max: '',
+    description: '',
+    requirements: '',
+    hiring_manager: '',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
+
+  const { departments } = useDepartments();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Prevent double submission
     if (isLoading) return;
-    
+
     setIsLoading(true);
-    setError("");
+    setError('');
 
     try {
       // Validate required fields
       if (!formData.title.trim()) {
-        setError("Job title is required");
+        setError('Job title is required');
         setIsLoading(false);
         return;
       }
       if (formData.title.trim().length < 3) {
-        setError("Job title must be at least 3 characters");
+        setError('Job title must be at least 3 characters');
         setIsLoading(false);
         return;
       }
       if (!formData.description.trim()) {
-        setError("Job description is required");
+        setError('Job description is required');
         setIsLoading(false);
         return;
       }
       if (formData.description.trim().length < 10) {
-        setError("Job description must be at least 10 characters");
+        setError('Job description must be at least 10 characters');
         setIsLoading(false);
         return;
       }
       if (!formData.requirements.trim()) {
-        setError("Requirements are required");
+        setError('Requirements are required');
         setIsLoading(false);
         return;
       }
       if (!formData.location.trim()) {
-        setError("Location is required");
+        setError('Location is required');
         setIsLoading(false);
         return;
       }
       if (!formData.department) {
-        setError("Department is required");
+        setError('Department is required');
         setIsLoading(false);
         return;
       }
@@ -80,7 +82,7 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
       const salaryMax = formData.salary_range_max ? parseFloat(formData.salary_range_max) : 0;
 
       if (salaryMin > 0 && salaryMax > 0 && salaryMin > salaryMax) {
-        setError("Minimum salary cannot be greater than maximum salary");
+        setError('Minimum salary cannot be greater than maximum salary');
         setIsLoading(false);
         return;
       }
@@ -94,37 +96,33 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
         salary_range_max: salaryMax > 0 ? salaryMax : undefined,
         description: formData.description.trim(),
         requirements: formData.requirements.trim(),
-        created_by: formData.hiring_manager || 'system@orbit360.com'
+        created_by: formData.hiring_manager || 'system@orbit360.com',
       };
 
       const response = await recruitmentService.createJobPosting(submissionData);
       onSubmit(response);
     } catch (err) {
       console.error('Error details:', err);
-      setError(err.response?.data?.message || err.message || "Failed to create job posting");
+      setError(err.response?.data?.message || err.message || 'Failed to create job posting');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
-          {error}
-        </div>
-      )}
+      {error && <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">{error}</div>}
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="title">Job Title *</Label>
           <Input
             id="title"
             value={formData.title}
-            onChange={(e) => handleInputChange("title", e.target.value)}
+            onChange={(e) => handleInputChange('title', e.target.value)}
             required
             placeholder="Senior Software Engineer"
           />
@@ -134,7 +132,7 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
           <Input
             id="location"
             value={formData.location}
-            onChange={(e) => handleInputChange("location", e.target.value)}
+            onChange={(e) => handleInputChange('location', e.target.value)}
             placeholder="Lagos, Nigeria"
           />
         </div>
@@ -143,29 +141,33 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
       <div className="grid md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label htmlFor="department">Department *</Label>
-          <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)} required>
+          <Select value={formData.department} onValueChange={(value) => handleInputChange('department', value)} required>
             <SelectTrigger>
               <SelectValue placeholder="Select department" />
             </SelectTrigger>
             <SelectContent>
-              {DEPARTMENTS.map((dept) => (
-                <SelectItem key={dept} value={dept}>
-                  {dept.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </SelectItem>
-              ))}
+              {departments.length
+                ? departments.map((dept) => {
+                    return (
+                      <SelectItem key={dept.id} value={dept.name}>
+                        {dept.name}
+                      </SelectItem>
+                    );
+                  })
+                : null}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="employment_type">Type</Label>
-          <Select value={formData.employment_type} onValueChange={(value) => handleInputChange("employment_type", value)}>
+          <Select value={formData.employment_type} onValueChange={(value) => handleInputChange('employment_type', value)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {EMPLOYMENT_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>
-                  {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  {type.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -184,7 +186,7 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
               <Calendar
                 mode="single"
                 selected={formData.application_deadline}
-                onSelect={(date) => handleInputChange("application_deadline", date)}
+                onSelect={(date) => handleInputChange('application_deadline', date)}
               />
             </PopoverContent>
           </Popover>
@@ -198,7 +200,7 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
             id="salary_range_min"
             type="number"
             value={formData.salary_range_min}
-            onChange={(e) => handleInputChange("salary_range_min", e.target.value)}
+            onChange={(e) => handleInputChange('salary_range_min', e.target.value)}
             placeholder="500000"
           />
         </div>
@@ -208,7 +210,7 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
             id="salary_range_max"
             type="number"
             value={formData.salary_range_max}
-            onChange={(e) => handleInputChange("salary_range_max", e.target.value)}
+            onChange={(e) => handleInputChange('salary_range_max', e.target.value)}
             placeholder="800000"
           />
         </div>
@@ -220,21 +222,23 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
           id="hiring_manager"
           type="email"
           value={formData.hiring_manager}
-          onChange={(e) => handleInputChange("hiring_manager", e.target.value)}
+          onChange={(e) => handleInputChange('hiring_manager', e.target.value)}
           placeholder="manager@company.com"
         />
       </div>
 
       <div className="space-y-2">
-       <Label htmlFor="description">Job Description * <span className="text-xs text-gray-500">(min 10 characters)</span></Label>
-       <Textarea
-         id="description"
-         value={formData.description}
-         onChange={(e) => handleInputChange("description", e.target.value)}
-         required
-         rows={4}
-         placeholder="Describe the role and what the successful candidate will be doing... (minimum 10 characters)"
-       />
+        <Label htmlFor="description">
+          Job Description * <span className="text-xs text-gray-500">(min 10 characters)</span>
+        </Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => handleInputChange('description', e.target.value)}
+          required
+          rows={4}
+          placeholder="Describe the role and what the successful candidate will be doing... (minimum 10 characters)"
+        />
       </div>
 
       <div className="space-y-2">
@@ -242,7 +246,7 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
         <Textarea
           id="requirements"
           value={formData.requirements}
-          onChange={(e) => handleInputChange("requirements", e.target.value)}
+          onChange={(e) => handleInputChange('requirements', e.target.value)}
           required
           rows={4}
           placeholder="List the skills, experience, and qualifications required..."
@@ -254,8 +258,8 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
           <X className="w-4 h-4 mr-2" />
           Cancel
         </Button>
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white"
           disabled={isLoading}
         >

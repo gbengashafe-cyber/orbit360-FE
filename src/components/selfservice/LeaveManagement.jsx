@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { useNotification } from '@/context/NotificationContext';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
+import { getStatusColor } from '@/pages/authorization-center-new/authorization-center.util';
 import { logger } from '@/utils';
 import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay } from '@/utils/leaveCalculator';
 import { showToast } from '@/utils/toast';

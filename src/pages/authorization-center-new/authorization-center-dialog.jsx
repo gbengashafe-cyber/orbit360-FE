@@ -59,6 +59,9 @@ export const AuthorizationViewDialog = ({
                     <p className="text-gray-900">
                       {['LOANS'].includes(moduleName?.toUpperCase())
                         ? `${viewingItem.reviewer?.firstName} ${viewingItem.reviewer?.lastName}`
+                        : null}
+                      {['JOB POSTINGS'].includes(moduleName?.toUpperCase())
+                        ? viewingItem.created_by
                         : `${viewingItem.initiator?.firstName} ${viewingItem.initiator?.lastName}`}
                     </p>
                   </div>

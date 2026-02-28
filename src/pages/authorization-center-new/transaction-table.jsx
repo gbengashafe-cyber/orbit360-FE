@@ -2,8 +2,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Eye, Loader2 } from 'lucide-react';
-import { getStatusColor, getTransactionProps } from './authorization-center.util';
 import React from 'react';
+import { getStatusColor, getTransactionProps } from './authorization-center.util';
 
 export function TransactionsTable({ moduleName, transactions, setViewingItem, isLoading }) {
   if (isLoading) {
@@ -31,7 +31,7 @@ export function TransactionsTable({ moduleName, transactions, setViewingItem, is
                 <React.Fragment key={`${type}-${transaction.id}`}>
                   <TableRow>
                     <TableCell className="font-medium capitalize">{type}</TableCell>
-                    <TableCell>{description}</TableCell>
+                    <TableCell className="text-ellipsis text-nowrap overflow-hidden max-w-36">{description}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(transaction.status)}>{transaction.status}</Badge>
                     </TableCell>

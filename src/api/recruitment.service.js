@@ -22,12 +22,12 @@ export const recruitmentService = {
     return apiClient.put(ApiRoutes.UpdateJobPosting(id), data);
   },
 
-  async approveJobPosting(id, approvedBy) {
-    return apiClient.post(ApiRoutes.ApproveJobPosting(id), { approved_by: approvedBy });
+  async approveJobPosting(id) {
+    return apiClient.post(ApiRoutes.jobPosting.approve(id));
   },
 
   async rejectJobPosting(id) {
-    return apiClient.post(ApiRoutes.RejectJobPosting(id));
+    return apiClient.post(ApiRoutes.jobPosting.reject(id));
   },
 
   async closeJobPosting(id) {

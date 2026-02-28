@@ -1,4 +1,3 @@
-import { Employee } from '@/api/entities';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGlobalContext } from '@/state/context';

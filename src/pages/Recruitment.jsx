@@ -1,4 +1,4 @@
-import { employeeService, recruitmentService, userService } from '@/api';
+import { recruitmentService, userService } from '@/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,12 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useGlobalContext } from '@/state/context';
 import { showToast } from '@/utils/toast';
-import { Briefcase, Calendar, Check, Copy, FileText, Linkedin, Plus, TrendingUp, Users, X } from 'lucide-react';
+import { Briefcase, Calendar, Check, Copy, FileText, Linkedin, Plus, TrendingUp, Users, View, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import ApplicationPipeline from '../components/recruitment/ApplicationPipeline';
 import JobPostingForm from '../components/recruitment/JobPostingForm';
-import { getStatusColor } from './authorization-center/authorization-center.util';
+import { getStatusColor } from './authorization-center-new/authorization-center.util';
 
 export default function Recruitment() {
   const [jobPostings, setJobPostings] = useState([]);
@@ -99,19 +99,6 @@ export default function Recruitment() {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getManagingDirectorEmails = async () => {
-    try {
-      const response = await employeeService.getEmployees(1, 100);
-      const employees = response?.data || response || [];
-      return employees
-        .filter((e) => e.position === 'Managing Director' || e.jobRole?.title === 'MANAGING DIRECTOR')
-        .map((e) => e.email);
-    } catch (error) {
-      console.warn('Could not fetch Managing Directors:', error);
-      return [];
     }
   };
 
@@ -269,7 +256,7 @@ export default function Recruitment() {
         </div>
 
         {/* Summary Cards - KPI Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -415,7 +402,8 @@ export default function Recruitment() {
                         <TableCell className="flex gap-1 flex-wrap">
                           <TooltipProvider>
                             <Button size="sm" variant="outline" onClick={() => setSelectedJob(job)}>
-                              View Applications
+                              <View />
+                              View
                             </Button>
                             {job.status === 'pending_approval' && isMD && (
                               <>

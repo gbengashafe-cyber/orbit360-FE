@@ -1,6 +1,6 @@
-import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
+import { getStatusColor } from '@/pages/authorization-center-new/authorization-center.util';
+import { format } from 'date-fns';
 
 export const TYPE_RENDERERS = {
   string: (v) => v ?? 'N/A',

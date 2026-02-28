@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
 import ProjectForm from '../components/projects/ProjectForm';
-import { getStatusColor } from './authorization-center/authorization-center.util';
+import { getStatusColor } from './authorization-center-new/authorization-center.util';
 
 export default function Projects() {
   const [projects, setProjects] = useState([]);
