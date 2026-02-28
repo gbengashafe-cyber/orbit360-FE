@@ -127,7 +127,7 @@ export class ApiRoutes {
   static DeleteFolder = (id) => `/v1/hr-documents/folders/${id}`;
 
   static HRDocuments = '/v1/hr-documents';
-  
+
   static hrDocumentDeletionRequests = {
     pending: '/v1/hr-documents/deletion-requests/pending',
     approve: (id) => `/v1/hr-documents/deletion-requests/${id}/approve`,
@@ -145,22 +145,23 @@ export class ApiRoutes {
   // Payroll
   static GetPayrolls = '/v1/payrolls';
   static GetPayrollById = (id) => `/v1/payrolls/${id}`;
-  static GeneratePayroll = '/v1/payrolls';
-  static regeneratePayroll = '/v1/payrolls?overwrite=true';
   static UpdatePayroll = (id) => `/v1/payrolls/${id}`;
   static UpdatePayrollStatus = (id) => `/v1/payrolls/${id}/status`;
   static DeletePayroll = (id) => `/v1/payrolls/${id}`;
   static GetPayrollsByEmployee = (id) => `/v1/payrolls/employees/${id}`;
-  static GetPayrollsByPeriod = (payPeriod) => `/v1/payrolls/periods/${payPeriod}`;
+
   static PayPayroll = (id) => `/v1/payrolls/${id}/pay`;
   static UploadPayrollReport = `/v1/payrolls/uploads`;
   static GetUploadedPayrollReports = `/v1/payrolls/uploads`;
   static DeleteUploadedPayrollReport = (id) => `/v1/payrolls/uploads/${id}`;
 
   static payroll = {
+    generate: '/v1/payrolls',
+    regenerate: '/v1/payrolls?overwrite=true',
     approveBatch: (id) => `/v1/payrolls/${id}/approval`,
     rejectBatch: (id) => `/v1/payrolls/${id}/rejection`,
-    getBatchByPeriod: (period) => `/v1/payrolls/periods/batches/${period}`,
+    getCompanyBatchByPeriod: (companyId, period) => `/v1/payrolls/companies/${companyId}/batches/periods/${period}`,
+    getCompanyPayrollsByPeriod: (companyId, payPeriod) => `/v1/payrolls/companies/${companyId}/periods/${payPeriod}`,
   };
 
   // Deductions

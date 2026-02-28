@@ -3,6 +3,7 @@ import { DeleteUploadedPayrollAlert } from '@/components/payroll/DeleteUploadedP
 import { PayrollOverwriteAlert } from '@/components/payroll/OverwriteAlert';
 import { generatePayrollCSV } from '@/components/payroll/payroll-csv';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
+import { FormSubmitErrorV1 } from '@/components/shared/submit-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useCompanies } from '@/hooks/use-all-companies';
 import {
   Calculator,
   Calendar,
@@ -24,10 +26,26 @@ import {
   Upload,
   Users,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import z from 'zod';
 import Payslip from '../components/payroll/Payslip';
 import { getStatusColor } from './authorization-center/authorization-center.util';
+
+export const payPeriodRegex = /^20\d{2}-(0[1-9]|1[0-2])$/;
+const generatePayrollSchema = z.object({
+  payPeriod: z.string().regex(payPeriodRegex, { error: 'Invalid payPeriod format. The allowed format is YYYY-MM' }),
+  companyId: z
+    .string({
+      error: (value) => {
+        if (value.input === undefined) {
+          return 'SBU code is required';
+        }
+      },
+    })
+    .min(1, 'SBU code is required')
+    .max(15, 'SBU code is not allowed'),
+});
 
 export default function Payroll() {
   const [loading, setLoading] = useState(true);
@@ -43,19 +61,37 @@ export default function Payroll() {
   const [showPayrollOverwriteAlert, setShowPayrollOverwriteAlert] = useState(false);
   const [showDeleteUploadAlert, setShowDeleteUploadAlert] = useState(false);
   const [currentUploadedReport, setCurrentUploadedReport] = useState(null);
-  const [summaryCards, setSummaryCards] = useState([]);
   const [periodPayrollMeta, setPeriodPayrollMeta] = useState({ count: 0, totalNet: 0, totalGross: 0 });
+  const [activeEmployeesCount, setActiveEmployeesCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState(25);
   const [pages, setPages] = useState(1);
   const [periodTotal, setPeriodTotal] = useState(0);
+  const [companyId, setCompanyId] = useState('');
+  const [submitError, setSubmitError] = useState(null);
+
+  const { allCompanies } = useCompanies();
 
   const payslipRef = useRef(null);
+
+  useEffect(() => {
+    if (allCompanies.length) {
+      setCompanyId(String(allCompanies?.[0].id));
+    }
+  }, [allCompanies]);
 
   const loadPeriodPayroll = useCallback(async () => {
     setLoading(true);
     try {
-      const payrollData = await payrollService.getPayrollByPeriod({ payPeriod: currentPeriod, rows, page: currentPage });
+      if (!companyId) {
+        return;
+      }
+      const payrollData = await payrollService.getPayrollByPeriod({
+        companyId,
+        payPeriod: currentPeriod,
+        rows,
+        page: currentPage,
+      });
       setPayrollRecords(payrollData.data);
       setPeriodPayrollMeta({
         count: payrollData?.pagination?.total,
@@ -71,48 +107,26 @@ export default function Payroll() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, currentPeriod, rows]);
+  }, [currentPage, currentPeriod, companyId, rows]);
 
-  const loadData = useCallback(async () => {
+  const loadEmployeeStat = useCallback(async () => {
     try {
-      const [reportsData, employeesData] = await Promise.all([
-        payrollService.getUploadedPayrolls(),
-        employeeService.getActiveEmployees({ rows: 1 }),
-      ]);
-      setUploadedReports(reportsData.data);
+      const response = await employeeService.getActiveEmployees({ rows: 1 });
+      setActiveEmployeesCount(response.pagination?.total);
+    } catch (error) {
+      toast.error('Error loading employee stats:', {
+        description: `${error.message ? error.message : 'Kindly contact the system administrator'}`,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-      setSummaryCards([
-        {
-          title: 'Active Employees',
-          value: employeesData?.pagination?.total,
-          icon: Users,
-          color: 'text-blue-600',
-        },
-        {
-          title: 'Generated This Month',
-          value: periodPayrollMeta.count,
-          icon: Receipt,
-          color: 'text-green-600',
-        },
-        {
-          title: 'Total Gross Pay (Monthly)',
-          value: `₦${periodPayrollMeta.totalGross.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`,
-          icon: DollarSign,
-          color: 'text-purple-600',
-        },
-        {
-          title: 'Total Net Pay (Monthly)',
-          value: `₦${periodPayrollMeta.totalNet.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`,
-          icon: CreditCard,
-          color: 'text-orange-600',
-        },
-      ]);
+  const loadReports = useCallback(async () => {
+    try {
+      const response = await payrollService.getUploadedPayrolls();
+
+      setUploadedReports(response.data);
     } catch (error) {
       toast.error('Error loading uploaded payroll reports:', {
         description: `${error.message ? error.message : 'Kindly contact the system administrator'}`,
@@ -120,15 +134,55 @@ export default function Payroll() {
     } finally {
       setLoading(false);
     }
-  }, [periodPayrollMeta.count, periodPayrollMeta.totalGross, periodPayrollMeta.totalNet]);
+  }, []);
 
   useEffect(() => {
     loadPeriodPayroll();
   }, [currentPeriod, loadPeriodPayroll]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData, periodPayrollMeta]);
+    loadEmployeeStat();
+  }, [loadEmployeeStat]);
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
+
+  const summaryCards = useMemo(
+    () => [
+      {
+        title: 'Active Employees',
+        value: activeEmployeesCount,
+        icon: Users,
+        color: 'text-blue-600',
+      },
+      {
+        title: 'Generated This Month',
+        value: periodPayrollMeta.count,
+        icon: Receipt,
+        color: 'text-green-600',
+      },
+      {
+        title: 'Total Gross Pay (Monthly)',
+        value: `₦${periodPayrollMeta.totalGross.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+        icon: DollarSign,
+        color: 'text-purple-600',
+      },
+      {
+        title: 'Total Net Pay (Monthly)',
+        value: `₦${periodPayrollMeta.totalNet.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+        icon: CreditCard,
+        color: 'text-orange-600',
+      },
+    ],
+    [activeEmployeesCount, periodPayrollMeta],
+  );
 
   const generateMonthlyPayrollWithOverwrite = async (selectedPeriod) => {
     setGeneratingPayroll(true);
@@ -139,7 +193,7 @@ export default function Payroll() {
         description: `Payroll for ${new Date(selectedPeriod).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })} generated successfully.`,
       });
 
-      await loadData();
+      await loadEmployeeStat();
       await loadPeriodPayroll();
     } catch (error) {
       toast.error('Error generating payroll', {
@@ -152,8 +206,16 @@ export default function Payroll() {
 
   const generateMonthlyPayroll = async (selectedPeriod) => {
     setGeneratingPayroll(true);
+    setSubmitError(null);
     try {
-      const existingPayroll = await payrollService.getPayrollBatchByPeriod({ payPeriod: selectedPeriod });
+      const validationResult = generatePayrollSchema.safeParse({ payPeriod: selectedPeriod, companyId });
+
+      if (!validationResult.success) {
+        setSubmitError(JSON.parse(validationResult.error.message)[0].message);
+        return;
+      }
+
+      const existingPayroll = await payrollService.getPayrollBatchByPeriod(validationResult.data);
 
       if (existingPayroll.data?.status?.toUpperCase() === 'PENDING_APPROVAL') {
         toast.error('Error', {
@@ -167,13 +229,13 @@ export default function Payroll() {
         return;
       }
 
-      await payrollService.generatePayroll(selectedPeriod);
+      await payrollService.generatePayroll(companyId, selectedPeriod);
 
       toast.success('Payroll Generated', {
         description: `Payroll for ${new Date(selectedPeriod).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })} generated successfully.`,
       });
 
-      await loadData();
+      await loadEmployeeStat();
       await loadPeriodPayroll();
     } catch (error) {
       toast.error('Error', {
@@ -185,7 +247,7 @@ export default function Payroll() {
   };
 
   const downloadPayrollReport = async (payPeriod) => {
-    const currentPeriodRecords = await payrollService.getPayrollByPeriod({ payPeriod, rows: 3000 });
+    const currentPeriodRecords = await payrollService.getPayrollByPeriod({ companyId, payPeriod, rows: 3000 });
 
     if (currentPeriodRecords.data.length === 0) {
       toast.info('No payroll data available for the selected period.');
@@ -220,7 +282,7 @@ export default function Payroll() {
       formData.append('payPeriod', uploadForm.payPeriod);
 
       await payrollService.uploadReport(formData);
-      await loadData();
+      await loadEmployeeStat();
       setUploadForm({ name: '', file: null, payPeriod: '' });
       setShowUploadDialog(false);
       toast.success('Report uploaded successfully!');
@@ -234,7 +296,7 @@ export default function Payroll() {
   const handleDeleteReport = async (reportId) => {
     try {
       await payrollService.deleteUploadedPayroll(reportId);
-      await loadData();
+      await loadEmployeeStat();
       toast.success('Payroll report deleted successfully.');
     } catch (error) {
       toast.error('Failed to delete report', { description: `${error.message ? error.message : ''}` });
@@ -259,8 +321,21 @@ export default function Payroll() {
             </div>
           </div>
           <div className="flex gap-3 flex-wrap">
+            <Button
+              onClick={() => setShowUploadDialog(true)}
+              variant="outline"
+              className="border-purple-300 text-purple-700 hover:bg-purple-50"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Past Report
+            </Button>
+          </div>
+        </div>
+
+        <Card className="grid gap-5 lg:grid-cols-2 bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50 px-4 py-5 ">
+          <div className="grid gap-2 lg:grid-flow-col lg:justify-items-start">
             <Select value={currentPeriod} onValueChange={setCurrentPeriod}>
-              <SelectTrigger className="w-40 bg-white">
+              <SelectTrigger className="w-full lg:max-w-60">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -276,6 +351,20 @@ export default function Payroll() {
                 })}
               </SelectContent>
             </Select>
+            <Select value={String(companyId)} onValueChange={setCompanyId}>
+              <SelectTrigger className="lg:max-w-60">
+                <SelectValue placeholder="Select SBU" />
+              </SelectTrigger>
+
+              <SelectContent>
+                {allCompanies?.map((company) => (
+                  <SelectItem key={company.id} value={String(company.id)}>
+                    <span className="inline-block w-full cursor-pointer">{company.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {submitError ? <FormSubmitErrorV1>{submitError}</FormSubmitErrorV1> : null}
             <Button
               onClick={() => generateMonthlyPayroll(currentPeriod)}
               disabled={generatingPayroll}
@@ -283,7 +372,7 @@ export default function Payroll() {
             >
               {generatingPayroll ? (
                 <>
-                  <Calculator className="animate-spin" />
+                  <Calculator className="animate-spin mr-2" />
                   Generating...
                 </>
               ) : (
@@ -293,6 +382,8 @@ export default function Payroll() {
                 </>
               )}
             </Button>
+          </div>
+          <div className="grid lg:justify-end">
             <Button
               onClick={() => downloadPayrollReport(currentPeriod)}
               variant="outline"
@@ -301,18 +392,10 @@ export default function Payroll() {
               <Download className="w-4 h-4 mr-2" />
               Download Report
             </Button>
-            <Button
-              onClick={() => setShowUploadDialog(true)}
-              variant="outline"
-              className="border-purple-300 text-purple-700 hover:bg-purple-50"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Past Report
-            </Button>
           </div>
-        </div>
+        </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {summaryCards.map((card, index) => (
             <Card key={index} className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
               <CardContent className="p-4">

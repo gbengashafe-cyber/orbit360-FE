@@ -207,14 +207,14 @@ export function Employees() {
                   <SelectValue placeholder="Select SBU" />
                 </SelectTrigger>
 
-                <SelectContent>
-                  <SelectItem value="all">
-                    <span className="ps-6 inline-block p-2 hover:bg-slate-200 w-full">All SBUs</span>
+                <SelectContent className="">
+                  <SelectItem value="all" className="cursor-pointer">
+                    <span className="ps-6 inline-block p-2 w-full">All SBUs</span>
                   </SelectItem>
 
                   {allCompanies?.map((company) => (
-                    <SelectItem key={company.id} value={String(company.id)}>
-                      <span className="ps-6 inline-block p-2 hover:bg-slate-200 w-full">{company.name}</span>
+                    <SelectItem key={company.id} value={String(company.id)} className="cursor-pointer">
+                      <span className="ps-6 inline-block p-2  w-full">{company.name}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>

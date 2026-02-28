@@ -1,8 +1,9 @@
-import Pages from '@/pages/index.jsx';
-import { NotificationProvider, useNotification } from '@/context/NotificationContext';
 import { NotificationBar } from '@/components/NotificationBar';
-import { useEffect } from 'react';
+import { NotificationProvider, useNotification } from '@/context/NotificationContext';
+import Pages from '@/pages/index.jsx';
 import { setNotificationCallback } from '@/utils/toast';
+import { useEffect } from 'react';
+import { Toaster } from 'sonner';
 
 function AppContent() {
   const { addNotification } = useNotification();
@@ -18,6 +19,7 @@ function AppContent() {
     <>
       <NotificationBar />
       <Pages />
+      <Toaster position="top-right" closeButton={true} richColors={true} />
     </>
   );
 }

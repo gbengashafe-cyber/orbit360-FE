@@ -14,19 +14,19 @@ export const payrollService = {
     return apiClient.get(`${ApiRoutes.GetPayrollsByEmployee(id)}?page=${page}&rows=${rows}`);
   },
 
-  async getPayrollByPeriod({ payPeriod, page = 1, rows = 20 }) {
-    return apiClient.get(`${ApiRoutes.GetPayrollsByPeriod(payPeriod)}?page=${page}&rows=${rows}`);
+  async getPayrollByPeriod({ companyId, payPeriod, page = 1, rows = 20 }) {
+    return apiClient.get(`${ApiRoutes.payroll.getCompanyPayrollsByPeriod(companyId, payPeriod)}?page=${page}&rows=${rows}`);
   },
-  async getPayrollBatchByPeriod({ payPeriod }) {
-    return apiClient.get(`${ApiRoutes.payroll.getBatchByPeriod(payPeriod)}`);
-  },
-
-  async generatePayroll(payPeriod) {
-    return apiClient.post(ApiRoutes.GeneratePayroll, { payPeriod });
+  async getPayrollBatchByPeriod({ companyId, payPeriod }) {
+    return apiClient.get(`${ApiRoutes.payroll.getCompanyBatchByPeriod(companyId, payPeriod)}`);
   },
 
-  async regeneratePayroll(payPeriod) {
-    return apiClient.post(ApiRoutes.regeneratePayroll, { payPeriod });
+  async generatePayroll(companyId, payPeriod) {
+    return apiClient.post(ApiRoutes.payroll.generate, { companyId, payPeriod });
+  },
+
+  async regeneratePayroll(companyId, payPeriod) {
+    return apiClient.post(ApiRoutes.payroll.regenerate, { companyId, payPeriod });
   },
 
   approvePayrollBatch: async (id, data) => {

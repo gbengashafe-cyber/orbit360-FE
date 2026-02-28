@@ -55,7 +55,7 @@ const hrNav = [
   // { title: 'Authorization Center', url: createPageUrl('AuthorizationCenter'), icon: ClipboardList },
   { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
   { title: 'Employees', url: createPageUrl('Employees'), icon: Users2 },
-  { title: 'Payroll', url: createPageUrl('payroll'), icon: Banknote },
+  { title: 'Payrolls', url: createPageUrl('payroll'), icon: Banknote },
   { title: 'Payslips', url: createPageUrl('payslips'), icon: FileText },
   { title: 'Cooperative & Loans', url: createPageUrl('Cooperative'), icon: HandCoins },
   // { title: 'Compensation Tool', url: createPageUrl('CompensationTool'), icon: Calculator },
@@ -84,13 +84,9 @@ const employeePortalNav = [
   { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
 ];
 
-const supervisorNav = [
-  { title: 'Exit Approvals', url: '/ExitApprovals', icon: UserRoundX },
-];
+const supervisorNav = [{ title: 'Exit Approvals', url: '/ExitApprovals', icon: UserRoundX }];
 
-const hrManagerNav = [
-  { title: 'Complaint Management', url: createPageUrl('ComplaintManagement'), icon: MessageSquareHeart },
-];
+const hrManagerNav = [{ title: 'Complaint Management', url: createPageUrl('ComplaintManagement'), icon: MessageSquareHeart }];
 
 const adminNav = [
   { title: 'User Management', url: createPageUrl('UserManagement'), icon: Users },
@@ -241,10 +237,20 @@ const LayoutContent = ({ children }) => {
             navItems={employeePortalNav}
           />
           {isSupervisor && (
-            <NavGroup title="Supervisor" isOpen={isSupervisorNavOpen} onOpenChange={setIsSupervisorNavOpen} navItems={supervisorNav} />
+            <NavGroup
+              title="Supervisor"
+              isOpen={isSupervisorNavOpen}
+              onOpenChange={setIsSupervisorNavOpen}
+              navItems={supervisorNav}
+            />
           )}
           {isHrManager && (
-            <NavGroup title="HR Manager" isOpen={isHrManagerNavOpen} onOpenChange={setIsHrManagerNavOpen} navItems={hrManagerNav} />
+            <NavGroup
+              title="HR Manager"
+              isOpen={isHrManagerNavOpen}
+              onOpenChange={setIsHrManagerNavOpen}
+              navItems={hrManagerNav}
+            />
           )}
           {isAdmin && (
             <NavGroup title="Administration" isOpen={isAdminNavOpen} onOpenChange={setIsAdminNavOpen} navItems={adminNav} />
