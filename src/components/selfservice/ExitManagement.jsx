@@ -1,31 +1,32 @@
+import React, { useState, useEffect } from 'react';
 import { apiClient, apiRoutes } from '@/api';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
-import { showToast } from '@/utils/toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  AlertCircle,
-  AlertTriangle,
-  Briefcase,
-  Building,
-  Calendar,
   FileText,
-  Hand,
-  Landmark,
-  Shield,
-  Star,
+  AlertTriangle,
+  Calendar,
+  Building,
   User as UserIcon,
+  Hand,
+  Briefcase,
+  Landmark,
+  Star,
+  CheckCircle,
+  Clock,
+  Shield,
   XCircle,
+  AlertCircle,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
 const FormSection = ({ title, icon, children }) => (
   <Card>
@@ -40,6 +41,15 @@ const FormSection = ({ title, icon, children }) => (
 );
 
 const ApprovalStatusDisplay = ({ title, status, date, comments }) => {
+  const getStatusColor = (status) =>
+    ({
+      pending: 'bg-yellow-100 text-yellow-800',
+      approved: 'bg-green-100 text-green-800',
+      cleared: 'bg-green-100 text-green-800',
+      rejected: 'bg-red-100 text-red-800',
+      issues: 'bg-orange-100 text-orange-800',
+    })[status] || 'bg-gray-100 text-gray-800';
+
   return (
     <div>
       <h4 className="font-semibold">{title}</h4>
@@ -116,14 +126,14 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
     setIsDeleting(true);
     try {
       await apiClient.delete(apiRoutes.DeleteExit(pendingDeleteId));
-      showToast.success('Exit request deleted successfully', 'Success');
+      showToast.success('Exit request deleted successfully');
       setShowDeleteModal(false);
       setPendingDeleteId(null);
       loadData();
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error('Error deleting exit request:', error);
-      showToast.error('Failed to delete exit request. Please try again.', 'Error');
+      showToast.error('Failed to delete exit request. Please try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -196,12 +206,12 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
       setShowForm(false);
       resetForm();
       loadData();
-      showToast.success('Resignation submitted successfully. HR will be notified.', 'Success');
+      showToast.success('Resignation submitted successfully. HR will be notified.');
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error('Error submitting resignation:', error);
       const errorMsg = error?.response?.data?.message || error.message || 'Failed to submit resignation';
-      showToast.error(errorMsg, 'Error');
+      showToast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
       setPendingSubmitData(null);
@@ -238,12 +248,15 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
     } else if (value === 'yes') {
       // Allow "Completed" status directly
       setFormData({ ...formData, handover_status: value });
+      showToast.success('Handover status set to Completed');
     }
   };
 
   const confirmHandoverStatus = () => {
     if (pendingHandoverStatus) {
       setFormData({ ...formData, handover_status: pendingHandoverStatus });
+      const statusLabel = pendingHandoverStatus === 'in_progress' ? 'In Progress' : 'Not Started';
+      showToast.success(`Handover status updated to ${statusLabel}`);
     }
     setShowHandoverWarning(false);
     setPendingHandoverStatus(null);
@@ -583,19 +596,28 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
                     <p className="text-sm text-gray-600 mb-1">
                       <strong>Status:</strong>
                     </p>
-                    <Select
-                      value={activeRequest.handoverStatus || 'in_progress'}
-                      onValueChange={handleHandoverStatusChangeInProgress}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="yes">Completed</SelectItem>
-                        <SelectItem value="no">Not Started</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {isHrAdmin ? (
+                      <Select
+                        value={activeRequest.handoverStatus || 'in_progress'}
+                        onValueChange={handleHandoverStatusChangeInProgress}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="yes">Completed</SelectItem>
+                          <SelectItem value="no">Not Started</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="p-2 bg-gray-100 rounded border text-gray-700">
+                        {activeRequest.handoverStatus === 'in_progress' && 'In Progress'}
+                        {activeRequest.handoverStatus === 'yes' && 'Completed'}
+                        {activeRequest.handoverStatus === 'no' && 'Not Started'}
+                        {!activeRequest.handoverStatus && 'In Progress'}
+                      </div>
+                    )}
                   </div>
                   <p className="text-sm">
                     <strong>Recipient:</strong> {activeRequest.handoverRecipientName || 'N/A'}

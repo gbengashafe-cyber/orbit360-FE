@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { userService, employeeService } from '@/api';
 import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,9 +24,8 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-    DialogDescription,
 } from '@/components/ui/dialog';
-import { GraduationCap, Plus, BookOpen, CheckCircle, AlertTriangle, Eye, Trash2 } from 'lucide-react';
+import { GraduationCap, Plus, BookOpen, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export default function RequestTraining() {
     const [requests, setRequests] = useState([]);
@@ -46,12 +45,8 @@ export default function RequestTraining() {
     });
     const [rejectionReason, setRejectionReason] = useState('');
     const [selectedRequest, setSelectedRequest] = useState(null);
-    const [detailsModal, setDetailsModal] = useState({ open: false });
-    const [deletingId, setDeletingId] = useState(null);
-    const [requestToDelete, setRequestToDelete] = useState(null);
     const [requestsNeedingApproval, setRequestsNeedingApproval] = useState([]);
     const [isApproving, setIsApproving] = useState(false);
-    const [processingAction, setProcessingAction] = useState('');
 
     const [formData, setFormData] = useState({
         training_type: '',
@@ -79,16 +74,6 @@ export default function RequestTraining() {
             const userResponse = await userService.getCurrentUser();
             const user = userResponse?.data || userResponse;
             setCurrentUser(user);
-            // DEBUG: log current user role and job role for troubleshooting approval visibility
-            try {
-                console.log('[RequestTraining] currentUser:', user);
-                console.log('[RequestTraining] currentUser.role:', user?.role);
-                const jobTitle = (user?.JobRole?.title || user?.jobRole?.title || user?.jobRoleTitle || '').toString();
-                console.log('[RequestTraining] jobTitle:', jobTitle);
-                console.log('[RequestTraining] permissions:', user?.permissions);
-            } catch {
-                // ignore
-            }
 
             const employeeResponse = await employeeService.getUserEmployeeData();
             const employeeRecord = employeeResponse?.data || employeeResponse;
@@ -100,46 +85,21 @@ export default function RequestTraining() {
                         'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
                     }
                 });
-                let result = null;
-                try {
-                    const contentType = response.headers.get('content-type') || '';
-                    if (contentType.includes('application/json')) {
-                        result = await response.json();
-                    }
-                } catch (err) {
-                    console.warn('Could not parse training requests response as JSON:', err);
-                }
+                const result = await response.json();
                 const allRequests = result?.data || [];
                 setRequests(allRequests);
 
-                // Determine approval-role flags using JobRole.title and permissions (handles role='user')
-                const jobTitleRaw = (user?.JobRole?.title || user?.jobRole?.title || user?.jobRoleTitle || '')
-                    .toString()
-                    .toLowerCase();
-                const permissions = Array.isArray(user?.permissions) ? user.permissions.map(p => p.toString().toLowerCase()) : [];
-
-                const hasApprovePermission = permissions.some(p => p.startsWith('approve') || p.includes('approve'));
-                const isHrLike = jobTitleRaw.includes('hr') || jobTitleRaw.includes('human') || jobTitleRaw.includes('human resource') || (hasApprovePermission && permissions.some(p => p.includes('hr')));
-                const isHrManager = isHrLike && (jobTitleRaw.includes('manager') || jobTitleRaw.includes('chief') || jobTitleRaw.includes('head'));
-                const isSupervisorLike = jobTitleRaw.includes('supervisor') || jobTitleRaw.includes('superintendent') || jobTitleRaw.includes('lead') || (hasApprovePermission && !isHrLike);
-
-                console.log('[RequestTraining] computedFlags:', { jobTitleRaw, hasApprovePermission, isHrLike, isHrManager, isSupervisorLike });
-
-                if (isSupervisorLike) {
-                    const needApproval = allRequests.filter(r =>
+                // Filter requests needing approval based on user role
+                if (user?.role === 'supervisor' || user?.role === 'admin' || user?.role === 'admin_officer') {
+                    const needApproval = allRequests.filter(r => 
                         r.status === 'PENDING' || r.status === 'SUPERVISOR_REJECTED'
                     );
                     setRequestsNeedingApproval(needApproval);
-                    console.log('[RequestTraining] supervisor-like pending:', needApproval.length, needApproval.map(x => x.id));
-                } else if (isHrLike) {
-                    const needApproval = allRequests.filter(r =>
+                } else if (user?.role === 'hr_officer' || user?.role === 'hr_manager') {
+                    const needApproval = allRequests.filter(r => 
                         r.status === 'PENDING' || r.status === 'SUPERVISOR_APPROVED' || r.status === 'SUPERVISOR_REJECTED'
                     );
                     setRequestsNeedingApproval(needApproval);
-                    console.log('[RequestTraining] hr-like pending:', needApproval.length, needApproval.map(x => x.id));
-                } else {
-                    setRequestsNeedingApproval([]);
-                    console.log('[RequestTraining] no approval role detected for jobTitle=', jobTitleRaw, 'permissions=', permissions);
                 }
             } catch (error) {
                 console.warn('Could not fetch training requests:', error);
@@ -203,16 +163,8 @@ export default function RequestTraining() {
             });
 
             if (!response.ok) {
-                let errorBody = null;
-                try {
-                    const contentType = response.headers.get('content-type') || '';
-                    if (contentType.includes('application/json')) {
-                        errorBody = await response.json();
-                    }
-                } catch (err) {
-                    console.warn('Failed to parse error response as JSON:', err);
-                }
-                throw new Error(errorBody?.message || 'Failed to submit request');
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to submit request');
             }
 
             showToast.success('Your training request has been submitted successfully!', 'Success');
@@ -246,82 +198,17 @@ export default function RequestTraining() {
         }
     };
 
-    const handleApproval = async (requestId, approved, e) => {
-        if (e && typeof e.preventDefault === 'function') e.preventDefault();
-
+    const handleApproval = async (requestId, approved) => {
         if (!approved && !rejectionReason.trim()) {
             showToast.error('Rejection reason is required', 'Error');
             return;
         }
 
-        if (isApproving) return; // avoid concurrent actions
-
         setIsApproving(true);
-        setProcessingAction(approved ? 'approve' : 'reject');
-
         try {
-            // Determine endpoint using job title / permissions so users with role='user' but HR job titles are handled
-            const jobTitleLocal = (currentUser?.JobRole?.title || currentUser?.jobRole?.title || currentUser?.jobRoleTitle || '')
-                .toString()
-                .toLowerCase();
-            const permsLocal = Array.isArray(currentUser?.permissions) ? currentUser.permissions.map(p => p.toString().toLowerCase()) : [];
-            const hasApprovePermLocal = permsLocal.some(p => p.startsWith('approve') || p.includes('approve'));
-            const isHrLikeLocal = jobTitleLocal.includes('hr') || jobTitleLocal.includes('human') || jobTitleLocal.includes('human resource') || permsLocal.some(p => p.includes('hr'));
-            const isHrManagerLocal = isHrLikeLocal && (jobTitleLocal.includes('manager') || jobTitleLocal.includes('chief') || jobTitleLocal.includes('head'));
-            const isSupervisorLikeLocal = jobTitleLocal.includes('supervisor') || jobTitleLocal.includes('lead') || jobTitleLocal.includes('superintendent') || (hasApprovePermLocal && !isHrLikeLocal);
-
-            // Project policy: if the approver is a manager, route approvals to the central Authorization Center
-            if (jobTitleLocal.includes('manager') && !isHrLikeLocal) {
-                try {
-                    const payload = {
-                        module: 'training',
-                        itemId: requestId,
-                        itemType: 'training_request',
-                        action: approved ? 'approve' : 'reject',
-                        rejectionReason: approved ? null : rejectionReason,
-                        submittedBy: currentUser?.id || currentUser?.email || null,
-                    };
-
-                    const authResponse = await fetch('/api/v1/pending-authorization', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
-                        },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!authResponse.ok) {
-                        let errBody = null;
-                        try {
-                            const ct = authResponse.headers.get('content-type') || '';
-                            if (ct.includes('application/json')) errBody = await authResponse.json();
-                        } catch (e) {
-                            // ignore
-                        }
-                        throw new Error(errBody?.message || 'Failed to submit to Authorization Center');
-                    }
-
-                    showToast.success('Request submitted to Authorization Center for manager approval', 'Success');
-                    setApprovalModal({ open: false, requestId: null, type: null });
-                    setRejectionReason('');
-                    await loadData();
-                    return; // done
-                } catch (error) {
-                    showToast.error('Failed to submit to Authorization Center: ' + (error.message || ''), 'Error');
-                    console.error('Error submitting to Authorization Center:', error);
-                    // fall through to normal handling as a fallback
-                }
-            }
-
-            let endpoint;
-            if (isSupervisorLikeLocal) {
-                endpoint = `/api/v1/training-requests/${requestId}/supervisor-approval`;
-            } else if (isHrManagerLocal) {
-                endpoint = `/api/v1/training-requests/${requestId}/final-approval`;
-            } else {
-                endpoint = `/api/v1/training-requests/${requestId}/hr-approval`;
-            }
+            const endpoint = currentUser?.role === 'supervisor' || currentUser?.role === 'admin' || currentUser?.role === 'admin_officer'
+                ? `/api/v1/training-requests/${requestId}/supervisor-approval`
+                : `/api/v1/training-requests/${requestId}/hr-approval`;
 
             const response = await fetch(endpoint, {
                 method: 'PUT',
@@ -336,19 +223,11 @@ export default function RequestTraining() {
             });
 
             if (!response.ok) {
-                let errorBody = null;
-                try {
-                    const contentType = response.headers.get('content-type') || '';
-                    if (contentType.includes('application/json')) {
-                        errorBody = await response.json();
-                    }
-                } catch (err) {
-                    console.warn('Failed to parse approval error response as JSON:', err);
-                }
-                throw new Error(errorBody?.message || 'Failed to process approval');
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to process approval');
             }
 
-                showToast.success(`Request ${approved ? 'approved' : 'rejected'} successfully!`, 'Success');
+            showToast.success(`Request ${approved ? 'approved' : 'rejected'} successfully!`, 'Success');
             setApprovalModal({ open: false, requestId: null, type: null });
             setRejectionReason('');
             await loadData();
@@ -357,43 +236,8 @@ export default function RequestTraining() {
             console.error('Error processing approval:', error);
         } finally {
             setIsApproving(false);
-            setProcessingAction('');
         }
     };
-
-        const handleDeleteRequest = async (requestId) => {
-            if (!requestId) return;
-            setDeletingId(requestId);
-            try {
-                const response = await fetch(`/api/v1/training-requests/${requestId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('orbit360-access-token')}`
-                    }
-                });
-
-                if (!response.ok) {
-                    let errorBody = null;
-                    try {
-                        const contentType = response.headers.get('content-type') || '';
-                        if (contentType.includes('application/json')) {
-                            errorBody = await response.json();
-                        }
-                    } catch {
-                        // ignore
-                    }
-                    throw new Error(errorBody?.message || 'Failed to delete request');
-                }
-
-                showToast.success('Request deleted successfully!', 'Success');
-                await loadData();
-            } catch (err) {
-                showToast.error(err.message || 'Failed to delete request', 'Error');
-                console.error('Error deleting request:', err);
-            } finally {
-                setDeletingId(null);
-            }
-        };
 
     const getStatusColor = (status) => {
         const colors = {
@@ -419,42 +263,11 @@ export default function RequestTraining() {
         return colors[priority] || 'bg-gray-100 text-gray-700';
     };
 
-    // Check whether a request belongs to the current user/employee
-    const isOwnedByCurrentUser = (request) => {
-        if (!request) return false;
-        const candidateIds = [];
-        // common variants on the request object
-        candidateIds.push(request.employeeId, request.employee_id, request.requesterId, request.requester_id, request.createdBy, request.created_by, request.userId, request.user_id);
-        if (request.employee && (request.employee.id || request.employee.employeeId)) {
-            candidateIds.push(request.employee.id, request.employee.employeeId);
-        }
-        if (request.requester && (request.requester.id || request.requester.employeeId)) {
-            candidateIds.push(request.requester.id, request.requester.employeeId);
-        }
-        if (request.creator && (request.creator.id)) candidateIds.push(request.creator.id);
-        if (request.requestedBy && (request.requestedBy.id)) candidateIds.push(request.requestedBy.id);
-
-        const ownerCandidates = [
-            currentEmployee?.id,
-            currentEmployee?.employeeId,
-            currentEmployee?.userId,
-            currentUser?.id,
-            currentUser?.userId,
-            currentUser?.employeeId
-        ];
-
-        return candidateIds.some(cid => cid !== undefined && cid !== null && ownerCandidates.some(own => own !== undefined && own !== null && String(cid) === String(own)));
-    };
-
-    // Determine approval-capable users from job title and permissions (some users have role='user')
-    const jobTitleRaw = (currentUser?.JobRole?.title || currentUser?.jobRole?.title || currentUser?.jobRoleTitle || '')
-        .toString()
-        .toLowerCase();
-    const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions.map(p => p.toString().toLowerCase()) : [];
-    const hasApprovePermission = permissions.some(p => p.startsWith('approve') || p.includes('approve'));
-    const isHrLike = jobTitleRaw.includes('hr') || jobTitleRaw.includes('human') || jobTitleRaw.includes('human resource') || permissions.some(p => p.includes('hr'));
-    const isSupervisorLike = jobTitleRaw.includes('supervisor') || jobTitleRaw.includes('lead') || jobTitleRaw.includes('superintendent') || (hasApprovePermission && !isHrLike);
-    const isApprovalRole = isSupervisorLike || isHrLike || hasApprovePermission;
+    const isApprovalRole = currentUser?.role === 'supervisor' || 
+                          currentUser?.role === 'admin' || 
+                          currentUser?.role === 'admin_officer' ||
+                          currentUser?.role === 'hr_officer' ||
+                          currentUser?.role === 'hr_manager';
 
     if (loading) {
         return <div className="p-8 text-center">Loading training requests...</div>;
@@ -682,7 +495,7 @@ export default function RequestTraining() {
                 )}
 
                 {/* Approval Needed Section */}
-                {isApprovalRole && (
+                {isApprovalRole && requestsNeedingApproval.length > 0 && (
                     <Card className="bg-white/90 border-orange-200 shadow-xl shadow-orange-200/50">
                         <CardHeader>
                             <CardTitle className="text-orange-700">
@@ -690,63 +503,53 @@ export default function RequestTraining() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {requestsNeedingApproval.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="bg-orange-50">
-                                                <TableHead>ID</TableHead>
-                                                <TableHead>Title</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead>Priority</TableHead>
-                                                <TableHead>Date</TableHead>
-                                                <TableHead>Actions</TableHead>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-orange-50">
+                                            <TableHead>ID</TableHead>
+                                            <TableHead>Title</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Priority</TableHead>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {requestsNeedingApproval.map((request) => (
+                                            <TableRow key={request.id}>
+                                                <TableCell className="font-medium">{request.id?.substring(0, 8)}</TableCell>
+                                                <TableCell>{request.trainingTitle || request.training_title}</TableCell>
+                                                <TableCell>
+                                                    <Badge className={getStatusColor(request.status)}>
+                                                        {(request.status || '').replace('_', ' ')}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge className={getPriorityColor(request.priority)}>
+                                                        {request.priority}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {new Date(request.createdAt || request.created_date).toLocaleDateString()}
+                                                </TableCell>
+                                                <TableCell className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        className="bg-green-600 hover:bg-green-700"
+                                                        onClick={() => {
+                                                            setSelectedRequest(request);
+                                                            setApprovalModal({ open: true, requestId: request.id, type: 'approval' });
+                                                        }}
+                                                    >
+                                                        Review
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {requestsNeedingApproval.map((request) => (
-                                                <TableRow key={request.id}>
-                                                    <TableCell className="font-medium">{request.id?.substring(0, 8)}</TableCell>
-                                                    <TableCell>{request.trainingTitle || request.training_title}</TableCell>
-                                                    <TableCell>
-                                                        <Badge className={getStatusColor(request.status)}>
-                                                            {(request.status || '').replace('_', ' ')}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge className={getPriorityColor(request.priority)}>
-                                                            {request.priority}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {new Date(request.createdAt || request.created_date).toLocaleDateString()}
-                                                    </TableCell>
-                                                    <TableCell className="flex gap-2">
-                                                        <Button
-                                                            size="sm"
-                                                            className="bg-green-600 hover:bg-green-700"
-                                                            onClick={() => {
-                                                                setSelectedRequest(request);
-                                                                setApprovalModal({ open: true, requestId: request.id, type: 'approval' });
-                                                            }}
-                                                        >
-                                                            Review
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            ) : (
-                                <div className="p-6 text-center text-gray-600">
-                                    <p className="font-medium">No requests pending your approval.</p>
-                                    <p className="text-sm mt-1">You will see requests here when they require your action.</p>
-                                    <div className="mt-4">
-                                        <Button size="sm" onClick={loadData}>Refresh</Button>
-                                    </div>
-                                </div>
-                            )}
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 )}
@@ -767,8 +570,7 @@ export default function RequestTraining() {
                                         <TableHead>Status</TableHead>
                                         <TableHead>Priority</TableHead>
                                         <TableHead>Timeframe</TableHead>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                        <TableHead>Date</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -795,31 +597,6 @@ export default function RequestTraining() {
                                             <TableCell>
                                                 {new Date(request.createdAt || request.created_date).toLocaleDateString()}
                                             </TableCell>
-                                                <TableCell className="flex gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        onClick={() => {
-                                                            setSelectedRequest(request);
-                                                            setDetailsModal({ open: true });
-                                                        }}
-                                                    >
-                                                        <Eye className="w-4 h-4 mr-2" />
-                                                        Details
-                                                    </Button>
-
-                                                    {(request.status || '').toString().toUpperCase() === 'PENDING' && isOwnedByCurrentUser(request) && (
-                                                        <Button
-                                                            size="sm"
-                                                            className="bg-red-600 hover:bg-red-700"
-                                                            onClick={() => setRequestToDelete(request)}
-                                                            disabled={deletingId === request.id}
-                                                        >
-                                                            <Trash2 className="w-4 h-4 mr-2" />
-                                                            {deletingId === request.id ? 'Deleting...' : 'Delete'}
-                                                        </Button>
-                                                    )}
-                                                </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -836,67 +613,6 @@ export default function RequestTraining() {
                     </CardContent>
                 </Card>
             </div>
-
-            {/* Details Modal */}
-            <Dialog open={detailsModal.open} onOpenChange={(open) => setDetailsModal({ ...detailsModal, open })}>
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <div className="flex items-start justify-between w-full">
-                            <div>
-                                <DialogTitle className="text-xl md:text-2xl">{selectedRequest?.trainingTitle || 'Training Request Details'}</DialogTitle>
-                                <div className="mt-2">
-                                    <Badge className={getStatusColor(selectedRequest?.status)}>
-                                        {(selectedRequest?.status || '').replace('_', ' ')}
-                                    </Badge>
-                                </div>
-                            </div>
-                            <div />
-                        </div>
-                    </DialogHeader>
-
-                    <div className="space-y-6 p-4">
-                        <div className="bg-white p-6 rounded-lg shadow-sm border">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="col-span-2">
-                                    <p className="text-sm text-gray-600"><strong>Type:</strong> {(selectedRequest?.trainingType || selectedRequest?.training_type) || 'Not specified'}</p>
-                                    <p className="text-sm text-gray-600 mt-1"><strong>Priority:</strong> {selectedRequest?.priority || 'medium'}</p>
-                                    <p className="text-sm text-gray-600 mt-1"><strong>Delivery:</strong> {(selectedRequest?.deliveryMethod || selectedRequest?.preferred_delivery_method) || 'Not specified'}</p>
-                                    <p className="text-sm text-gray-600 mt-1"><strong>Timeframe:</strong> {(selectedRequest?.preferredTimeframe || selectedRequest?.preferred_timeframe) || 'Not specified'}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-sm text-gray-600"><strong>Cost</strong></p>
-                                    <p className="text-lg font-semibold mt-1">₦{selectedRequest?.estimatedCost ?? selectedRequest?.estimated_cost ?? '0'}</p>
-                                    <p className="text-sm text-gray-500 mt-2">Requested on {selectedRequest ? new Date(selectedRequest.createdAt || selectedRequest.created_date).toLocaleDateString() : ''}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <Label className="text-sm text-gray-600">Description</Label>
-                            <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{selectedRequest?.trainingDescription || selectedRequest?.training_description || 'No description provided.'}</p>
-                        </div>
-
-                        <div>
-                            <Label className="text-sm text-gray-600">Business Justification</Label>
-                            <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{selectedRequest?.businessJustification || selectedRequest?.business_justification || 'Not specified'}</p>
-                        </div>
-
-                        <div>
-                            <Label className="text-sm text-gray-600">Skills to Gain</Label>
-                            <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{selectedRequest?.skillsToGain || selectedRequest?.skills_to_gain || 'Not specified'}</p>
-                        </div>
-
-                        {(selectedRequest?.status || '').toString().toUpperCase().includes('REJECT') && (
-                            <div className="bg-red-50 border border-red-100 p-4 rounded">
-                                <Label className="text-sm text-red-700">Rejection Reason</Label>
-                                <p className="text-sm text-red-800 mt-2 whitespace-pre-wrap">{selectedRequest?.rejectionReason || selectedRequest?.rejection_reason || 'No reason provided.'}</p>
-                            </div>
-                        )}
-
-                        
-                    </div>
-                </DialogContent>
-            </Dialog>
 
             {/* Approval Modal */}
             <Dialog open={approvalModal.open} onOpenChange={(open) => setApprovalModal({ ...approvalModal, open })}>
@@ -933,57 +649,32 @@ export default function RequestTraining() {
                             />
                         </div>
 
-                            <div className="flex gap-3">
+                        <div className="flex gap-3">
                             <Button
-                                type="button"
                                 className="flex-1 bg-green-600 hover:bg-green-700"
-                                onClick={(e) => handleApproval(selectedRequest.id, true, e)}
-                                disabled={processingAction === 'approve'}
+                                onClick={() => handleApproval(selectedRequest.id, true)}
+                                disabled={isApproving}
                             >
-                                {processingAction === 'approve' ? 'Processing...' : 'Approve'}
+                                {isApproving ? 'Processing...' : 'Approve'}
                             </Button>
                             <Button
-                                type="button"
                                 className="flex-1 bg-red-600 hover:bg-red-700"
-                                onClick={(e) => handleApproval(selectedRequest.id, false, e)}
-                                disabled={processingAction === 'reject'}
+                                onClick={() => handleApproval(selectedRequest.id, false)}
+                                disabled={isApproving}
                             >
-                                {processingAction === 'reject' ? 'Processing...' : 'Reject'}
+                                {isApproving ? 'Processing...' : 'Reject'}
                             </Button>
                             <Button
-                                type="button"
                                 variant="outline"
                                 onClick={() => {
                                     setApprovalModal({ open: false, requestId: null, type: null });
                                     setRejectionReason('');
                                 }}
-                                disabled={processingAction !== ''}
+                                disabled={isApproving}
                             >
                                 Cancel
                             </Button>
                         </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Delete Confirmation Dialog */}
-            <Dialog open={!!requestToDelete} onOpenChange={() => setRequestToDelete(null)}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Are you sure?</DialogTitle>
-                        <DialogDescription>
-                            This will permanently delete the training request <strong className="text-red-600">{requestToDelete?.trainingTitle || requestToDelete?.training_title || requestToDelete?.id}</strong>. This action cannot be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-end gap-3">
-                        <Button variant="outline" onClick={() => setRequestToDelete(null)}>Cancel</Button>
-                        <Button variant="destructive" onClick={async () => {
-                            const id = requestToDelete?.id;
-                            setRequestToDelete(null);
-                            await handleDeleteRequest(id);
-                        }} disabled={deletingId !== null}>
-                            {deletingId ? 'Deleting...' : 'Confirm Deletion'}
-                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>

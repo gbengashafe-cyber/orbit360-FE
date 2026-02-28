@@ -32,12 +32,19 @@ export const getStatusColor = (status) => {
 };
 
 export const getTransactionProps = (transaction, moduleName) => {
+  const normalizedModuleName = moduleName?.toString().toLowerCase().replace(/-/g, '_');
+  const firstValidValue = (...values) =>
+    values.find((value) => {
+      if (value === undefined || value === null) return false;
+      const parsed = value.toString().trim();
+      return parsed !== '' && parsed !== '-' && parsed !== '_';
+    });
   let type = '_',
     description = '_',
     initiator = '_',
     createdAt = transaction.createdAt ? format(new Date(transaction.createdAt), 'dd-MMM-yyyy') : '_';
 
-  switch (moduleName) {
+  switch (normalizedModuleName) {
     case 'loans':
       type = transaction?.loanType?.name;
       description = `${transaction.employee.firstName} - ${transaction.principalAmount}`;
@@ -57,6 +64,68 @@ export const getTransactionProps = (transaction, moduleName) => {
       type = transaction.type;
       description = `${transaction.employee.firstName} ${transaction.employee.lastName}`;
       initiator = `${transaction?.employee?.firstName} ${transaction?.employee?.lastName}`;
+      break;
+    case 'training':
+    case 'trainings':
+    case 'training_requests':
+      type = (transaction.trainingType || transaction.training_type || 'Training').replaceAll('_', ' ');
+      description = transaction.trainingTitle || transaction.training_title || transaction.trainingDescription || '_';
+      initiator =
+        firstValidValue(
+          transaction.employee_name,
+          transaction.employeeName,
+          transaction.requester_name,
+          transaction.requesterName,
+          transaction.requested_by,
+          transaction.requestedBy,
+          transaction.created_by_name,
+          transaction.createdByName,
+          transaction.submitted_by,
+          transaction.submittedBy,
+          `${transaction?.employee?.firstName || ''} ${transaction?.employee?.lastName || ''}`.trim(),
+          transaction?.employee?.full_name,
+          transaction?.employee?.fullName,
+          transaction?.employee?.name,
+          transaction.created_by,
+          transaction.createdBy,
+          transaction.employee_id,
+          transaction.employeeId,
+        ) || '_';
+      break;
+    case 'exit':
+    case 'exits':
+    case 'exit_requests':
+      type = 'Exit Request';
+      description =
+        firstValidValue(
+          transaction.employee_name,
+          transaction.employeeName,
+          transaction.employee_email,
+          transaction.employeeEmail,
+        ) || '_';
+      initiator =
+        firstValidValue(
+          transaction.requested_by,
+          transaction.requestedBy,
+          transaction.created_by_name,
+          transaction.createdByName,
+          transaction.created_by,
+          transaction.createdBy,
+        ) || '_';
+      break;
+    case 'recruitment':
+    case 'recruitments':
+    case 'job_postings':
+      type = firstValidValue(transaction.employment_type?.replace('_', ' '), 'Job Posting');
+      description = firstValidValue(transaction.title, transaction.position, transaction.department) || '_';
+      initiator =
+        firstValidValue(
+          transaction.hiring_manager,
+          transaction.created_by_name,
+          transaction.createdByName,
+          transaction.created_by,
+          transaction.createdBy,
+        ) || '_';
       break;
 
     default:
