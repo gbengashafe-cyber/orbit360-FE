@@ -114,6 +114,7 @@ export class ApiRoutes {
   static UpdateExit = (id) => `/v1/exits/${id}`;
   static DeleteExit = (id) => `/v1/exits/${id}`;
   static GetExitsByEmployee = (employeeId) => `/v1/exits/employee/${employeeId}`;
+  static ReviewExit = (id) => `/v1/exits/${id}/review`;
   static ApproveExit = (id) => `/v1/exits/${id}/approve`;
 
   // HR Documents
@@ -225,7 +226,7 @@ export class ApiRoutes {
   static ReviewPerformanceAppraisal = (id) => `/v1/performance/appraisals/${id}/review`;
 
   // Training Requests
-  static TrainingRequests = '/v1/training-requests';
+  static TrainingRequests = '/v1/request-training';
   static SubmitTrainingRequest = () => `${ApiRoutes.TrainingRequests}`;
   static GetTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}`;
   static SupervisorApproveTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}/supervisor-approval`;

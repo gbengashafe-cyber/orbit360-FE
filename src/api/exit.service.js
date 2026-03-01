@@ -101,7 +101,7 @@ export const exitService = {
     if (!['approved', 'rejected'].includes(action)) {
       throw new Error('Invalid action. Must be "approved" or "rejected"');
     }
-    return apiClient.patch(ApiRoutes.ApproveExit(id), { action });
+    return apiClient.patch(ApiRoutes.ReviewExit(id), { action });
   },
 
   /**

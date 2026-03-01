@@ -37,6 +37,16 @@ export default function ExitApprovals() {
     loadData();
   }, []);
 
+  const normalizeStatus = (value) => (value || '').toString().trim().toLowerCase();
+
+  const isFinalized = (value) => ['approved', 'rejected', 'completed'].includes(normalizeStatus(value));
+
+  const isPendingForHrOperations = (exit) => {
+    const exitStatus = normalizeStatus(exit?.status);
+    const hrApprovalStatus = normalizeStatus(exit?.hrApprovalStatus);
+    return exitStatus === 'submitted' || hrApprovalStatus === 'pending' || hrApprovalStatus === '';
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -93,8 +103,15 @@ export default function ExitApprovals() {
         || userRole.includes('hr_operation')
         || userRole.includes('hr_operations')
         || (isHrDepartment && isOperationsRole);
+      const isHrManager = (jobTitle.includes('hr') || jobTitle.includes('human resource') || isHrDepartment)
+        && (
+          jobTitle.includes('manager')
+          || jobTitle.includes('head')
+          || jobTitle.includes('chief')
+          || userRole.includes('hr_manager')
+        );
       const isAdminLike = ['admin', 'admin_officer', 'super_admin'].includes(userRole);
-      const hasAccess = hasExitPermission || isHrLike || isHrOperations || isAdminLike;
+      const hasAccess = !isHrManager && (hasExitPermission || isHrLike || isHrOperations || isAdminLike);
 
       setCanViewApprovals(hasAccess);
       if (!hasAccess) {
@@ -105,8 +122,8 @@ export default function ExitApprovals() {
 
       const response = await apiClient.get(apiRoutes.GetExits);
       const allExits = response?.data || response || [];
-      const pending = Array.isArray(allExits) 
-        ? allExits.filter(exit => exit.status === 'submitted')
+      const pending = Array.isArray(allExits)
+        ? allExits.filter((exit) => isPendingForHrOperations(exit) && !isFinalized(exit?.status))
         : [];
       
       console.log('Pending exits:', pending);
@@ -176,10 +193,10 @@ export default function ExitApprovals() {
         supervisorClearance: clearanceChecks.supervisor,
         financeClearance: clearanceChecks.finance,
         hrClearance: clearanceChecks.hr,
-        hrComments: rejectionReason?.trim() || undefined,
+        reviewerComments: rejectionReason?.trim() || undefined,
       });
 
-      await apiClient.patch(apiRoutes.ApproveExit(detailsDialog.exit.id), {
+      await apiClient.patch(apiRoutes.ReviewExit(detailsDialog.exit.id), {
         action: 'approved',
       });
 
@@ -203,7 +220,7 @@ export default function ExitApprovals() {
       await apiClient.put(apiRoutes.UpdateExit(detailsDialog.exit.id), {
         status: 'rejected',
         hrApprovalStatus: 'rejected',
-        hrApprovalDate: new Date().toISOString(),
+        reviewerDate: new Date().toISOString(),
         hrComments: rejectionReason.trim(),
       });
       showToast.success('Exit request rejected successfully', 'Success');
@@ -487,7 +504,8 @@ export default function ExitApprovals() {
                     className="bg-green-600 hover:bg-green-700 text-white"
                     onClick={handleApproveFromDetails}
                   >
-                    <CheckCircle className="w-4 h-4 mr-2" /> Approve
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Submit
                   </Button>
                 </div>
               </div>
