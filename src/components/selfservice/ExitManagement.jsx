@@ -26,6 +26,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { FormSubmitErrorV1 } from '../shared/submit-error';
 
 const FormSection = ({ title, icon, children }) => (
   <Card>
@@ -67,6 +69,7 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   const [formData, setFormData] = useState({
     last_working_date: '',
@@ -140,13 +143,14 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate required fields
+    setSubmitError(null);
+
     if (!formData.last_working_date) {
-      showToast.error('Last Working Date is required');
+      setSubmitError('Last Working Date is required');
       return;
     }
     if (!formData.assets_to_return || formData.assets_to_return.trim() === '') {
-      showToast.error('Please list your assets or write "None" if no assets assigned');
+      setSubmitError('Please list your assets or write "None" if no assets assigned');
       return;
     }
 
@@ -196,12 +200,12 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
       setShowForm(false);
       resetForm();
       loadData();
-      showToast.success('Resignation submitted successfully. HR will be notified.');
+      toast.success('Resignation submitted successfully. HR will be notified.');
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error('Error submitting resignation:', error);
       const errorMsg = error?.response?.data?.message || error.message || 'Failed to submit resignation';
-      showToast.error(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
       setPendingSubmitData(null);
@@ -518,6 +522,8 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
                     <Label htmlFor="would_recommend_org">I would recommend this organization to others</Label>
                   </div>
                 </FormSection>
+
+                {submitError ? <FormSubmitErrorV1>{submitError}</FormSubmitErrorV1> : null}
 
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)}>

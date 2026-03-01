@@ -98,7 +98,6 @@ FileUploader.propTypes = {
 export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, leaveBalance: preLoadedBalance }) {
   const notificationContext = useNotification();
   const { addNotification } = notificationContext;
-  console.log('📝 LeaveManagement - Notification context:', notificationContext);
   const [leaveRequests, setLeaveRequests] = useState(preLoadedLeaves || []);
   const [employees, setEmployees] = useState([]);
   const [leaveBalance, setLeaveBalance] = useState(preLoadedBalance || 0);
@@ -109,7 +108,6 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
   const [isUploading] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [leaveToDelete, setLeaveToDelete] = useState(null);
-
   const [handoverFiles, setHandoverFiles] = useState([]);
   const [supportingFiles, setSupportingFiles] = useState([]);
 
@@ -128,17 +126,6 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
   });
 
   const [formError, setFormError] = useState('');
-
-  // Log form data changes
-  React.useEffect(() => {
-    console.log('📋 Leave Form Data:', {
-      formData,
-      supportingFiles: supportingFiles.map((f) => ({ name: f.name, size: f.size })),
-      handoverFiles: handoverFiles.map((f) => ({ name: f.name, size: f.size })),
-      supportingFilesCount: supportingFiles.length,
-      handoverFilesCount: handoverFiles.length,
-    });
-  }, [formData, supportingFiles, handoverFiles]);
 
   // FIXED: Calculate leave balance using business days (excluding weekends)
   const calculateLeaveBalance = React.useCallback(
@@ -220,9 +207,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
       }
     } catch (error) {
       console.error('Error loading leave data:', error);
-      if (error?.response?.status === 403) {
-        showToast.error('You do not have permission to view leave data', 'Access Denied');
-      } else if (error?.message?.includes('departmentId')) {
+      if (error?.message?.includes('departmentId')) {
         showToast.error('Unable to load department information. Please refresh the page.', 'Error');
       } else {
         showToast.error(error?.message || 'Failed to load leave requests', 'Error');
@@ -269,12 +254,6 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     }
 
     setIsSubmitting(true);
-
-    console.log('🚀 Submitting Leave Request with data:', {
-      formData,
-      supportingFilesCount: supportingFiles.length,
-      handoverFilesCount: handoverFiles.length,
-    });
 
     try {
       // Format leave type to match API expectations

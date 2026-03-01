@@ -23,12 +23,10 @@ import { TransactionsTable } from './transaction-table';
 
 export default function AuthorizationCenterWIP() {
   const TRAINING_MODULE_KEY = 'training_requests';
-  const EXIT_MODULE_KEY = 'exits';
   const normalizeModuleName = (moduleName = '') => moduleName.toString().toLowerCase().replace(/-/g, '_');
   const normalizeStatus = (status = '') => status.toString().toUpperCase();
   const [loading, setLoading] = useState(true);
   // const [jobPostings, setJobPostings] = useState([]);
-  // const [leaveRequests, setLeaveRequests] = useState([]);
   // const [resignations, setResignations] = useState([]);
   // const [redeployments, setRedeployments] = useState([]);
   // const [newStaffRequests, setNewStaffRequests] = useState([]);
@@ -42,7 +40,6 @@ export default function AuthorizationCenterWIP() {
   const [pendingItems, setPendingItems] = useState({});
   const [pendingItemsPagination, setPendingItemsPagination] = useState({});
   const [trainingPendingAll, setTrainingPendingAll] = useState([]);
-  const [exitPendingAll, setExitPendingAll] = useState([]);
   const [rows, setRows] = useState(25);
   const [approverNote, setApprovalNote] = useState('');
   const [authorizeError, setAuthorizeError] = useState('');
@@ -82,12 +79,6 @@ export default function AuthorizationCenterWIP() {
     );
   }, [currentUser]);
 
-  const getExitPendingForCurrentUser = useCallback(async () => {
-    const response = await exitService.getExits(1, 1000);
-    const allExits = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
-    return allExits.filter((item) => normalizeStatus(item.status) === 'SUBMITTED');
-  }, []);
-
   const getPendingCount = useCallback(async () => {
     setLoading(true);
     try {
@@ -112,23 +103,6 @@ export default function AuthorizationCenterWIP() {
         logger.error({ caller: 'Load training pending fallback', payload: trainingError });
       }
 
-      try {
-        const exitItems = await getExitPendingForCurrentUser();
-        setExitPendingAll(exitItems);
-
-        const hasExitModule =
-          typeof nextStats.breakdown.exit !== 'undefined' ||
-          typeof nextStats.breakdown.exits !== 'undefined' ||
-          typeof nextStats.breakdown.exit_requests !== 'undefined';
-
-        if (!hasExitModule && exitItems.length > 0) {
-          nextStats.breakdown[EXIT_MODULE_KEY] = exitItems.length;
-          nextStats.total = Number(nextStats.total || 0) + exitItems.length;
-        }
-      } catch (exitError) {
-        logger.error({ caller: 'Load exit pending fallback', payload: exitError });
-      }
-
       setPendingStats(nextStats);
     } catch (error) {
       logger.error({ caller: 'List pending auth count', error });
@@ -136,11 +110,17 @@ export default function AuthorizationCenterWIP() {
     } finally {
       setLoading(false);
     }
-  }, [EXIT_MODULE_KEY, getExitPendingForCurrentUser, getTrainingPendingForCurrentUser]);
+  }, [getTrainingPendingForCurrentUser]);
 
   useEffect(() => {
     getPendingCount();
   }, [getPendingCount, refreshKey]);
+
+  useEffect(() => {
+    return () => {
+      setAuthorizeError(null);
+    };
+  }, []);
 
   const currentPagination = pendingItemsPagination[activeModule]?.page || 1;
 
@@ -162,17 +142,6 @@ export default function AuthorizationCenterWIP() {
         return;
       }
 
-      if (normalizeModuleName(activeModule) === EXIT_MODULE_KEY) {
-        const page = Number(currentPagination) || 1;
-        const start = (page - 1) * rows;
-        const items = exitPendingAll.slice(start, start + rows);
-        const pages = Math.max(1, Math.ceil(exitPendingAll.length / rows));
-
-        setPendingItems((prev) => ({ ...prev, [activeModule]: items }));
-        setPendingItemsPagination((prev) => ({ ...prev, [activeModule]: { page, pages, total: exitPendingAll.length } }));
-        return;
-      }
-
       const result = await authorizationService.getModulePending(activeModule, {
         rows,
         page: currentPagination,
@@ -185,16 +154,7 @@ export default function AuthorizationCenterWIP() {
     } finally {
       setTabIsLoading(false);
     }
-  }, [
-    EXIT_MODULE_KEY,
-    TRAINING_MODULE_KEY,
-    activeModule,
-    currentPagination,
-    exitPendingAll,
-    pendingStats.breakdown,
-    rows,
-    trainingPendingAll,
-  ]);
+  }, [TRAINING_MODULE_KEY, activeModule, currentPagination, pendingStats.breakdown, rows, trainingPendingAll]);
 
   useEffect(() => {
     loadPendingModuleItems();
@@ -238,6 +198,10 @@ export default function AuthorizationCenterWIP() {
             ? (responsePayload = await leaveService.updateLeaveStatus(item.id, 'APPROVED'))
             : (responsePayload = await leaveService.updateLeaveStatus(item.id, 'REJECTED'));
           break;
+        case 'exits': {
+          responsePayload = await exitService.approveExit(item.id, action === 'approve' ? 'approved' : 'rejected');
+          break;
+        }
 
         default:
           throw new Error(`Authorization is not handled for module '${moduleName}'`);
@@ -259,12 +223,6 @@ export default function AuthorizationCenterWIP() {
           } else {
             responsePayload = await trainingService.hrApprove(item.id, action === 'approve', approverNote);
           }
-          break;
-        }
-        case 'exit':
-        case 'exits':
-        case 'exit_requests': {
-          responsePayload = await exitService.approveExit(item.id, action === 'approve' ? 'approved' : 'rejected');
           break;
         }
         case 'recruitment':

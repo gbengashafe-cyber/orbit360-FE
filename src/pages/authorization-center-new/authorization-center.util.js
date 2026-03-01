@@ -75,7 +75,6 @@ export const getTransactionProps = (transaction, moduleName) => {
       break;
     case 'leaves':
       type = transaction.type;
-      description = `${transaction.employee.firstName} ${transaction.employee.lastName}`;
       initiator = `${transaction?.employee?.firstName} ${transaction?.employee?.lastName}`;
       break;
     case 'job postings':
@@ -85,6 +84,11 @@ export const getTransactionProps = (transaction, moduleName) => {
         initiator = transaction?.created_by;
       }
 
+      break;
+    case 'exits':
+      type = 'Exit Request';
+      description = `${transaction.employee.firstName} ${transaction.employee.lastName}`;
+      initiator = `${transaction.employee.firstName} ${transaction.employee.lastName}`;
       break;
     default:
       break;
@@ -119,25 +123,6 @@ export const getTransactionProps = (transaction, moduleName) => {
       break;
     case 'exit':
     case 'exits':
-    case 'exit_requests':
-      type = 'Exit Request';
-      description =
-        firstValidValue(
-          transaction.employee_name,
-          transaction.employeeName,
-          transaction.employee_email,
-          transaction.employeeEmail,
-        ) || '_';
-      initiator =
-        firstValidValue(
-          transaction.requested_by,
-          transaction.requestedBy,
-          transaction.created_by_name,
-          transaction.createdByName,
-          transaction.created_by,
-          transaction.createdBy,
-        ) || '_';
-      break;
     case 'recruitment':
     case 'recruitments':
       break;

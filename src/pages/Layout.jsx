@@ -72,6 +72,7 @@ const hrNav = [
 ];
 
 const employeePortalNav = [
+  { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
   { title: 'My Payslips', url: createPageUrl('my-payslips'), icon: FileText },
   { title: 'Appraisals', url: createPageUrl('Appraisals'), icon: BookCopy },
   { title: 'Loan Requests', url: createPageUrl('employee-cooperative'), icon: HandCoins },
@@ -81,7 +82,6 @@ const employeePortalNav = [
   { title: 'Staff Complaints', url: createPageUrl('StaffComplaints'), icon: MessageSquareHeart },
   { title: 'Request Training', url: createPageUrl('RequestTraining'), icon: NotebookPen },
   { title: 'Staff Movement', url: createPageUrl('StaffMovement'), icon: Shuffle },
-  { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
 ];
 
 const supervisorNav = [{ title: 'Exit Approvals', url: '/ExitApprovals', icon: UserRoundX }];

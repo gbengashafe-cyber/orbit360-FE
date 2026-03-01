@@ -60,9 +60,14 @@ export const AuthorizationViewDialog = ({
                       {['LOANS'].includes(moduleName?.toUpperCase())
                         ? `${viewingItem.reviewer?.firstName} ${viewingItem.reviewer?.lastName}`
                         : null}
-                      {['JOB POSTINGS'].includes(moduleName?.toUpperCase())
-                        ? viewingItem.created_by
-                        : `${viewingItem.initiator?.firstName} ${viewingItem.initiator?.lastName}`}
+                      {['EXITS'].includes(moduleName?.toUpperCase())
+                        ? `${viewingItem.employee?.firstName} ${viewingItem.employee?.lastName}`
+                        : null}
+                      {['JOB POSTINGS'].includes(moduleName?.toUpperCase()) ? viewingItem.created_by : null}
+
+                      {!['EXITS', 'LOANS', 'JOB_POSTINGS'].includes(moduleName?.toUpperCase())
+                        ? `${viewingItem.initiator?.firstName} ${viewingItem.initiator?.lastName}`
+                        : null}
                     </p>
                   </div>
                   {viewingItem.approvedBy && (

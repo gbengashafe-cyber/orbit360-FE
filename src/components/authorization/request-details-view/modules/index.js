@@ -1,4 +1,5 @@
 import { EmployeeSchema } from './employee';
+import { exitSchema } from './exits';
 import { jobPostingSchema } from './job-posting';
 import { leaveSchema } from './leave';
 import { loanSchema } from './loan';
@@ -10,4 +11,5 @@ export const MODULE_SCHEMAS = {
   employees: EmployeeSchema,
   leaves: leaveSchema,
   'job postings': jobPostingSchema,
+  exits: exitSchema,
 };
