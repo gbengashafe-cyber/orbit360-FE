@@ -294,6 +294,21 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
     }
   };
 
+  const handleDepartmentClearanceChange = async (field, checked) => {
+    if (!activeRequest?.id) return;
+
+    try {
+      await apiClient.put(apiRoutes.UpdateExit(activeRequest.id), {
+        [field]: checked,
+      });
+      showToast.success('Clearance updated successfully');
+      loadData();
+    } catch (error) {
+      console.error('Error updating clearance:', error);
+      showToast.error('Failed to update clearance');
+    }
+  };
+
   const activeRequest = resignationRequests.find((r) => !['completed', 'withdrawn', 'rejected'].includes(r.status));
 
   return (
@@ -671,7 +686,8 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
                   Approval & Clearance Status
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
+              <CardContent className="space-y-4 pt-4">
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <ApprovalStatusDisplay
                   title="Supervisor"
                   status={activeRequest.supervisorApprovalStatus}
@@ -696,6 +712,45 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
                   date={activeRequest.finalApprovalDate}
                   comments={`By: ${activeRequest.finalApprovalBy || 'N/A'}`}
                 />
+                </div>
+                <div className="border rounded-lg p-4">
+                  <p className="text-sm font-semibold mb-3">Typical Clearance Departments</p>
+                  <div className="grid md:grid-cols-2 gap-3 text-sm">
+                    <label className="flex items-center gap-2">
+                      <Checkbox
+                        checked={Boolean(activeRequest.itAdminClearance)}
+                        disabled={!isHrAdmin}
+                        onCheckedChange={(checked) => handleDepartmentClearanceChange('itAdminClearance', Boolean(checked))}
+                      />
+                      IT/Admin
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <Checkbox
+                        checked={Boolean(activeRequest.supervisorClearance)}
+                        disabled={!isHrAdmin}
+                        onCheckedChange={(checked) => handleDepartmentClearanceChange('supervisorClearance', Boolean(checked))}
+                      />
+                      Supervisor
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <Checkbox
+                        checked={Boolean(activeRequest.financeClearance)}
+                        disabled={!isHrAdmin}
+                        onCheckedChange={(checked) => handleDepartmentClearanceChange('financeClearance', Boolean(checked))}
+                      />
+                      Finance
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <Checkbox
+                        checked={Boolean(activeRequest.hrClearance)}
+                        disabled={!isHrAdmin}
+                        onCheckedChange={(checked) => handleDepartmentClearanceChange('hrClearance', Boolean(checked))}
+                      />
+                      HR
+                    </label>
+                  </div>
+                  {!isHrAdmin && <p className="text-xs text-gray-500 mt-2">Clearance updates are managed by HR Officer.</p>}
+                </div>
               </CardContent>
             </Card>
           </CardContent>

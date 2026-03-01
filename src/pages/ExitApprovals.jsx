@@ -12,24 +12,25 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Loader2, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function ExitApprovals() {
   const [currentUser, setCurrentUser] = useState(null);
   const [pendingExits, setPendingExits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [canViewApprovals, setCanViewApprovals] = useState(false);
-  const [approvalDialog, setApprovalDialog] = useState({
-    open: false,
-    exitId: null,
-    action: null,
-    comment: ''
-  });
   const [detailsDialog, setDetailsDialog] = useState({
     open: false,
     exit: null
+  });
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [clearanceChecks, setClearanceChecks] = useState({
+    itAdmin: false,
+    supervisor: false,
+    finance: false,
+    hr: false
   });
 
   useEffect(() => {
@@ -46,15 +47,54 @@ export default function ExitApprovals() {
       const permissions = Array.isArray(user?.permissions)
         ? user.permissions.map((permission) => permission?.toString().toLowerCase())
         : [];
-      const jobTitle = (user?.JobRole?.title || user?.jobRole?.title || user?.jobRoleTitle || '').toString().toLowerCase();
+      const jobTitle = (
+        user?.JobRole?.title
+        || user?.['JobRole.title']
+        || user?.jobRole?.title
+        || user?.jobRoleTitle
+        || ''
+      )
+        .toString()
+        .toLowerCase();
       const userRole = (user?.role || '').toString().toLowerCase();
 
       const hasExitPermission = permissions.includes('approve_exits')
+        || permissions.includes('approve_exit')
+        || permissions.includes('approve_exit_requests')
         || permissions.includes('manage_exits')
+        || permissions.includes('manage_exit')
+        || permissions.includes('manage_employee_exit')
         || permissions.includes('approve_all_requests');
-      const isHrLike = jobTitle.includes('hr') || jobTitle.includes('human resource') || jobTitle.includes('human resources');
+
+      const departmentName = (
+        user?.departmentName
+        || user?.department?.name
+        || user?.department
+        || user?.Employee?.departmentName
+        || ''
+      )
+        .toString()
+        .toLowerCase();
+
+      const isHrDepartment = departmentName.includes('hr')
+        || departmentName.includes('human resource')
+        || departmentName.includes('human resources');
+      const isHrLike = jobTitle.includes('hr')
+        || jobTitle.includes('human resource')
+        || jobTitle.includes('human resources')
+        || jobTitle.includes('compensation')
+        || jobTitle.includes('benefit')
+        || jobTitle.includes('people operations')
+        || jobTitle.includes('people ops')
+        || isHrDepartment;
+      const isOperationsRole = jobTitle.includes('operation') || userRole.includes('operation');
+      const isHrOperations = jobTitle.includes('hr operation')
+        || jobTitle.includes('hr operations')
+        || userRole.includes('hr_operation')
+        || userRole.includes('hr_operations')
+        || (isHrDepartment && isOperationsRole);
       const isAdminLike = ['admin', 'admin_officer', 'super_admin'].includes(userRole);
-      const hasAccess = hasExitPermission || isHrLike || isAdminLike;
+      const hasAccess = hasExitPermission || isHrLike || isHrOperations || isAdminLike;
 
       setCanViewApprovals(hasAccess);
       if (!hasAccess) {
@@ -79,34 +119,99 @@ export default function ExitApprovals() {
     }
   };
 
-  const handleApprovalAction = async (exitId, action) => {
-    setApprovalDialog({
-      open: true,
-      exitId,
-      action,
-      comment: ''
+  const toBooleanStatus = (value) => ['approved', 'cleared', 'completed', 'yes', true].includes(value);
+
+  const initializeClearanceChecks = (exit) => {
+    setClearanceChecks({
+      itAdmin: toBooleanStatus(exit?.itClearanceStatus) || toBooleanStatus(exit?.itAdminClearance),
+      supervisor: toBooleanStatus(exit?.supervisorApprovalStatus) || toBooleanStatus(exit?.supervisorClearance),
+      finance: toBooleanStatus(exit?.financeClearance),
+      hr: toBooleanStatus(exit?.hrClearance)
     });
   };
 
-  const handleConfirmApproval = async () => {
-    const { exitId, action, comment } = approvalDialog;
+  const handleOpenDetails = (exit) => {
+    initializeClearanceChecks(exit);
+    setRejectionReason(exit?.hrComments || '');
+    setDetailsDialog({ open: true, exit });
+  };
+
+  const handleUpdateClearance = async () => {
+    if (!detailsDialog.exit?.id) return;
+
+    const payload = {
+      itAdminClearance: clearanceChecks.itAdmin,
+      supervisorClearance: clearanceChecks.supervisor,
+      financeClearance: clearanceChecks.finance,
+      hrClearance: clearanceChecks.hr,
+      itClearanceStatus: clearanceChecks.itAdmin ? 'cleared' : 'pending',
+      supervisorApprovalStatus: clearanceChecks.supervisor ? 'approved' : 'pending'
+    };
 
     try {
-      await apiClient.patch(apiRoutes.ApproveExit(exitId), {
-        action: action === 'approve' ? 'approved' : 'rejected',
-        comments: comment
+      await apiClient.put(apiRoutes.UpdateExit(detailsDialog.exit.id), payload);
+      showToast.success('Clearance updated successfully', 'Success');
+      setDetailsDialog({
+        open: true,
+        exit: { ...detailsDialog.exit, ...payload }
       });
-
-      const message = action === 'approve'
-        ? 'Exit request approved successfully'
-        : 'Exit request rejected successfully';
-
-      showToast.success(message, 'Success');
-      setApprovalDialog({ open: false, exitId: null, action: null, comment: '' });
       await loadData();
     } catch (error) {
-      console.error('Error processing approval:', error);
+      console.error('Error updating clearance:', error);
+      showToast.error(error?.response?.data?.message || 'Failed to update clearance', 'Error');
+    }
+  };
+
+  const handleApproveFromDetails = async () => {
+    if (!detailsDialog.exit?.id) return;
+    try {
+      const allClear = clearanceChecks.itAdmin && clearanceChecks.supervisor && clearanceChecks.finance && clearanceChecks.hr;
+      if (!allClear) {
+        showToast.error('All four clearance departments must be checked before submit', 'Validation Error');
+        return;
+      }
+
+      await apiClient.put(apiRoutes.UpdateExit(detailsDialog.exit.id), {
+        itAdminClearance: clearanceChecks.itAdmin,
+        supervisorClearance: clearanceChecks.supervisor,
+        financeClearance: clearanceChecks.finance,
+        hrClearance: clearanceChecks.hr,
+        hrComments: rejectionReason?.trim() || undefined,
+      });
+
+      await apiClient.patch(apiRoutes.ApproveExit(detailsDialog.exit.id), {
+        action: 'approved',
+      });
+
+      showToast.success('Exit request approved successfully', 'Success');
+      setDetailsDialog({ open: false, exit: null });
+      await loadData();
+    } catch (error) {
+      console.error('Error approving exit request:', error);
       showToast.error(error?.response?.data?.message || 'Failed to process approval', 'Error');
+    }
+  };
+
+  const handleRejectFromDetails = async () => {
+    if (!detailsDialog.exit?.id) return;
+    if (!rejectionReason.trim()) {
+      showToast.error('Rejection reason is required', 'Validation Error');
+      return;
+    }
+
+    try {
+      await apiClient.put(apiRoutes.UpdateExit(detailsDialog.exit.id), {
+        status: 'rejected',
+        hrApprovalStatus: 'rejected',
+        hrApprovalDate: new Date().toISOString(),
+        hrComments: rejectionReason.trim(),
+      });
+      showToast.success('Exit request rejected successfully', 'Success');
+      setDetailsDialog({ open: false, exit: null });
+      await loadData();
+    } catch (error) {
+      console.error('Error rejecting exit request:', error);
+      showToast.error(error?.response?.data?.message || 'Failed to reject exit request', 'Error');
     }
   };
 
@@ -189,7 +294,7 @@ export default function ExitApprovals() {
                     <Button
                       variant="outline"
                       className="w-full lg:w-auto"
-                      onClick={() => setDetailsDialog({ open: true, exit })}
+                      onClick={() => handleOpenDetails(exit)}
                     >
                       <Eye className="w-4 h-4 mr-2" /> View Details
                     </Button>
@@ -210,10 +315,9 @@ export default function ExitApprovals() {
             </DialogHeader>
             {detailsDialog.exit && (
               <Tabs defaultValue="personal" className="w-full">
-                 <TabsList className="grid w-full grid-cols-4">
+                 <TabsList className="grid w-full grid-cols-3">
                    <TabsTrigger value="personal">Personal Info</TabsTrigger>
-                   <TabsTrigger value="assets">Assets</TabsTrigger>
-                   <TabsTrigger value="handover">Handover</TabsTrigger>
+                   <TabsTrigger value="clearance">Clearance</TabsTrigger>
                    <TabsTrigger value="feedback">Feedback</TabsTrigger>
                  </TabsList>
                 
@@ -250,44 +354,63 @@ export default function ExitApprovals() {
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="assets" className="space-y-4">
+                <TabsContent value="clearance" className="space-y-4">
                   <div>
                     <p className="text-xs font-semibold text-gray-500 mb-2">Assets to Return</p>
                     <p className="text-sm whitespace-pre-wrap bg-gray-50 p-3 rounded">{detailsDialog.exit.assetsToReturn || 'None listed'}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 mb-2">Asset Return Status</p>
-                    <Select 
-                      value={detailsDialog.exit.assetReturnStatus || 'pending_return'} 
-                      onValueChange={async (value) => {
-                        try {
-                          await apiClient.put(apiRoutes.UpdateExit(detailsDialog.exit.id), {
-                            assetReturnStatus: value
-                          });
-                          showToast.success('Asset return status updated successfully');
-                          setDetailsDialog({ 
-                            open: true, 
-                            exit: { ...detailsDialog.exit, assetReturnStatus: value } 
-                          });
-                          await loadData();
-                        } catch (error) {
-                          console.error('Error updating asset return status:', error);
-                          showToast.error('Failed to update asset return status');
-                        }
-                      }}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="not_applicable">Not Applicable (No Assets Assigned)</SelectItem>
-                        <SelectItem value="pending_return">Pending Return</SelectItem>
-                        <SelectItem value="returned">Returned</SelectItem>
-                        <SelectItem value="not_returned">Not Returned</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <p className="text-xs font-semibold text-gray-500 mb-2">Clearance Checklist</p>
+                    <div className="space-y-3 bg-gray-50 p-3 rounded">
+                      <label className="flex items-start gap-3">
+                        <Checkbox
+                          checked={clearanceChecks.itAdmin}
+                          onCheckedChange={(checked) =>
+                            setClearanceChecks((prev) => ({ ...prev, itAdmin: Boolean(checked) }))
+                          }
+                        />
+                        <span className="text-sm text-gray-700">
+                          <span className="font-medium">IT/Admin</span>: Returns hardware, software, and access cards.
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-3">
+                        <Checkbox
+                          checked={clearanceChecks.supervisor}
+                          onCheckedChange={(checked) =>
+                            setClearanceChecks((prev) => ({ ...prev, supervisor: Boolean(checked) }))
+                          }
+                        />
+                        <span className="text-sm text-gray-700">
+                          <span className="font-medium">Supervisor</span>: Confirms project handover and work completion.
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-3">
+                        <Checkbox
+                          checked={clearanceChecks.finance}
+                          onCheckedChange={(checked) =>
+                            setClearanceChecks((prev) => ({ ...prev, finance: Boolean(checked) }))
+                          }
+                        />
+                        <span className="text-sm text-gray-700">
+                          <span className="font-medium">Finance</span>: Clears final salary, reimbursements, and dues.
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-3">
+                        <Checkbox
+                          checked={clearanceChecks.hr}
+                          onCheckedChange={(checked) =>
+                            setClearanceChecks((prev) => ({ ...prev, hr: Boolean(checked) }))
+                          }
+                        />
+                        <span className="text-sm text-gray-700">
+                          <span className="font-medium">HR</span>: Processes final documents, exit interviews, and relieving letters.
+                        </span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Progress: {[clearanceChecks.itAdmin, clearanceChecks.supervisor, clearanceChecks.finance, clearanceChecks.hr].filter(Boolean).length}/4 cleared
+                    </p>
                   </div>
-                </TabsContent>
-                
-                <TabsContent value="handover" className="space-y-4">
                   <div>
                     <p className="text-xs font-semibold text-gray-500 mb-2">Handover Status</p>
                     <Badge variant="outline">{detailsDialog.exit.handoverStatus || 'Not specified'}</Badge>
@@ -326,6 +449,14 @@ export default function ExitApprovals() {
                       {detailsDialog.exit.wouldRecommendOrg ? 'Yes' : 'No'}
                     </Badge>
                   </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 mb-2">Rejection Reason (Required for Reject)</p>
+                    <Textarea
+                      placeholder="Provide reason for rejection..."
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                    />
+                  </div>
                 </TabsContent>
               </Tabs>
             )}
@@ -341,20 +472,20 @@ export default function ExitApprovals() {
                 </Button>
                 <div className="ml-auto flex gap-2">
                   <Button
+                    variant="outline"
+                    onClick={handleUpdateClearance}
+                  >
+                    Update Clearance
+                  </Button>
+                  <Button
                     className="bg-red-600 hover:bg-red-700 text-white"
-                    onClick={() => {
-                      handleApprovalAction(detailsDialog.exit.id, 'reject');
-                      setDetailsDialog({ open: false, exit: null });
-                    }}
+                    onClick={handleRejectFromDetails}
                   >
                     <XCircle className="w-4 h-4 mr-2" /> Reject
                   </Button>
                   <Button
                     className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={() => {
-                      handleApprovalAction(detailsDialog.exit.id, 'approve');
-                      setDetailsDialog({ open: false, exit: null });
-                    }}
+                    onClick={handleApproveFromDetails}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" /> Approve
                   </Button>
@@ -364,98 +495,6 @@ export default function ExitApprovals() {
           </DialogContent>
         </Dialog>
 
-        {/* Approval Confirmation Dialogs */}
-        <Dialog
-          open={approvalDialog.open && approvalDialog.action === 'approve'}
-          onOpenChange={(open) => {
-            if (!open) setApprovalDialog({ open: false, exitId: null, action: null, comment: '' });
-          }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Approve Exit Request</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <p className="text-gray-700">
-                Are you sure you want to approve this exit request?
-              </p>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Comments (Optional)
-                </label>
-                <Textarea
-                  placeholder="Add approval comments..."
-                  value={approvalDialog.comment}
-                  onChange={(e) =>
-                    setApprovalDialog({ ...approvalDialog, comment: e.target.value })
-                  }
-                />
-              </div>
-              <div className="flex gap-3 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setApprovalDialog({ open: false, exitId: null, action: null, comment: '' })
-                  }
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={handleConfirmApproval}
-                >
-                  Confirm Approval
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog
-          open={approvalDialog.open && approvalDialog.action === 'reject'}
-          onOpenChange={(open) => {
-            if (!open) setApprovalDialog({ open: false, exitId: null, action: null, comment: '' });
-          }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Reject Exit Request</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <p className="text-gray-700">
-                Are you sure you want to reject this exit request?
-              </p>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rejection Reason (Required)
-                </label>
-                <Textarea
-                  placeholder="Please provide a reason for rejection..."
-                  value={approvalDialog.comment}
-                  onChange={(e) =>
-                    setApprovalDialog({ ...approvalDialog, comment: e.target.value })
-                  }
-                />
-              </div>
-              <div className="flex gap-3 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setApprovalDialog({ open: false, exitId: null, action: null, comment: '' })
-                  }
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-red-600 hover:bg-red-700"
-                  onClick={handleConfirmApproval}
-                >
-                  Confirm Rejection
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );
