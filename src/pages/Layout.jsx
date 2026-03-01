@@ -80,7 +80,7 @@ const employeePortalNav = [
   { title: 'Exit Management', url: createPageUrl('ExitManagement'), icon: UserRoundX },
   { title: 'Document Hub', url: createPageUrl('CompanyDocuments'), icon: FileBox },
   { title: 'Staff Complaints', url: createPageUrl('StaffComplaints'), icon: MessageSquareHeart },
-  { title: 'Request Training', url: createPageUrl('RequestTraining'), icon: NotebookPen },
+  { title: 'Request Training', url: createPageUrl('request-training'), icon: NotebookPen },
   { title: 'Staff Movement', url: createPageUrl('StaffMovement'), icon: Shuffle },
 ];
 

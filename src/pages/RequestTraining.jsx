@@ -1,4 +1,5 @@
-import { employeeService, userService } from '@/api';
+import { employeeService, trainingService, userService } from '@/api';
+import { FormSubmitErrorV1 } from '@/components/shared/submit-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { showToast } from '@/utils/toast';
 import { AlertTriangle, BookOpen, CheckCircle, Eye, GraduationCap, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function RequestTraining() {
   const [requests, setRequests] = useState([]);
@@ -185,42 +187,21 @@ export default function RequestTraining() {
         trainingType: formData.training_type,
         trainingTitle: formData.training_title,
         trainingDescription: formData.training_description,
-        businessJustification: formData.business_justification || 'Not specified',
-        skillsToGain: formData.skills_to_gain || 'Not specified',
-        deliveryMethod: formData.preferred_delivery_method || 'online',
-        preferredTimeframe: formData.preferred_timeframe || 'within_month',
-        estimatedDuration: formData.estimated_duration || 'To be determined',
+        businessJustification: formData.business_justification,
+        skillsToGain: formData.skills_to_gain,
+        deliveryMethod: formData.preferred_delivery_method,
+        preferredTimeframe: formData.preferred_timeframe,
+        estimatedDuration: formData.estimated_duration,
         estimatedCost: formData.estimated_cost ? parseFloat(formData.estimated_cost) : 0,
-        trainingProvider: formData.external_provider || 'Not specified',
-        priority: formData.priority || 'medium',
-        requestScope: formData.request_scope || 'self',
+        trainingProvider: formData.external_provider,
+        priority: formData.priority,
+        requestScope: formData.request_scope,
         numberOfTeamMembers: formData.request_scope === 'team' ? parseInt(formData.team_count) : 0,
       };
 
-      const response = await fetch('/api/v1/training-requests', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('orbit360-access-token')}`,
-        },
-        body: JSON.stringify(requestData),
-      });
+      const response = await trainingService.submitRequest(requestData);
 
-      if (!response.ok) {
-        let errorBody = null;
-        try {
-          const contentType = response.headers.get('content-type') || '';
-          if (contentType.includes('application/json')) {
-            errorBody = await response.json();
-          }
-        } catch (err) {
-          console.warn('Failed to parse error response as JSON:', err);
-        }
-        throw new Error(errorBody?.message || 'Failed to submit request');
-      }
-
-      showToast.success('Your training request has been submitted successfully!', 'Success');
-      setSuccess('Your training request has been submitted successfully. You will receive updates on its status.');
+      toast.success('Success', { description: response.message || 'Your training request has been submitted successfully!' });
 
       setShowForm(false);
       setFormData({
@@ -243,8 +224,6 @@ export default function RequestTraining() {
     } catch (error) {
       const errorMessage = error?.message || 'Failed to submit training request. Please try again.';
       setError(errorMessage);
-      showToast.error(errorMessage, 'Error');
-      console.error('Error submitting training request:', error);
     } finally {
       setSubmitting(false);
     }
@@ -703,6 +682,8 @@ export default function RequestTraining() {
                     />
                   </div>
                 </div>
+
+                {error ? <FormSubmitErrorV1>{error}</FormSubmitErrorV1> : null}
 
                 <div className="flex justify-end gap-3">
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)}>

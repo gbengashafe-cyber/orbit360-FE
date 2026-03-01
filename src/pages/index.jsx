@@ -236,7 +236,7 @@ function PagesContent() {
 
         <Route path="/ComplaintManagement" element={<ComplaintManagement />} />
 
-        <Route path="/RequestTraining" element={<RequestTraining />} />
+        <Route path="/request-training" element={<RequestTraining />} />
 
         <Route path="/StaffMovement" element={<StaffMovement />} />
 

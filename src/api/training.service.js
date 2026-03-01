@@ -1,15 +1,9 @@
+import { ApiRoutes } from './apiRoutes';
 import { apiClient, apiRoutes } from './index';
 
 export const trainingService = {
-  // Submit a new training request
-  submitRequest: async (requestData) => {
-    try {
-      const response = await apiClient.post(apiRoutes.TrainingRequests, requestData);
-      return response;
-    } catch (error) {
-      console.error('Error submitting training request:', error);
-      throw error;
-    }
+  submitRequest: (requestData) => {
+    return apiClient.post(ApiRoutes.TrainingRequests, requestData);
   },
 
   // Get all training requests for current user

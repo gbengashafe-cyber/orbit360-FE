@@ -63,9 +63,8 @@ export const AuthorizationViewDialog = ({
                       {['EXITS'].includes(moduleName?.toUpperCase())
                         ? `${viewingItem.employee?.firstName} ${viewingItem.employee?.lastName}`
                         : null}
-                      {['JOB POSTINGS'].includes(moduleName?.toUpperCase()) ? viewingItem.created_by : null}
 
-                      {!['EXITS', 'LOANS', 'JOB_POSTINGS'].includes(moduleName?.toUpperCase())
+                      {!['EXITS', 'LOANS'].includes(moduleName?.toUpperCase())
                         ? `${viewingItem.initiator?.firstName} ${viewingItem.initiator?.lastName}`
                         : null}
                     </p>
