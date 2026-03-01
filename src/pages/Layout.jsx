@@ -64,7 +64,7 @@ const hrNav = [
   { title: 'Onboarding', url: createPageUrl('Onboarding'), icon: ClipboardList },
   { title: 'Performance', url: createPageUrl('Performance'), icon: Star },
   { title: 'Leave Approvals', url: createPageUrl('leave-approvals'), icon: CheckCircle2 },
-  { title: 'Exit Approvals', url: '/ExitApprovals', icon: UserRoundX },
+  { title: 'Exit Review', url: '/ExitApprovals', icon: UserRoundX },
   { title: 'KPI Management', url: createPageUrl('KPIManagement'), icon: BadgePercent },
   { title: 'Disciplinary Actions', url: createPageUrl('DisciplinaryActions'), icon: Scale },
   { title: 'Documents', url: createPageUrl('DocumentManagement'), icon: FolderArchive },
@@ -84,7 +84,7 @@ const employeePortalNav = [
   { title: 'Staff Movement', url: createPageUrl('StaffMovement'), icon: Shuffle },
 ];
 
-const supervisorNav = [{ title: 'Exit Approvals', url: '/ExitApprovals', icon: UserRoundX }];
+const supervisorNav = [{ title: 'Exit Review', url: '/ExitApprovals', icon: UserRoundX }];
 
 const hrManagerNav = [{ title: 'Complaint Management', url: createPageUrl('ComplaintManagement'), icon: MessageSquareHeart }];
 

@@ -21,11 +21,6 @@ export default function ExitApprovals() {
   const [pendingExits, setPendingExits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [canViewApprovals, setCanViewApprovals] = useState(false);
-  const [approvalContext, setApprovalContext] = useState({
-    isHrManager: false,
-    isHrOperations: false,
-    isAdminLike: false
-  });
   const [detailsDialog, setDetailsDialog] = useState({
     open: false,
     exit: null
@@ -49,17 +44,7 @@ export default function ExitApprovals() {
   const isPendingForHrOperations = (exit) => {
     const exitStatus = normalizeStatus(exit?.status);
     const hrApprovalStatus = normalizeStatus(exit?.hrApprovalStatus);
-    const finalApprovalStatus = normalizeStatus(exit?.finalApprovalStatus);
-
-    if (isFinalized(finalApprovalStatus)) return false;
     return exitStatus === 'submitted' || hrApprovalStatus === 'pending' || hrApprovalStatus === '';
-  };
-
-  const isPendingForHrManager = (exit) => {
-    const hrApprovalStatus = normalizeStatus(exit?.hrApprovalStatus);
-    const finalApprovalStatus = normalizeStatus(exit?.finalApprovalStatus);
-
-    return hrApprovalStatus === 'approved' && !isFinalized(finalApprovalStatus);
   };
 
   const loadData = async () => {
@@ -126,10 +111,9 @@ export default function ExitApprovals() {
           || userRole.includes('hr_manager')
         );
       const isAdminLike = ['admin', 'admin_officer', 'super_admin'].includes(userRole);
-      const hasAccess = hasExitPermission || isHrLike || isHrOperations || isHrManager || isAdminLike;
+      const hasAccess = !isHrManager && (hasExitPermission || isHrLike || isHrOperations || isAdminLike);
 
       setCanViewApprovals(hasAccess);
-      setApprovalContext({ isHrManager, isHrOperations, isAdminLike });
       if (!hasAccess) {
         showToast.error('You do not have permission to approve exit requests', 'Access Denied');
         setLoading(false);
@@ -139,15 +123,7 @@ export default function ExitApprovals() {
       const response = await apiClient.get(apiRoutes.GetExits);
       const allExits = response?.data || response || [];
       const pending = Array.isArray(allExits)
-        ? allExits.filter((exit) => {
-          if (isAdminLike) {
-            return isPendingForHrOperations(exit) || isPendingForHrManager(exit);
-          }
-          if (isHrManager && !isHrOperations) {
-            return isPendingForHrManager(exit);
-          }
-          return isPendingForHrOperations(exit);
-        })
+        ? allExits.filter((exit) => isPendingForHrOperations(exit) && !isFinalized(exit?.status))
         : [];
       
       console.log('Pending exits:', pending);
@@ -206,19 +182,6 @@ export default function ExitApprovals() {
   const handleApproveFromDetails = async () => {
     if (!detailsDialog.exit?.id) return;
     try {
-      const isManagerOnly = approvalContext.isHrManager && !approvalContext.isHrOperations && !approvalContext.isAdminLike;
-
-      if (isManagerOnly) {
-        await apiClient.patch(apiRoutes.ApproveExit(detailsDialog.exit.id), {
-          action: 'approved',
-          reviewerComments: rejectionReason?.trim() || undefined
-        });
-        showToast.success('Exit request approved successfully', 'Success');
-        setDetailsDialog({ open: false, exit: null });
-        await loadData();
-        return;
-      }
-
       const allClear = clearanceChecks.itAdmin && clearanceChecks.supervisor && clearanceChecks.finance && clearanceChecks.hr;
       if (!allClear) {
         showToast.error('All four clearance departments must be checked before submit', 'Validation Error');
@@ -254,19 +217,6 @@ export default function ExitApprovals() {
     }
 
     try {
-      const isManagerOnly = approvalContext.isHrManager && !approvalContext.isHrOperations && !approvalContext.isAdminLike;
-
-      if (isManagerOnly) {
-        await apiClient.patch(apiRoutes.ApproveExit(detailsDialog.exit.id), {
-          action: 'rejected',
-          reviewerComments: rejectionReason.trim()
-        });
-        showToast.success('Exit request rejected successfully', 'Success');
-        setDetailsDialog({ open: false, exit: null });
-        await loadData();
-        return;
-      }
-
       await apiClient.put(apiRoutes.UpdateExit(detailsDialog.exit.id), {
         status: 'rejected',
         hrApprovalStatus: 'rejected',
@@ -307,11 +257,7 @@ export default function ExitApprovals() {
       <div className="max-w-7xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Exit Request Approvals</h1>
-          <p className="text-gray-600">
-            {approvalContext.isHrManager && !approvalContext.isHrOperations
-              ? 'Review HR Operations submissions and complete final approval'
-              : 'Review and approve employee exit requests'}
-          </p>
+          <p className="text-gray-600">Review and approve employee exit requests</p>
         </div>
 
         {pendingExits.length === 0 ? (
@@ -426,25 +372,6 @@ export default function ExitApprovals() {
                 </TabsContent>
                 
                 <TabsContent value="clearance" className="space-y-4">
-                  {approvalContext.isHrManager && !approvalContext.isHrOperations && (
-                    <div className="bg-blue-50 border border-blue-100 rounded p-3 space-y-2">
-                      <p className="text-xs font-semibold text-blue-700 uppercase">HR Operations Submission</p>
-                      <p className="text-sm text-gray-700">
-                        <span className="font-medium">HR Approval Status:</span>{' '}
-                        <span className="capitalize">{detailsDialog.exit.hrApprovalStatus || 'pending'}</span>
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        <span className="font-medium">Submitted Date:</span>{' '}
-                        {detailsDialog.exit.hrApprovalDate
-                          ? new Date(detailsDialog.exit.hrApprovalDate).toLocaleString()
-                          : 'Not available'}
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        <span className="font-medium">HR Operations Notes:</span>{' '}
-                        {detailsDialog.exit.hrComments || detailsDialog.exit.reviewerComments || 'No notes provided'}
-                      </p>
-                    </div>
-                  )}
                   <div>
                     <p className="text-xs font-semibold text-gray-500 mb-2">Assets to Return</p>
                     <p className="text-sm whitespace-pre-wrap bg-gray-50 p-3 rounded">{detailsDialog.exit.assetsToReturn || 'None listed'}</p>
@@ -455,7 +382,6 @@ export default function ExitApprovals() {
                       <label className="flex items-start gap-3">
                         <Checkbox
                           checked={clearanceChecks.itAdmin}
-                          disabled={approvalContext.isHrManager && !approvalContext.isHrOperations}
                           onCheckedChange={(checked) =>
                             setClearanceChecks((prev) => ({ ...prev, itAdmin: Boolean(checked) }))
                           }
@@ -467,7 +393,6 @@ export default function ExitApprovals() {
                       <label className="flex items-start gap-3">
                         <Checkbox
                           checked={clearanceChecks.supervisor}
-                          disabled={approvalContext.isHrManager && !approvalContext.isHrOperations}
                           onCheckedChange={(checked) =>
                             setClearanceChecks((prev) => ({ ...prev, supervisor: Boolean(checked) }))
                           }
@@ -479,7 +404,6 @@ export default function ExitApprovals() {
                       <label className="flex items-start gap-3">
                         <Checkbox
                           checked={clearanceChecks.finance}
-                          disabled={approvalContext.isHrManager && !approvalContext.isHrOperations}
                           onCheckedChange={(checked) =>
                             setClearanceChecks((prev) => ({ ...prev, finance: Boolean(checked) }))
                           }
@@ -491,7 +415,6 @@ export default function ExitApprovals() {
                       <label className="flex items-start gap-3">
                         <Checkbox
                           checked={clearanceChecks.hr}
-                          disabled={approvalContext.isHrManager && !approvalContext.isHrOperations}
                           onCheckedChange={(checked) =>
                             setClearanceChecks((prev) => ({ ...prev, hr: Boolean(checked) }))
                           }
@@ -568,7 +491,6 @@ export default function ExitApprovals() {
                   <Button
                     variant="outline"
                     onClick={handleUpdateClearance}
-                    disabled={approvalContext.isHrManager && !approvalContext.isHrOperations}
                   >
                     Update Clearance
                   </Button>
@@ -583,7 +505,7 @@ export default function ExitApprovals() {
                     onClick={handleApproveFromDetails}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    {approvalContext.isHrManager && !approvalContext.isHrOperations ? 'Approve' : 'Submit'}
+                    Submit
                   </Button>
                 </div>
               </div>
