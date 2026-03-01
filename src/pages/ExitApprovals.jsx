@@ -200,7 +200,7 @@ export default function ExitApprovals() {
         action: 'approved',
       });
 
-      showToast.success('Exit request approved successfully', 'Success');
+      showToast.success('Exit request submitted successfully', 'Success');
       setDetailsDialog({ open: false, exit: null });
       await loadData();
     } catch (error) {
