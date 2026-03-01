@@ -311,6 +311,49 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
 
   const activeRequest = resignationRequests.find((r) => !['completed', 'withdrawn', 'rejected'].includes(r.status));
 
+  const normalizeStatus = (value) => (value || '').toString().toLowerCase();
+  const isApprovedStatus = (value) => normalizeStatus(value) === 'approved';
+  const isRejectedStatus = (value) => normalizeStatus(value) === 'rejected';
+  const isClearedStatus = (value) => normalizeStatus(value) === 'cleared';
+
+  const deriveHrStatus = (request) => {
+    if (request?.hrApprovalStatus) return request.hrApprovalStatus;
+    if (isApprovedStatus(request?.status)) return 'approved';
+    if (isRejectedStatus(request?.status)) return 'rejected';
+    return 'pending';
+  };
+
+  const deriveItStatus = (request) => {
+    if (request?.itClearanceStatus) return request.itClearanceStatus;
+    const allClearancesCompleted = Boolean(
+      request?.itAdminClearance
+      && request?.supervisorClearance
+      && request?.financeClearance
+      && request?.hrClearance
+    );
+    if (allClearancesCompleted || isApprovedStatus(request?.status)) return 'cleared';
+    if (isRejectedStatus(request?.status)) return 'rejected';
+    return 'pending';
+  };
+
+  const deriveFinalStatus = (request) => {
+    if (request?.finalApprovalStatus) return request.finalApprovalStatus;
+    if (isApprovedStatus(request?.status)) return 'approved';
+    if (isRejectedStatus(request?.status)) return 'rejected';
+    return 'pending';
+  };
+
+  const hrStatusDisplay = activeRequest ? deriveHrStatus(activeRequest) : 'pending';
+  const itStatusDisplay = activeRequest ? deriveItStatus(activeRequest) : 'pending';
+  const finalStatusDisplay = activeRequest ? deriveFinalStatus(activeRequest) : 'pending';
+
+  const hrStatusDate = activeRequest?.hrApprovalDate
+    || (['approved', 'rejected'].includes(normalizeStatus(hrStatusDisplay)) ? activeRequest?.updatedAt : null);
+  const itStatusDate = activeRequest?.itClearanceDate
+    || (isClearedStatus(itStatusDisplay) ? activeRequest?.updatedAt : null);
+  const finalStatusDate = activeRequest?.finalApprovalDate
+    || (['approved', 'rejected'].includes(normalizeStatus(finalStatusDisplay)) ? activeRequest?.updatedAt : null);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -689,27 +732,21 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
               <CardContent className="space-y-4 pt-4">
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <ApprovalStatusDisplay
-                  title="Supervisor"
-                  status={activeRequest.supervisorApprovalStatus}
-                  date={activeRequest.supervisorApprovalDate}
-                  comments={activeRequest.supervisorComments}
-                />
-                <ApprovalStatusDisplay
                   title="HR Department"
-                  status={activeRequest.hrApprovalStatus}
-                  date={activeRequest.hrApprovalDate}
+                  status={hrStatusDisplay}
+                  date={hrStatusDate}
                   comments={activeRequest.hrComments}
                 />
                 <ApprovalStatusDisplay
                   title="IT / Assets"
-                  status={activeRequest.itClearanceStatus}
-                  date={activeRequest.itClearanceDate}
+                  status={itStatusDisplay}
+                  date={itStatusDate}
                   comments={activeRequest.itComments}
                 />
                 <ApprovalStatusDisplay
                   title="Final Approval"
-                  status={activeRequest.finalApprovalStatus}
-                  date={activeRequest.finalApprovalDate}
+                  status={finalStatusDisplay}
+                  date={finalStatusDate}
                   comments={`By: ${activeRequest.finalApprovalBy || 'N/A'}`}
                 />
                 </div>
