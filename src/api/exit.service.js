@@ -13,9 +13,7 @@ export const exitService = {
    * @returns {Promise} Exit requests with pagination
    */
   async getExits(page = 1, rows = 10) {
-    return apiClient.get(
-      `${ApiRoutes.GetExits}?page=${page}&rows=${rows}`
-    );
+    return apiClient.get(`${ApiRoutes.GetExits}?page=${page}&rows=${rows}`);
   },
 
   /**
@@ -26,9 +24,7 @@ export const exitService = {
    * @returns {Promise} Employee's exit requests
    */
   async getExitsByEmployee(employeeId, page = 1, rows = 10) {
-    return apiClient.get(
-      `${ApiRoutes.GetExitsByEmployee(employeeId)}?page=${page}&rows=${rows}`
-    );
+    return apiClient.get(`${ApiRoutes.GetExitsByEmployee(employeeId)}?page=${page}&rows=${rows}`);
   },
 
   /**
@@ -101,7 +97,7 @@ export const exitService = {
     if (!['approved', 'rejected'].includes(action)) {
       throw new Error('Invalid action. Must be "approved" or "rejected"');
     }
-    return apiClient.patch(ApiRoutes.ReviewExit(id), { action });
+    return apiClient.patch(ApiRoutes.ApproveExit(id), { action });
   },
 
   /**
