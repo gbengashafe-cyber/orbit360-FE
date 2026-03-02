@@ -226,7 +226,7 @@ export class ApiRoutes {
   static ReviewPerformanceAppraisal = (id) => `/v1/performance/appraisals/${id}/review`;
 
   // Training Requests
-  static TrainingRequests = '/v1/request-training';
+  static TrainingRequests = '/v1/training-requests';
   static SubmitTrainingRequest = () => `${ApiRoutes.TrainingRequests}`;
   static GetTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}`;
   static SupervisorApproveTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}/supervisor-approval`;

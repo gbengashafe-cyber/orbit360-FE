@@ -59,7 +59,7 @@ API.interceptors.response.use(
 
     if (attemptedRefreshToken || isRefreshTokenCall || !unauthorized) {
       logger.error({ caller: 'API call: ' + originalConfig.url, payload: error });
-      return Promise.reject(error.response?.data);
+      return Promise.reject(error?.response?.data || error || new Error('Oops! Something went wrong'));
     }
 
     if (isRefreshing) {
@@ -76,7 +76,7 @@ API.interceptors.response.use(
       const newAccessToken = rs.data.data?.accessToken;
       if (!newAccessToken) throw new Error('Session expired');
 
-      LocalStorageUtil.save(newAccessToken, 'orbit360-access-token');
+      LocalStorageUtil.save(newAccessToken, localStorageKeys.ACCESS_TOKEN);
 
       processQueue(null, newAccessToken);
 
@@ -89,7 +89,7 @@ API.interceptors.response.use(
       processQueue(error);
       LocalStorageUtil.delete(localStorageKeys.ACCESS_TOKEN);
       window.location.href = '/login';
-      return Promise.reject(error.response?.data);
+      return Promise.reject(error?.response?.data || error || new Error('Oops! Something went wrong'));
     } finally {
       isRefreshing = false;
     }

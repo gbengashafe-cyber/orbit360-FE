@@ -30,7 +30,7 @@ export const PayslipHistoryList = ({ records, isLoading }) => {
           <div className="p-8 flex justify-center items-center h-full">
             <Loader2 className="w-8 h-8 animate-spin text-blue-700" />
           </div>
-        ) : !records.length ? (
+        ) : !records?.length ? (
           <div className="text-center py-12 text-gray-500">
             <p>No payslips found for your record.</p>
           </div>

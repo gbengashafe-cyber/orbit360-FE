@@ -326,10 +326,7 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
   const deriveItStatus = (request) => {
     if (request?.itClearanceStatus) return request.itClearanceStatus;
     const allClearancesCompleted = Boolean(
-      request?.itAdminClearance
-      && request?.supervisorClearance
-      && request?.financeClearance
-      && request?.hrClearance
+      request?.itAdminClearance && request?.supervisorClearance && request?.financeClearance && request?.hrClearance,
     );
     if (allClearancesCompleted || isApprovedStatus(request?.status)) return 'cleared';
     if (isRejectedStatus(request?.status)) return 'rejected';
@@ -347,12 +344,13 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
   const itStatusDisplay = activeRequest ? deriveItStatus(activeRequest) : 'pending';
   const finalStatusDisplay = activeRequest ? deriveFinalStatus(activeRequest) : 'pending';
 
-  const hrStatusDate = activeRequest?.hrApprovalDate
-    || (['approved', 'rejected'].includes(normalizeStatus(hrStatusDisplay)) ? activeRequest?.updatedAt : null);
-  const itStatusDate = activeRequest?.itClearanceDate
-    || (isClearedStatus(itStatusDisplay) ? activeRequest?.updatedAt : null);
-  const finalStatusDate = activeRequest?.finalApprovalDate
-    || (['approved', 'rejected'].includes(normalizeStatus(finalStatusDisplay)) ? activeRequest?.updatedAt : null);
+  const hrStatusDate =
+    activeRequest?.hrApprovalDate ||
+    (['approved', 'rejected'].includes(normalizeStatus(hrStatusDisplay)) ? activeRequest?.updatedAt : null);
+  const itStatusDate = activeRequest?.itClearanceDate || (isClearedStatus(itStatusDisplay) ? activeRequest?.updatedAt : null);
+  const finalStatusDate =
+    activeRequest?.finalApprovalDate ||
+    (['approved', 'rejected'].includes(normalizeStatus(finalStatusDisplay)) ? activeRequest?.updatedAt : null);
 
   return (
     <div className="space-y-6">
@@ -731,27 +729,27 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <ApprovalStatusDisplay
-                  title="HR Department"
-                  status={hrStatusDisplay}
-                  date={hrStatusDate}
-                  comments={activeRequest.hrComments}
-                />
-                <ApprovalStatusDisplay
-                  title="IT / Assets"
-                  status={itStatusDisplay}
-                  date={itStatusDate}
-                  comments={activeRequest.itComments}
-                />
-                <ApprovalStatusDisplay
-                  title="Final Approval"
-                  status={finalStatusDisplay}
-                  date={finalStatusDate}
-                  comments={`By: ${activeRequest.finalApprovalBy || 'N/A'}`}
-                />
+                  <ApprovalStatusDisplay
+                    title="HR Department"
+                    status={hrStatusDisplay}
+                    date={hrStatusDate}
+                    comments={activeRequest.hrComments}
+                  />
+                  <ApprovalStatusDisplay
+                    title="IT / Assets"
+                    status={itStatusDisplay}
+                    date={itStatusDate}
+                    comments={activeRequest.itComments}
+                  />
+                  <ApprovalStatusDisplay
+                    title="Final Approval"
+                    status={finalStatusDisplay}
+                    date={finalStatusDate}
+                    comments={`By: ${activeRequest.finalApprovalBy || 'N/A'}`}
+                  />
                 </div>
                 <div className="border rounded-lg p-4">
-                  <p className="text-sm font-semibold mb-3">Typical Clearance Departments</p>
+                  <p className="text-sm font-semibold mb-3">Clearance Departments</p>
                   <div className="grid md:grid-cols-2 gap-3 text-sm">
                     <label className="flex items-center gap-2">
                       <Checkbox
