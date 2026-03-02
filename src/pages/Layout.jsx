@@ -52,7 +52,7 @@ import Logo from '../components/Logo';
 import { localStorageKeys, LocalStorageUtil } from '../utils/local-storage.util';
 
 const hrNav = [
-  // { title: 'Authorization Center', url: createPageUrl('AuthorizationCenter'), icon: ClipboardList },
+  { title: 'HR Dashboard', url: createPageUrl('hr-dashboard'), icon: LayoutDashboard },
   { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
   { title: 'Employees', url: createPageUrl('Employees'), icon: Users2 },
   { title: 'Payrolls', url: createPageUrl('payroll'), icon: Banknote },
@@ -72,6 +72,7 @@ const hrNav = [
 ];
 
 const employeePortalNav = [
+  { title: 'Dashboard', url: createPageUrl('dashboard'), icon: LayoutDashboard },
   { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
   { title: 'My Payslips', url: createPageUrl('my-payslips'), icon: FileText },
   { title: 'Appraisals', url: createPageUrl('Appraisals'), icon: BookCopy },
@@ -109,7 +110,7 @@ const LayoutContent = ({ children }) => {
 
   useEffect(() => {
     const path = location.pathname;
-    const isDashboard = path === createPageUrl('Dashboard');
+    const isDashboard = path === createPageUrl('hr-dashboard');
     setHrNavOpen(hrNav.some((item) => path === item.url) || isDashboard);
     setEmployeePortalNavOpen(employeePortalNav.some((item) => path === item.url));
     setIsSupervisorNavOpen(supervisorNav.some((item) => path === item.url));
@@ -218,7 +219,7 @@ const LayoutContent = ({ children }) => {
         </SidebarHeader>
 
         <SidebarContent className="p-4 space-y-2">
-          <SidebarMenuItem>
+          {/* <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               className={`transition-all duration-200 rounded-lg py-3 px-3 ${location.pathname === createPageUrl('Dashboard') ? 'bg-blue-50 text-blue-700 shadow-sm border-l-4 border-blue-700' : 'hover:bg-gray-50 hover:shadow-sm text-gray-700 hover:text-gray-900'}`}
@@ -228,8 +229,10 @@ const LayoutContent = ({ children }) => {
                 <span>Dashboard</span>
               </Link>
             </SidebarMenuButton>
-          </SidebarMenuItem>
-          <NavGroup title="Human Resources" isOpen={isHrNavOpen} onOpenChange={setHrNavOpen} navItems={hrNav} />
+          </SidebarMenuItem> */}
+          {currentUser.isHR ? (
+            <NavGroup title="Human Resources" isOpen={isHrNavOpen} onOpenChange={setHrNavOpen} navItems={hrNav} />
+          ) : null}
           <NavGroup
             title="Employee Portal"
             isOpen={isEmployeePortalNavOpen}

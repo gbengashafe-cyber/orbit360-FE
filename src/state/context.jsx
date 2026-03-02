@@ -1,4 +1,4 @@
-import { employeeService, userService } from '@/api';
+import { userService } from '@/api';
 import { logger } from '@/utils';
 import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
@@ -70,20 +70,12 @@ export const GlobalContextProvider = ({ children }) => {
         const userResponse = await userService.getCurrentUser();
         if (isCancelled) return;
 
-        const userEmployeeData = await employeeService.getUserEmployeeData();
-        if (isCancelled) return;
+        storeCurrentUser(userResponse?.data);
 
-        if (userEmployeeData?.data) {
-          const enrichedUser = { ...userResponse?.data, employeeData: userEmployeeData?.data };
-          storeCurrentUser(enrichedUser);
+        setIsMD(userResponse?.data?.employeeData?.jobRole?.title?.toUpperCase() === 'MANAGING DIRECTOR');
+        const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
 
-          setIsMD(enrichedUser.employeeData?.jobRole?.title?.toUpperCase() === 'MANAGING DIRECTOR');
-          const isAdmin = userResponse?.data?.role?.toUpperCase() === 'ADMIN';
-
-          setIsAdmin(isAdmin);
-        } else {
-          storeCurrentUser(userResponse?.data);
-        }
+        setIsAdmin(isAdmin);
 
         hasLoadedRef.current = true;
       } catch (error) {

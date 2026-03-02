@@ -93,7 +93,7 @@ const ChartCard = ({ title, subtitle, children, actions }) => (
   </div>
 );
 
-export default function Dashboard() {
+export function HRDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ employees: [], leaves: [], expenses: [], budgets: [] });
   const [analytics, setAnalytics] = useState({
@@ -131,16 +131,11 @@ export default function Dashboard() {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Reverted to fetching data from the built-in entities to fix the error.
         const [departmentsData, employees, leaves, budgets] = await Promise.all([
           departmentService.getDepartments({ rows: 1000 }),
-          //   base44.entities.Employee.list(),
-          //   base44.entities.LeaveRequest.list(),
-          //   base44.entities.ExpenseRequest.list(),
-          //   base44.entities.Budget.list(),
         ]);
 
-        const analytics = await dashboardService.getDashboard({
+        const analytics = await dashboardService.getHRDashboard({
           department: filters.department,
           startDate: filters.dateRange.from,
           endDate: filters.dateRange.to,
@@ -151,7 +146,6 @@ export default function Dashboard() {
         setData({ employees, leaves, budgets });
       } catch (error) {
         console.error('Error loading dashboard data:', error);
-        // Set data to empty arrays on error so the dashboard doesn't crash
         setData({ employees: [], leaves: [], budgets: [] });
       } finally {
         setLoading(false);

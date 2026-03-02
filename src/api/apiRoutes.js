@@ -2,6 +2,7 @@ export class ApiRoutes {
   static BASE_URL = import.meta.env.VITE_REACT_APP_API_URL;
 
   static GetDashboard = '/v1/dashboard';
+  static GetHRDashboard = '/v1/hr-dashboard';
 
   // Authentication
   static Login = '/auth/login';

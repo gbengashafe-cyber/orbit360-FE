@@ -8,10 +8,10 @@ import CompanyDocuments from './CompanyDocuments';
 import CompensationTool from './CompensationTool';
 import ComplaintManagement from './ComplaintManagement';
 import Contacts from './Contacts';
-import Dashboard from './dashboard/Dashboard';
 import Deals from './Deals';
 import DocumentManagement from './DocumentManagement';
 import EmailCenter from './EmailCenter';
+import { Dashboard } from './employee-portal/dashboard/Dashboard';
 import { EmployeeCooperative } from './employee-portal/employee-cooperative/cooperative-loan';
 import EmployeeDocuments from './EmployeeDocuments';
 import { Employees } from './employees/employees-page';
@@ -22,9 +22,9 @@ import ExpenseDetail from './ExpenseDetail';
 import Expenses from './Expenses';
 import ExpenseSettings from './ExpenseSettings';
 import FinancialReports from './FinancialReports';
+import { HRDashboard } from './hr-portal/dashboard/Dashboard';
 import Cooperative from './hr-portal/loans/Cooperative';
 import MyPayslips from './hr-portal/payslip/payslips';
-import HRDashboard from './HRDashboard';
 import InstallApp from './InstallApp';
 import KPIManagement from './KPIManagement';
 import Layout from './Layout.jsx';
@@ -50,7 +50,7 @@ import TaxCalculator from './TaxCalculator';
 import UserManagement from './UserManagement';
 
 const PAGES = {
-  Dashboard: Dashboard,
+  HRDashboard: HRDashboard,
 
   ClientAuth: ClientAuth,
 
@@ -73,8 +73,6 @@ const PAGES = {
   Projects: Projects,
 
   ProjectBoard: ProjectBoard,
-
-  HRDashboard: HRDashboard,
 
   DocumentManagement: DocumentManagement,
 
@@ -166,8 +164,8 @@ function PagesContent() {
       <Routes>
         <Route path="/login" element={isLoggedIn() ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
         <Route path="/" element={<Dashboard />} />
-
-        <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/hr-dashboard" element={<HRDashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/authorization-center" element={<AuthorizationCenterWIP />} />
 
         <Route path="/ClientAuth" element={<ClientAuth />} />
