@@ -115,7 +115,7 @@ const ROLES = {
     label: 'Credit Analyst',
     color: 'bg-blue-100 text-blue-800',
     permissions: ['view_client_financials', 'manage_credit_risk'],
-    description: 'Analyzes credit data to estimate degree of risk involved in extending credit.',
+    description: 'Analyse credit data to estimate degree of risk involved in extending credit.',
   },
   compliance_officer: {
     label: 'Compliance Officer',
@@ -157,7 +157,7 @@ const ROLES = {
     label: 'Internal Auditor',
     color: 'bg-indigo-100 text-indigo-800',
     permissions: ['conduct_internal_audits', 'view_all_data'],
-    description: 'Examines and analyzes accounting records to determine financial status of an establishment.',
+    description: 'Examines and analyse accounting records to determine financial status of an establishment.',
   },
   treasury_officer: {
     label: 'Treasury Officer',
@@ -169,7 +169,7 @@ const ROLES = {
     label: 'Risk Analyst',
     color: 'bg-rose-100 text-rose-800',
     permissions: ['manage_credit_risk', 'view_all_data'],
-    description: 'Identifies and analyzes potential risks threatening the assets and earning capacity of the organization.',
+    description: 'Identifies and analyse potential risks threatening the assets and earning capacity of the organization.',
   },
   project_manager: {
     label: 'Project Manager',
@@ -339,26 +339,26 @@ export default function UserManagement() {
       });
 
       // Try to send email notification (will only work if user is already in the system)
-      try {
-        await SendEmail({
-          to: newUserData.email,
-          subject: 'Welcome to Orbit360 - Account Created',
-          body: `
-            <h3>Welcome to Orbit360!</h3>
-            <p>Your account has been created with the following details:</p>
-            <ul>
-              <li><strong>Email:</strong> ${newUserData.email}</li>
-              <li><strong>Role:</strong> ${roleConfig.label}</li>
-              <li><strong>Department:</strong> ${newUserData.department}</li>
-            </ul>
-            <p>You can now log in to the Orbit360 platform using your Google account.</p>
-            <p>If you have any questions, please contact your administrator.</p>
-          `,
-          from_name: 'Orbit360 System',
-        });
-      } catch (emailError) {
-        console.log('Email notification could not be sent - user may not be in system yet', emailError);
-      }
+      // try {
+      //   await SendEmail({
+      //     to: newUserData.email,
+      //     subject: 'Welcome to Orbit360 - Account Created',
+      //     body: `
+      //       <h3>Welcome to Orbit360!</h3>
+      //       <p>Your account has been created with the following details:</p>
+      //       <ul>
+      //         <li><strong>Email:</strong> ${newUserData.email}</li>
+      //         <li><strong>Role:</strong> ${roleConfig.label}</li>
+      //         <li><strong>Department:</strong> ${newUserData.department}</li>
+      //       </ul>
+      //       <p>You can now log in to the Orbit360 platform using your Google account.</p>
+      //       <p>If you have any questions, please contact your administrator.</p>
+      //     `,
+      //     from_name: 'Orbit360 System',
+      //   });
+      // } catch (emailError) {
+      //   console.log('Email notification could not be sent - user may not be in system yet', emailError);
+      // }
 
       setSuccess(
         `User account created successfully for ${newUserData.email}. Please ask the user to log in with their Google account.`,
@@ -558,7 +558,7 @@ export default function UserManagement() {
       <div className="p-8 text-center">
         <Shield className="w-16 h-16 mx-auto mb-4 text-gray-300" />
         <h2 className="text-xl font-semibold text-gray-700 mb-2">Access Denied</h2>
-        <p className="text-gray-500">You don't have permission to manage users and roles.</p>
+        <p className="text-gray-500">You don&apos;t have permission to manage users and roles.</p>
         <p className="text-gray-400 text-sm mt-2">Current role: {currentUser?.job_role || 'unknown'}</p>
         <p className="text-gray-400 text-sm">Permissions: {currentUser?.permissions?.join(', ') || 'none'}</p>
       </div>
@@ -679,7 +679,7 @@ export default function UserManagement() {
               <Mail className="w-5 h-5 text-blue-700" />
               Change User Role by Email
             </CardTitle>
-            <CardDescription>Enter a user's email address and assign them a new role.</CardDescription>
+            <CardDescription>Enter a user&apos;s email address and assign them a new role.</CardDescription>
           </CardHeader>
           <CardContent className="grid md:grid-cols-3 gap-4 items-end">
             <div>

@@ -291,7 +291,7 @@ export default function RequestTraining() {
               const ct = authResponse.headers.get('content-type') || '';
               if (ct.includes('application/json')) errBody = await authResponse.json();
             } catch (e) {
-              // ignore
+              console.log(e.message)
             }
             throw new Error(errBody?.message || 'Failed to submit to Authorization Center');
           }
