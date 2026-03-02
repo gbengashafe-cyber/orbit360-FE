@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { addDays, endOfMonth, format, startOfMonth, subMonths } from 'date-fns';
+import { logger } from '@/utils';
+import { format, startOfMonth, subMonths } from 'date-fns';
 import { Briefcase, Calendar as CalendarIcon, Coins, Filter, UserMinus, Users } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   CartesianGrid,
   Cell,
@@ -95,16 +96,6 @@ const ChartCard = ({ title, subtitle, children, actions }) => (
 
 export function HRDashboard() {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ employees: [], leaves: [], expenses: [], budgets: [] });
-  const [analytics, setAnalytics] = useState({
-    genderDistribution: [],
-    leaveByDept: [],
-    attritionRate: [],
-    budgetVsActual: { allocated: 0, actual: 0, progress: 0 },
-    headcount: 0,
-    leaveRequests: 0,
-    totalSpent: 0,
-  });
 
   const [filters, setFilters] = useState({
     department: 'all',
@@ -131,9 +122,7 @@ export function HRDashboard() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [departmentsData, employees, leaves, budgets] = await Promise.all([
-          departmentService.getDepartments({ rows: 1000 }),
-        ]);
+        const departmentsData = await departmentService.getDepartments({ rows: 1000 });
 
         const analytics = await dashboardService.getHRDashboard({
           department: filters.department,
@@ -143,10 +132,8 @@ export function HRDashboard() {
 
         setDepartments(departmentsData.data);
         setMetrics((prev) => ({ ...prev, ...analytics.data }));
-        setData({ employees, leaves, budgets });
       } catch (error) {
-        console.error('Error loading dashboard data:', error);
-        setData({ employees: [], leaves: [], budgets: [] });
+        logger.error({ caller: 'Error loading HR dashboard data:', payload: error });
       } finally {
         setLoading(false);
       }
@@ -154,84 +141,6 @@ export function HRDashboard() {
 
     loadData();
   }, [filters]);
-
-  const processData = useCallback(() => {
-    if (loading) return;
-
-    const { employees, leaves, budgets } = data;
-    const { department, dateRange } = filters;
-
-    // Filter data based on selections
-    const filteredEmployees = department === 'all' ? employees : employees.filter((e) => e.department === department);
-
-    // Calculate metrics
-    const headcount = filteredEmployees.filter((e) => e.employment_status === 'active').length;
-    const leaveRequests = filteredLeaves.length;
-
-    // Gender Distribution
-    const genderCounts = filteredEmployees.reduce((acc, emp) => {
-      const gender = emp.gender ? emp.gender.charAt(0).toUpperCase() + emp.gender.slice(1) : 'Other';
-      acc[gender] = (acc[gender] || 0) + 1;
-      return acc;
-    }, {});
-    const genderDistribution = Object.keys(genderCounts).map((name) => ({ name, value: genderCounts[name] }));
-
-    // Leave Requests by Department
-    const leaveCountsByDept = filteredLeaves.reduce((acc, leave) => {
-      const dept = leave.employee_department || 'Unknown';
-      acc[dept] = (acc[dept] || 0) + 1;
-      return acc;
-    }, {});
-    const leaveByDept = Object.keys(leaveCountsByDept).map((name) => ({ name, requests: leaveCountsByDept[name] }));
-
-    // Attrition Rate (Last 6 Months)
-    const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
-    const attritionData = [];
-    for (let i = 0; i < 6; i++) {
-      const monthDate = addDays(sixMonthsAgo, i * 30);
-      const monthStart = startOfMonth(monthDate);
-      const monthEnd = endOfMonth(monthDate);
-
-      const terminationsThisMonth = employees.filter(
-        (e) => e.termination_date && new Date(e.termination_date) >= monthStart && new Date(e.termination_date) <= monthEnd,
-      ).length;
-
-      const activeAtMonthStart = employees.filter(
-        (e) => new Date(e.hire_date) < monthStart && (!e.termination_date || new Date(e.termination_date) >= monthStart),
-      ).length;
-
-      const activeAtMonthEnd = employees.filter(
-        (e) => new Date(e.hire_date) <= monthEnd && (!e.termination_date || new Date(e.termination_date) > monthEnd),
-      ).length;
-
-      const avgEmployees = (activeAtMonthStart + activeAtMonthEnd) / 2;
-      const rate = avgEmployees > 0 ? (terminationsThisMonth / avgEmployees) * 100 : 0;
-
-      attritionData.push({
-        month: format(monthStart, 'MMM yyyy'),
-        'Attrition Rate': rate,
-        Leavers: terminationsThisMonth,
-      });
-    }
-
-    // Budget vs. Actual
-    const period = format(filters.dateRange.from, 'yyyy-MM');
-    const relevantBudgets = budgets.filter((b) => b.period === period && (b.department === department || department === 'all'));
-    const allocated = relevantBudgets.reduce((sum, b) => sum + b.allocated_amount, 0);
-    const actual = totalSpent;
-    const progress = allocated > 0 ? Math.min((actual / allocated) * 100, 100) : 0;
-    const budgetVsActual = { allocated, actual, progress };
-
-    setAnalytics({
-      headcount,
-      leaveRequests,
-      totalSpent,
-      genderDistribution,
-      leaveByDept,
-      attritionRate: attritionData,
-      budgetVsActual,
-    });
-  }, [data, filters, loading]);
 
   if (loading) {
     return (
@@ -386,7 +295,7 @@ export function HRDashboard() {
           {/* <ChartCard title="Leave Requests" subtitle="By department for selected period">
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={analytics.leaveByDept} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                <BarChart data={analytics.leaveByDepartment} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                   <XAxis
                     dataKey="name"

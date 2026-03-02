@@ -85,10 +85,6 @@ const employeePortalNav = [
   { title: 'Staff Movement', url: createPageUrl('StaffMovement'), icon: Shuffle },
 ];
 
-const supervisorNav = [{ title: 'Exit Review', url: '/ExitApprovals', icon: UserRoundX }];
-
-const hrManagerNav = [{ title: 'Complaint Management', url: createPageUrl('ComplaintManagement'), icon: MessageSquareHeart }];
-
 const adminNav = [
   { title: 'User Management', url: createPageUrl('UserManagement'), icon: Users },
   { title: 'Install App', url: createPageUrl('InstallApp'), icon: Download },
@@ -99,22 +95,15 @@ const LayoutContent = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isHrNavOpen, setHrNavOpen] = useState(false);
   const [isEmployeePortalNavOpen, setEmployeePortalNavOpen] = useState(false);
-  const [isSupervisorNavOpen, setIsSupervisorNavOpen] = useState(false);
-  const [isHrManagerNavOpen, setIsHrManagerNavOpen] = useState(false);
   const [isAdminNavOpen, setIsAdminNavOpen] = useState(false);
 
   const { currentUser, isAdmin, isLoadingUser } = useGlobalContext();
-
-  const isSupervisor = currentUser?.permissions?.includes('APPROVE_EXITS');
-  const isHrManager = currentUser?.permissions?.includes('MANAGE_COMPLAINTS');
 
   useEffect(() => {
     const path = location.pathname;
     const isDashboard = path === createPageUrl('hr-dashboard');
     setHrNavOpen(hrNav.some((item) => path === item.url) || isDashboard);
     setEmployeePortalNavOpen(employeePortalNav.some((item) => path === item.url));
-    setIsSupervisorNavOpen(supervisorNav.some((item) => path === item.url));
-    setIsHrManagerNavOpen(hrManagerNav.some((item) => path === item.url));
     setIsAdminNavOpen(adminNav.some((item) => path === item.url));
   }, [location.pathname]);
 
@@ -163,9 +152,16 @@ const LayoutContent = ({ children }) => {
       <CollapsibleContent>
         <SidebarGroupContent>
           <SidebarMenu className="space-y-1 mt-1">
-            {navItems.map((item) => (
-              <NavItem key={item.title} item={item} />
-            ))}
+            {navItems
+              .filter((_item) => {
+                if (![createPageUrl('authorization-center'), createPageUrl('exit-approvals')].includes(_item.url)) {
+                  return true;
+                }
+                return currentUser.isSupervisor;
+              })
+              .map((item) => (
+                <NavItem key={item.title} item={item} />
+              ))}
           </SidebarMenu>
         </SidebarGroupContent>
       </CollapsibleContent>
@@ -239,22 +235,7 @@ const LayoutContent = ({ children }) => {
             onOpenChange={setEmployeePortalNavOpen}
             navItems={employeePortalNav}
           />
-          {isSupervisor && (
-            <NavGroup
-              title="Supervisor"
-              isOpen={isSupervisorNavOpen}
-              onOpenChange={setIsSupervisorNavOpen}
-              navItems={supervisorNav}
-            />
-          )}
-          {isHrManager && (
-            <NavGroup
-              title="HR Manager"
-              isOpen={isHrManagerNavOpen}
-              onOpenChange={setIsHrManagerNavOpen}
-              navItems={hrManagerNav}
-            />
-          )}
+
           {isAdmin && (
             <NavGroup title="Administration" isOpen={isAdminNavOpen} onOpenChange={setIsAdminNavOpen} navItems={adminNav} />
           )}
