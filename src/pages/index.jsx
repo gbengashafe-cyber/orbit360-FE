@@ -10,7 +10,6 @@ import ComplaintManagement from './ComplaintManagement';
 import Contacts from './Contacts';
 import Deals from './Deals';
 import DocumentManagement from './DocumentManagement';
-import EmailCenter from './EmailCenter';
 import { Dashboard } from './employee-portal/dashboard/Dashboard';
 import { EmployeeCooperative } from './employee-portal/employee-cooperative/cooperative-loan';
 import EmployeeDocuments from './EmployeeDocuments';
@@ -18,10 +17,7 @@ import { Employees } from './employees/employees-page';
 import ExitApprovals from './ExitApprovals';
 import ExitManagement from './ExitManagement';
 import ExpenseApprovals from './ExpenseApprovals';
-import ExpenseDetail from './ExpenseDetail';
 import Expenses from './Expenses';
-import ExpenseSettings from './ExpenseSettings';
-import FinancialReports from './FinancialReports';
 import { HRDashboard } from './hr-portal/dashboard/Dashboard';
 import Cooperative from './hr-portal/loans/Cooperative';
 import MyPayslips from './hr-portal/payslip/payslips';
@@ -31,21 +27,15 @@ import Layout from './Layout.jsx';
 import LeaveApprovals from './LeaveApprovals';
 import LeaveManagement from './LeaveManagement';
 import LoginPage from './login/Login';
-import MeetingManager from './MeetingManager';
 import Onboarding from './Onboarding';
 import Payroll from './Payroll';
 import Performance from './Performance';
 import ProjectBoard from './ProjectBoard';
 import Projects from './Projects';
-import PublicJobView from './PublicJobView';
 import Recruitment from './Recruitment';
 import RecruitmentApprovals from './RecruitmentApprovals';
 import RequestTraining from './RequestTraining';
-import ScrollBoard from './ScrollBoard';
-import SmartContentEngine from './SmartContentEngine';
-import SocialHub from './SocialHub';
 import StaffComplaints from './StaffComplaints';
-import StaffMovement from './StaffMovement';
 import TaxCalculator from './TaxCalculator';
 import UserManagement from './UserManagement';
 
@@ -66,10 +56,6 @@ const PAGES = {
 
   TaxCalculator: TaxCalculator,
 
-  EmailCenter: EmailCenter,
-
-  SocialHub: SocialHub,
-
   Projects: Projects,
 
   ProjectBoard: ProjectBoard,
@@ -88,15 +74,9 @@ const PAGES = {
 
   Expenses: Expenses,
 
-  ExpenseDetail: ExpenseDetail,
-
-  ExpenseSettings: ExpenseSettings,
-
   CompensationTool: CompensationTool,
 
   ExpenseApprovals: ExpenseApprovals,
-
-  MeetingManager: MeetingManager,
 
   LeaveManagement: LeaveManagement,
 
@@ -110,19 +90,11 @@ const PAGES = {
 
   InstallApp: InstallApp,
 
-  ScrollBoard: ScrollBoard,
-
   StaffComplaints: StaffComplaints,
 
   ComplaintManagement: ComplaintManagement,
 
   RequestTraining: RequestTraining,
-
-  StaffMovement: StaffMovement,
-
-  SmartContentEngine: SmartContentEngine,
-
-  PublicJobView: PublicJobView,
 
   Cooperative: Cooperative,
 
@@ -135,8 +107,6 @@ const PAGES = {
   Contacts: Contacts,
 
   Deals: Deals,
-
-  FinancialReports: FinancialReports,
 
   login: LoginPage,
   AuthorizationCenterWIP,
@@ -182,10 +152,6 @@ function PagesContent() {
 
         <Route path="/TaxCalculator" element={<TaxCalculator />} />
 
-        <Route path="/EmailCenter" element={<EmailCenter />} />
-
-        <Route path="/SocialHub" element={<SocialHub />} />
-
         <Route path="/Projects" element={<Projects />} />
 
         <Route path="/ProjectBoard" element={<ProjectBoard />} />
@@ -206,15 +172,9 @@ function PagesContent() {
 
         <Route path="/Expenses" element={<Expenses />} />
 
-        <Route path="/ExpenseDetail" element={<ExpenseDetail />} />
-
-        <Route path="/ExpenseSettings" element={<ExpenseSettings />} />
-
         <Route path="/CompensationTool" element={<CompensationTool />} />
 
         <Route path="/ExpenseApprovals" element={<ExpenseApprovals />} />
-
-        <Route path="/MeetingManager" element={<MeetingManager />} />
 
         <Route path="/leave-management" element={<LeaveManagement />} />
 
@@ -228,19 +188,11 @@ function PagesContent() {
 
         <Route path="/InstallApp" element={<InstallApp />} />
 
-        <Route path="/ScrollBoard" element={<ScrollBoard />} />
-
         <Route path="/StaffComplaints" element={<StaffComplaints />} />
 
         <Route path="/ComplaintManagement" element={<ComplaintManagement />} />
 
         <Route path="/request-training" element={<RequestTraining />} />
-
-        <Route path="/StaffMovement" element={<StaffMovement />} />
-
-        <Route path="/SmartContentEngine" element={<SmartContentEngine />} />
-
-        <Route path="/PublicJobView" element={<PublicJobView />} />
 
         <Route path="/cooperative" element={<Cooperative />} />
         <Route path="/employee-cooperative" element={<EmployeeCooperative />} />
@@ -254,8 +206,6 @@ function PagesContent() {
         <Route path="/Contacts" element={<Contacts />} />
 
         <Route path="/Deals" element={<Deals />} />
-
-        <Route path="/FinancialReports" element={<FinancialReports />} />
       </Routes>
     </Layout>
   );

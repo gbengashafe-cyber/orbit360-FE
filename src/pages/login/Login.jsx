@@ -45,11 +45,7 @@ const LoginPage = () => {
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full blur-xl opacity-30 group-hover:opacity-40 transition-opacity duration-300"></div>
                 <span className="flex shrink-0 overflow-hidden rounded-full relative h-20 w-20 sm:h-24 sm:w-24 shadow-lg ring-4 ring-white/50 group-hover:shadow-xl transition-all duration-300">
-                  <img
-                    className="aspect-square h-full w-full object-cover"
-                    alt="Orbit360 (Copy) logo"
-                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/d7dee9803_logo.png"
-                  />
+                  <img className="aspect-square h-full w-full object-cover" alt="Orbit360 logo" src="/orbit360_logo.png" />
                 </span>
               </div>
               <div className="space-y-2 sm:space-y-3">

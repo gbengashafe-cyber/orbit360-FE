@@ -1,183 +1,189 @@
-import React, { useState, useEffect } from "react";
-import { User } from "@/api/entities";
-import { UserArchive } from "@/api/entities"; // New import for UserArchive
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Added CardDescription
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { User, UserArchive } from '@/api/entities';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'; // Added CardDescription
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // New import for Tabs
+import { cn } from '@/lib/utils'; // Import cn utility
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogTrigger
-} from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // New import for Tabs
-import { Users, Shield, UserPlus, Settings, Mail, Building, MoreHorizontal, Trash2, UserX, CheckCircle, Archive, ChevronsUpDown, Check } from "lucide-react"; // New icons
-import { SendEmail } from "@/api/integrations"; // Changed from utils/email
-import { cn } from "@/lib/utils"; // Import cn utility
+  Archive,
+  Building,
+  Check,
+  CheckCircle,
+  ChevronsUpDown,
+  Mail,
+  MoreHorizontal,
+  Settings,
+  Shield,
+  Trash2,
+  UserPlus,
+  Users,
+  UserX,
+} from 'lucide-react'; // New icons
+import { useEffect, useState } from 'react';
 
 // Comprehensive list of roles and their associated permissions
 const ROLES = {
   admin: {
-    label: "Super Admin",
-    color: "bg-red-100 text-red-800",
+    label: 'Super Admin',
+    color: 'bg-red-100 text-red-800',
     permissions: [
-      "manage_users_and_roles", "manage_all_settings", "view_all_data", "process_payroll", 
-      "approve_all_requests", "request_staff_movement", "manage_vendors"
+      'manage_users_and_roles',
+      'manage_all_settings',
+      'view_all_data',
+      'process_payroll',
+      'approve_all_requests',
+      'request_staff_movement',
+      'manage_vendors',
     ],
-    description: "Unrestricted access to all features and settings, including user and role management."
+    description: 'Unrestricted access to all features and settings, including user and role management.',
   },
   managing_director: {
-    label: "Managing Director",
-    color: "bg-purple-100 text-purple-800",
-    permissions: ["view_all_data", "approve_all_requests", "request_staff_movement", "manage_vendors"],
-    description: "Top-level oversight, can view all data and approve major requests."
+    label: 'Managing Director',
+    color: 'bg-purple-100 text-purple-800',
+    permissions: ['view_all_data', 'approve_all_requests', 'request_staff_movement', 'manage_vendors'],
+    description: 'Top-level oversight, can view all data and approve major requests.',
   },
   human_resources_manager: {
-    label: "Human Resources Manager",
-    color: "bg-cyan-100 text-cyan-800",
+    label: 'Human Resources Manager',
+    color: 'bg-cyan-100 text-cyan-800',
     permissions: [
-      "manage_users_and_roles", "manage_employees", "process_payroll", "approve_staff_movement", 
-      "approve_training_requests", "manage_complaints", "manage_recruitment", "request_staff_movement"
+      'manage_users_and_roles',
+      'manage_employees',
+      'process_payroll',
+      'approve_staff_movement',
+      'approve_training_requests',
+      'manage_complaints',
+      'manage_recruitment',
+      'request_staff_movement',
     ],
-    description: "Manages all HR functions, including employee records, payroll, recruitment, and user access."
+    description: 'Manages all HR functions, including employee records, payroll, recruitment, and user access.',
   },
   head_of_operations: {
-    label: "Head of Operations",
-    color: "bg-orange-100 text-orange-800",
-    permissions: ["request_staff_movement", "manage_vendors", "approve_expenses_level_2"],
-    description: "Oversees daily business operations and can manage staff movements and vendors."
+    label: 'Head of Operations',
+    color: 'bg-orange-100 text-orange-800',
+    permissions: ['request_staff_movement', 'manage_vendors', 'approve_expenses_level_2'],
+    description: 'Oversees daily business operations and can manage staff movements and vendors.',
   },
   head_internal_control: {
-    label: "Head, Internal Control",
-    color: "bg-indigo-100 text-indigo-800",
-    permissions: ["view_all_data", "audit_expenses", "conduct_internal_audits"],
-    description: "Monitors and audits all company processes and data for compliance."
+    label: 'Head, Internal Control',
+    color: 'bg-indigo-100 text-indigo-800',
+    permissions: ['view_all_data', 'audit_expenses', 'conduct_internal_audits'],
+    description: 'Monitors and audits all company processes and data for compliance.',
   },
   branch_manager: {
-    label: "Branch Manager",
-    color: "bg-teal-100 text-teal-800",
-    permissions: ["approve_expenses_level_1", "view_branch_data", "manage_branch_staff", "request_staff_movement"],
-    description: "Manages all operations and staff within a specific branch."
+    label: 'Branch Manager',
+    color: 'bg-teal-100 text-teal-800',
+    permissions: ['approve_expenses_level_1', 'view_branch_data', 'manage_branch_staff', 'request_staff_movement'],
+    description: 'Manages all operations and staff within a specific branch.',
   },
   finance_officer: {
-    label: "Finance Officer",
-    color: "bg-green-100 text-green-800",
-    permissions: ["manage_expenses", "process_payroll", "view_financial_reports"],
-    description: "Handles financial transactions, expense management, and payroll."
+    label: 'Finance Officer',
+    color: 'bg-green-100 text-green-800',
+    permissions: ['manage_expenses', 'process_payroll', 'view_financial_reports'],
+    description: 'Handles financial transactions, expense management, and payroll.',
   },
   loan_officer: {
-    label: "Loan Officer",
-    color: "bg-blue-100 text-blue-800",
-    permissions: ["process_loan_applications", "view_client_financials", "manage_customer_relationships"],
-    description: "Evaluates, authorizes, or recommends approval of loan applications."
+    label: 'Loan Officer',
+    color: 'bg-blue-100 text-blue-800',
+    permissions: ['process_loan_applications', 'view_client_financials', 'manage_customer_relationships'],
+    description: 'Evaluates, authorizes, or recommends approval of loan applications.',
   },
   credit_analyst: {
-    label: "Credit Analyst",
-    color: "bg-blue-100 text-blue-800",
-    permissions: ["view_client_financials", "manage_credit_risk"],
-    description: "Analyzes credit data to estimate degree of risk involved in extending credit."
+    label: 'Credit Analyst',
+    color: 'bg-blue-100 text-blue-800',
+    permissions: ['view_client_financials', 'manage_credit_risk'],
+    description: 'Analyzes credit data to estimate degree of risk involved in extending credit.',
   },
   compliance_officer: {
-    label: "Compliance Officer",
-    color: "bg-slate-100 text-slate-800",
-    permissions: ["audit_transactions", "view_all_data"],
-    description: "Ensures the company adheres to external laws and internal policies."
+    label: 'Compliance Officer',
+    color: 'bg-slate-100 text-slate-800',
+    permissions: ['audit_transactions', 'view_all_data'],
+    description: 'Ensures the company adheres to external laws and internal policies.',
   },
   teller: {
-    label: "Teller",
-    color: "bg-lime-100 text-lime-800",
-    permissions: ["perform_customer_transactions", "handle_customer_inquiries"],
-    description: "Handles day-to-day customer-facing transactions like deposits and withdrawals."
+    label: 'Teller',
+    color: 'bg-lime-100 text-lime-800',
+    permissions: ['perform_customer_transactions', 'handle_customer_inquiries'],
+    description: 'Handles day-to-day customer-facing transactions like deposits and withdrawals.',
   },
   customer_service_rep: {
-    label: "Customer Service Rep",
-    color: "bg-sky-100 text-sky-800",
-    permissions: ["handle_customer_inquiries", "manage_customer_relationships"],
-    description: "Manages customer accounts and resolves inquiries or complaints."
+    label: 'Customer Service Rep',
+    color: 'bg-sky-100 text-sky-800',
+    permissions: ['handle_customer_inquiries', 'manage_customer_relationships'],
+    description: 'Manages customer accounts and resolves inquiries or complaints.',
   },
   it_officer: {
-    label: "IT Officer",
-    color: "bg-gray-100 text-gray-800",
-    permissions: ["manage_it_assets", "provide_technical_support"],
-    description: "Manages IT infrastructure and provides technical support to staff."
+    label: 'IT Officer',
+    color: 'bg-gray-100 text-gray-800',
+    permissions: ['manage_it_assets', 'provide_technical_support'],
+    description: 'Manages IT infrastructure and provides technical support to staff.',
   },
   it_security_specialist: {
-    label: "IT Security Specialist",
-    color: "bg-gray-100 text-gray-800",
-    permissions: ["manage_it_assets", "audit_transactions"],
-    description: "Protects computer systems and networks from security breaches."
+    label: 'IT Security Specialist',
+    color: 'bg-gray-100 text-gray-800',
+    permissions: ['manage_it_assets', 'audit_transactions'],
+    description: 'Protects computer systems and networks from security breaches.',
   },
   marketing_officer: {
-    label: "Marketing Officer",
-    color: "bg-pink-100 text-pink-800",
-    permissions: ["manage_marketing_campaigns", "access_self_service"],
-    description: "Develops and executes marketing campaigns to attract new customers."
+    label: 'Marketing Officer',
+    color: 'bg-pink-100 text-pink-800',
+    permissions: ['manage_marketing_campaigns', 'access_self_service'],
+    description: 'Develops and executes marketing campaigns to attract new customers.',
   },
   internal_auditor: {
-    label: "Internal Auditor",
-    color: "bg-indigo-100 text-indigo-800",
-    permissions: ["conduct_internal_audits", "view_all_data"],
-    description: "Examines and analyzes accounting records to determine financial status of an establishment."
+    label: 'Internal Auditor',
+    color: 'bg-indigo-100 text-indigo-800',
+    permissions: ['conduct_internal_audits', 'view_all_data'],
+    description: 'Examines and analyzes accounting records to determine financial status of an establishment.',
   },
   treasury_officer: {
-    label: "Treasury Officer",
-    color: "bg-amber-100 text-amber-800",
-    permissions: ["manage_expenses", "view_financial_reports"],
-    description: "Manages the organization's financial assets, liabilities, and investments."
+    label: 'Treasury Officer',
+    color: 'bg-amber-100 text-amber-800',
+    permissions: ['manage_expenses', 'view_financial_reports'],
+    description: "Manages the organization's financial assets, liabilities, and investments.",
   },
   risk_analyst: {
-    label: "Risk Analyst",
-    color: "bg-rose-100 text-rose-800",
-    permissions: ["manage_credit_risk", "view_all_data"],
-    description: "Identifies and analyzes potential risks threatening the assets and earning capacity of the organization."
+    label: 'Risk Analyst',
+    color: 'bg-rose-100 text-rose-800',
+    permissions: ['manage_credit_risk', 'view_all_data'],
+    description: 'Identifies and analyzes potential risks threatening the assets and earning capacity of the organization.',
   },
   project_manager: {
-    label: "Project Manager",
-    color: "bg-fuchsia-100 text-fuchsia-800",
-    permissions: ["manage_own_projects", "manage_teams", "request_staff_movement"],
-    description: "Leads projects and can request staff for their teams."
+    label: 'Project Manager',
+    color: 'bg-fuchsia-100 text-fuchsia-800',
+    permissions: ['manage_own_projects', 'manage_teams', 'request_staff_movement'],
+    description: 'Leads projects and can request staff for their teams.',
   },
   user: {
-    label: "Employee",
-    color: "bg-stone-100 text-stone-700",
-    permissions: ["access_self_service"],
-    description: "Standard employee access for self-service portal features.",
-    canUpgradeToAdmin: true
-  }
+    label: 'Employee',
+    color: 'bg-stone-100 text-stone-700',
+    permissions: ['access_self_service'],
+    description: 'Standard employee access for self-service portal features.',
+    canUpgradeToAdmin: true,
+  },
 };
 
 const MATERIAL_COLORS = {
@@ -199,26 +205,26 @@ export default function UserManagement() {
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null); // New state for delete confirmation
   const [userToUpdateRole, setUserToUpdateRole] = useState(null); // New state for role change dialog
-  const [selectedNewRole, setSelectedNewRole] = useState(""); // New state for tracking selected role in dialog
-  
+  const [selectedNewRole, setSelectedNewRole] = useState(''); // New state for tracking selected role in dialog
+
   // New states for Quick Role Assignment and filtering
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUserForAssignment, setSelectedUserForAssignment] = useState("");
-  const [newRoleForAssignment, setNewRoleForAssignment] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUserForAssignment, setSelectedUserForAssignment] = useState('');
+  const [newRoleForAssignment, setNewRoleForAssignment] = useState('');
   const [openUserSelect, setOpenUserSelect] = useState(false);
-  const [emailSearch, setEmailSearch] = useState("");
-  const [roleForEmail, setRoleForEmail] = useState("");
+  const [emailSearch, setEmailSearch] = useState('');
+  const [roleForEmail, setRoleForEmail] = useState('');
 
   const [newUserData, setNewUserData] = useState({
-    email: "",
-    job_role: "user",
-    department: "hr"
+    email: '',
+    job_role: 'user',
+    department: 'hr',
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   // Define the primary admin email. In a real app, this would likely come from environment variables.
-  const PRIMARY_ADMIN_EMAIL = "gbengashafe@gmail.com";
+  const PRIMARY_ADMIN_EMAIL = 'gbengashafe@gmail.com';
 
   useEffect(() => {
     loadUsers();
@@ -228,7 +234,7 @@ export default function UserManagement() {
   const getCurrentUser = async () => {
     try {
       const user = await User.me();
-      console.log("UserManagement - Current user:", user); // Debug log
+      console.log('UserManagement - Current user:', user); // Debug log
       setCurrentUser(user);
     } catch (error) {
       console.error('Error getting current user:', error);
@@ -240,19 +246,19 @@ export default function UserManagement() {
       // Fetch both active users and archived users concurrently
       const [userData, archivedData] = await Promise.all([
         User.list(),
-        UserArchive.list('-deletion_date') // Fetch archived users, sorted by deletion date descending
+        UserArchive.list('-deletion_date'), // Fetch archived users, sorted by deletion date descending
       ]);
-      
+
       // Manually find and update the user 'coricmail@gmail.com' if they are an admin
-      const targetUser = userData.find(u => u.email === 'coricmail@gmail.com');
+      const targetUser = userData.find((u) => u.email === 'coricmail@gmail.com');
       if (targetUser && targetUser.job_role === 'admin') {
-          // This change is cosmetic for the UI until a real update is possible
-          // Or if we can trigger an update via an action.
-          console.log("Temporarily changing role for coricmail@gmail.com in UI");
-          targetUser.job_role = 'user';
-          targetUser.permissions = ROLES.user.permissions;
+        // This change is cosmetic for the UI until a real update is possible
+        // Or if we can trigger an update via an action.
+        console.log('Temporarily changing role for coricmail@gmail.com in UI');
+        targetUser.job_role = 'user';
+        targetUser.permissions = ROLES.user.permissions;
       }
-      
+
       setUsers(userData);
       setArchivedUsers(archivedData); // Set archived users
     } catch (error) {
@@ -264,76 +270,79 @@ export default function UserManagement() {
 
   const handleRoleChange = async () => {
     if (!userToUpdateRole || !selectedNewRole) return;
-    
+
     try {
       if (userToUpdateRole.email === PRIMARY_ADMIN_EMAIL && currentUser?.email !== PRIMARY_ADMIN_EMAIL) {
-        throw new Error("Only the primary admin can modify their own role.");
+        throw new Error('Only the primary admin can modify their own role.');
       }
 
       if (userToUpdateRole.email === currentUser?.email) {
-        throw new Error("You cannot change your own role from this menu.");
+        throw new Error('You cannot change your own role from this menu.');
       }
-      
+
       const roleConfig = ROLES[selectedNewRole];
       if (!roleConfig) {
-        throw new Error("Invalid role selected");
+        throw new Error('Invalid role selected');
       }
 
       console.log('Updating role from table menu:', {
         userId: userToUpdateRole.id,
         email: userToUpdateRole.email,
         newRole: selectedNewRole,
-        currentRole: userToUpdateRole.role
+        currentRole: userToUpdateRole.role,
       });
-      
+
       await User.update(userToUpdateRole.id, {
         role: selectedNewRole === 'admin' ? 'admin' : 'user',
         job_role: selectedNewRole,
         permissions: roleConfig.permissions,
-        assigned_by: currentUser.email
+        assigned_by: currentUser.email,
       });
-      
+
       setSuccess(`✓ Successfully updated ${userToUpdateRole.full_name} to ${roleConfig.label}`);
       setUserToUpdateRole(null);
-      setSelectedNewRole("");
+      setSelectedNewRole('');
       await loadUsers();
-      setTimeout(() => setSuccess(""), 5000);
+      setTimeout(() => setSuccess(''), 5000);
     } catch (error) {
       console.error('Role change error:', error);
-      setError("Failed to update role: " + error.message);
+      setError('Failed to update role: ' + error.message);
       setUserToUpdateRole(null);
-      setSelectedNewRole("");
-      setTimeout(() => setError(""), 5000);
+      setSelectedNewRole('');
+      setTimeout(() => setError(''), 5000);
     }
   };
 
   const handleCreateUser = async () => {
     try {
-      setError("");
-      setSuccess("");
-      
+      setError('');
+      setSuccess('');
+
       const roleConfig = ROLES[newUserData.job_role];
       if (!roleConfig) {
-        throw new Error("Invalid role selected");
+        throw new Error('Invalid role selected');
       }
-      
+
       // Create user account directly
       await User.create({
         email: newUserData.email,
-        full_name: newUserData.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        full_name: newUserData.email
+          .split('@')[0]
+          .replace(/[._]/g, ' ')
+          .replace(/\b\w/g, (l) => l.toUpperCase()),
         role: newUserData.job_role === 'admin' ? 'admin' : 'user', // Set the protected role
         job_role: newUserData.job_role, // Set the descriptive job_role
         permissions: roleConfig.permissions,
         department: newUserData.department,
         status: 'active', // Default status for new users
-        assigned_by: currentUser.email
+        assigned_by: currentUser.email,
       });
 
       // Try to send email notification (will only work if user is already in the system)
       try {
         await SendEmail({
           to: newUserData.email,
-          subject: "Welcome to Orbit360 - Account Created",
+          subject: 'Welcome to Orbit360 - Account Created',
           body: `
             <h3>Welcome to Orbit360!</h3>
             <p>Your account has been created with the following details:</p>
@@ -345,20 +354,22 @@ export default function UserManagement() {
             <p>You can now log in to the Orbit360 platform using your Google account.</p>
             <p>If you have any questions, please contact your administrator.</p>
           `,
-          from_name: "Orbit360 System"
+          from_name: 'Orbit360 System',
         });
       } catch (emailError) {
-        console.log("Email notification could not be sent - user may not be in system yet", emailError);
+        console.log('Email notification could not be sent - user may not be in system yet', emailError);
       }
 
-      setSuccess(`User account created successfully for ${newUserData.email}. Please ask the user to log in with their Google account.`);
+      setSuccess(
+        `User account created successfully for ${newUserData.email}. Please ask the user to log in with their Google account.`,
+      );
       setShowCreateUserDialog(false);
-      setNewUserData({ email: "", job_role: "user", department: "hr" });
+      setNewUserData({ email: '', job_role: 'user', department: 'hr' });
       loadUsers();
-      setTimeout(() => setSuccess(""), 8000);
+      setTimeout(() => setSuccess(''), 8000);
     } catch (error) {
-      setError("Failed to create user account. " + error.message);
-      setTimeout(() => setError(""), 5000);
+      setError('Failed to create user account. ' + error.message);
+      setTimeout(() => setError(''), 5000);
     }
   };
 
@@ -367,16 +378,16 @@ export default function UserManagement() {
     try {
       // Prevent primary admin from being suspended by anyone
       if (user.email === PRIMARY_ADMIN_EMAIL && currentUser?.email !== PRIMARY_ADMIN_EMAIL) {
-        throw new Error("Only the primary admin can suspend/reactivate themselves.");
+        throw new Error('Only the primary admin can suspend/reactivate themselves.');
       }
 
       await User.update(user.id, { status: newStatus });
       setSuccess(`User ${user.full_name} has been ${newStatus}.`);
       loadUsers();
-      setTimeout(() => setSuccess(""), 3000);
+      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError(`Failed to update user status: ${error.message}`);
-      setTimeout(() => setError(""), 5000);
+      setTimeout(() => setError(''), 5000);
     }
   };
 
@@ -386,9 +397,9 @@ export default function UserManagement() {
     try {
       // Prevent primary admin from being deleted by anyone, including themselves (through this UI)
       if (userToDelete.email === PRIMARY_ADMIN_EMAIL) {
-        throw new Error("The primary admin account cannot be deleted.");
+        throw new Error('The primary admin account cannot be deleted.');
       }
-      
+
       // Archive the user's details first
       await UserArchive.create({
         full_name: userToDelete.full_name,
@@ -405,134 +416,133 @@ export default function UserManagement() {
       setSuccess(`User ${userToDelete.email} has been deleted and archived.`);
       setUserToDelete(null); // Close dialog
       loadUsers();
-      setTimeout(() => setSuccess(""), 5000);
+      setTimeout(() => setSuccess(''), 5000);
     } catch (error) {
       setError(`Failed to delete user: ${error.message}`);
       setUserToDelete(null); // Close dialog even on error
-      setTimeout(() => setError(""), 5000);
+      setTimeout(() => setError(''), 5000);
     }
   };
 
   const handleQuickAssignRole = async () => {
-    setError("");
-    setSuccess("");
+    setError('');
+    setSuccess('');
     if (!selectedUserForAssignment || !newRoleForAssignment) {
-      setError("Please select a user and a role to assign.");
-      setTimeout(() => setError(""), 5000);
+      setError('Please select a user and a role to assign.');
+      setTimeout(() => setError(''), 5000);
       return;
     }
 
-    const userToUpdate = users.find(u => u.id === selectedUserForAssignment);
+    const userToUpdate = users.find((u) => u.id === selectedUserForAssignment);
 
     if (!userToUpdate) {
-      setError("Selected user not found.");
-      setTimeout(() => setError(""), 5000);
+      setError('Selected user not found.');
+      setTimeout(() => setError(''), 5000);
       return;
     }
 
     try {
       if (userToUpdate.email === PRIMARY_ADMIN_EMAIL && currentUser?.email !== PRIMARY_ADMIN_EMAIL) {
-        throw new Error("Only the primary admin can modify their own role.");
+        throw new Error('Only the primary admin can modify their own role.');
       }
 
       if (userToUpdate.email === currentUser?.email) {
-          throw new Error("You cannot change your own role using this tool. This must be done by another administrator.");
+        throw new Error('You cannot change your own role using this tool. This must be done by another administrator.');
       }
-      
+
       const roleConfig = ROLES[newRoleForAssignment];
       if (!roleConfig) {
-        throw new Error("Invalid role selected");
+        throw new Error('Invalid role selected');
       }
-      
+
       await User.update(userToUpdate.id, {
         role: newRoleForAssignment === 'admin' ? 'admin' : 'user', // Set the protected role based on job_role
         job_role: newRoleForAssignment,
         permissions: roleConfig.permissions,
-        assigned_by: currentUser.email
+        assigned_by: currentUser.email,
       });
-      
+
       setSuccess(`Role for ${userToUpdate.full_name} successfully updated to ${roleConfig.label}.`);
       // Reset form
-      setSelectedUserForAssignment("");
-      setNewRoleForAssignment("");
+      setSelectedUserForAssignment('');
+      setNewRoleForAssignment('');
       loadUsers();
-      setTimeout(() => setSuccess(""), 5000);
-
+      setTimeout(() => setSuccess(''), 5000);
     } catch (error) {
-      setError("Failed to assign role. " + error.message);
-      setTimeout(() => setError(""), 5000);
+      setError('Failed to assign role. ' + error.message);
+      setTimeout(() => setError(''), 5000);
     }
   };
 
   const handleEmailBasedRoleChange = async () => {
-    setError("");
-    setSuccess("");
-    
+    setError('');
+    setSuccess('');
+
     if (!emailSearch || !roleForEmail) {
-      setError("Please enter an email and select a role.");
-      setTimeout(() => setError(""), 5000);
+      setError('Please enter an email and select a role.');
+      setTimeout(() => setError(''), 5000);
       return;
     }
 
-    const userToUpdate = users.find(u => u.email.toLowerCase() === emailSearch.toLowerCase());
+    const userToUpdate = users.find((u) => u.email.toLowerCase() === emailSearch.toLowerCase());
 
     if (!userToUpdate) {
       setError(`No user found with email: ${emailSearch}. Make sure the user has logged in at least once.`);
-      setTimeout(() => setError(""), 5000);
+      setTimeout(() => setError(''), 5000);
       return;
     }
 
     try {
       if (userToUpdate.email === PRIMARY_ADMIN_EMAIL && currentUser?.email !== PRIMARY_ADMIN_EMAIL) {
-        throw new Error("Only the primary admin can modify their own role.");
+        throw new Error('Only the primary admin can modify their own role.');
       }
 
       if (userToUpdate.email === currentUser?.email) {
-        throw new Error("You cannot change your own role using this tool.");
+        throw new Error('You cannot change your own role using this tool.');
       }
-      
+
       const roleConfig = ROLES[roleForEmail];
       if (!roleConfig) {
-        throw new Error("Invalid role selected");
+        throw new Error('Invalid role selected');
       }
-      
+
       console.log('Updating user role:', {
         userId: userToUpdate.id,
         email: userToUpdate.email,
         newRole: roleForEmail,
         currentRole: userToUpdate.role,
-        currentJobRole: userToUpdate.job_role
+        currentJobRole: userToUpdate.job_role,
       });
-      
+
       await User.update(userToUpdate.id, {
         role: roleForEmail === 'admin' ? 'admin' : 'user',
         job_role: roleForEmail,
         permissions: roleConfig.permissions,
-        assigned_by: currentUser.email
+        assigned_by: currentUser.email,
       });
-      
-      setSuccess(`✓ Successfully changed ${userToUpdate.full_name} (${userToUpdate.email}) to ${roleConfig.label}`);
-      setEmailSearch("");
-      setRoleForEmail("");
-      await loadUsers();
-      setTimeout(() => setSuccess(""), 8000);
 
+      setSuccess(`✓ Successfully changed ${userToUpdate.full_name} (${userToUpdate.email}) to ${roleConfig.label}`);
+      setEmailSearch('');
+      setRoleForEmail('');
+      await loadUsers();
+      setTimeout(() => setSuccess(''), 8000);
     } catch (error) {
       console.error('Role update error:', error);
       setError(`Failed to update role: ${error.message || 'Unknown error'}. You must be an admin to change user roles.`);
-      setTimeout(() => setError(""), 8000);
+      setTimeout(() => setError(''), 8000);
     }
   };
 
-  const canManageUsers = currentUser?.permissions?.includes("manage_users_and_roles") || currentUser?.job_role === 'admin';
+  const canManageUsers = currentUser?.permissions?.includes('manage_users_and_roles') || currentUser?.job_role === 'admin';
   const isPrimaryAdmin = currentUser?.email === PRIMARY_ADMIN_EMAIL;
 
-  console.log("UserManagement - Can manage users:", canManageUsers); // Debug log
-  console.log("UserManagement - Is primary admin:", isPrimaryAdmin); // Debug log
+  console.log('UserManagement - Can manage users:', canManageUsers); // Debug log
+  console.log('UserManagement - Is primary admin:', isPrimaryAdmin); // Debug log
 
-  const filteredUsers = users.filter(user =>
-    user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = users.filter(
+    (user) =>
+      user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   if (loading) {
@@ -561,7 +571,7 @@ export default function UserManagement() {
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex items-center gap-4">
-             <div className="w-12 h-12 bg-blue-700 rounded-lg flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 bg-blue-700 rounded-lg flex items-center justify-center shadow-lg">
               <Users className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -569,7 +579,7 @@ export default function UserManagement() {
               <p className="text-gray-600">Assign roles, manage permissions, and create new users.</p>
             </div>
           </div>
-          
+
           <Dialog open={showCreateUserDialog} onOpenChange={setShowCreateUserDialog}>
             <DialogTrigger asChild>
               <Button className="bg-blue-700 hover:bg-blue-800 text-white shadow-md">
@@ -588,22 +598,22 @@ export default function UserManagement() {
                     id="email"
                     type="email"
                     value={newUserData.email}
-                    onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
+                    onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
                     placeholder="user@company.com"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Assign Role</Label>
-                  <Select value={newUserData.job_role} onValueChange={(value) => setNewUserData({...newUserData, job_role: value})}>
+                  <Select
+                    value={newUserData.job_role}
+                    onValueChange={(value) => setNewUserData({ ...newUserData, job_role: value })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {Object.entries(ROLES).map(([key, role]) => (
-                        <SelectItem 
-                          key={key} 
-                          value={key}
-                        >
+                        <SelectItem key={key} value={key}>
                           {role.label}
                         </SelectItem>
                       ))}
@@ -612,7 +622,10 @@ export default function UserManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="department">Department</Label>
-                  <Select value={newUserData.department} onValueChange={(value) => setNewUserData({...newUserData, department: value})}>
+                  <Select
+                    value={newUserData.department}
+                    onValueChange={(value) => setNewUserData({ ...newUserData, department: value })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -642,7 +655,7 @@ export default function UserManagement() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        
+
         {success && (
           <Alert className="border-green-200 bg-green-50">
             <AlertDescription className="text-green-700">{success}</AlertDescription>
@@ -653,9 +666,9 @@ export default function UserManagement() {
         <Alert className="border-blue-200 bg-blue-50">
           <Mail className="w-4 h-4" />
           <AlertDescription className="text-blue-700">
-            <strong>Note:</strong> Due to platform limitations, automatic invitation emails cannot be sent to external addresses. 
-            When you create a user account, please manually share the login details with the new user. 
-            They can then log in using their Google account associated with the email address you specify.
+            <strong>Note:</strong> Due to platform limitations, automatic invitation emails cannot be sent to external addresses.
+            When you create a user account, please manually share the login details with the new user. They can then log in using
+            their Google account associated with the email address you specify.
           </AlertDescription>
         </Alert>
 
@@ -694,8 +707,8 @@ export default function UserManagement() {
                 </SelectContent>
               </Select>
             </div>
-            <Button 
-              onClick={handleEmailBasedRoleChange} 
+            <Button
+              onClick={handleEmailBasedRoleChange}
               className="bg-blue-700 hover:bg-blue-800 text-white"
               disabled={!emailSearch || !roleForEmail}
             >
@@ -716,15 +729,10 @@ export default function UserManagement() {
               <Label htmlFor="user-select">User</Label>
               <Popover open={openUserSelect} onOpenChange={setOpenUserSelect}>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openUserSelect}
-                    className="w-full justify-between"
-                  >
+                  <Button variant="outline" role="combobox" aria-expanded={openUserSelect} className="w-full justify-between">
                     {selectedUserForAssignment
                       ? users.find((user) => user.id === selectedUserForAssignment)?.full_name
-                      : "Select user..."}
+                      : 'Select user...'}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -744,10 +752,7 @@ export default function UserManagement() {
                           disabled={user.email === currentUser?.email} // Disable current user from being selected
                         >
                           <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedUserForAssignment === user.id ? "opacity-100" : "opacity-0"
-                            )}
+                            className={cn('mr-2 h-4 w-4', selectedUserForAssignment === user.id ? 'opacity-100' : 'opacity-0')}
                           />
                           {user.full_name} ({user.email})
                         </CommandItem>
@@ -765,10 +770,7 @@ export default function UserManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROLES).map(([key, role]) => (
-                    <SelectItem 
-                      key={key} 
-                      value={key}
-                    >
+                    <SelectItem key={key} value={key}>
                       {role.label}
                     </SelectItem>
                   ))}
@@ -788,7 +790,7 @@ export default function UserManagement() {
             <TabsTrigger value="active">Active & Suspended ({users.length})</TabsTrigger>
             <TabsTrigger value="archive">Deleted User Archive ({archivedUsers.length})</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="active">
             {/* Users Table */}
             <Card className={`bg-white rounded-lg ${ELEVATION[2]}`}>
@@ -820,36 +822,49 @@ export default function UserManagement() {
                     </TableHeader>
                     <TableBody>
                       {filteredUsers.map((user) => (
-                        <TableRow 
-                          key={user.id} 
+                        <TableRow
+                          key={user.id}
                           className={`hover:bg-gray-50/50 transition-colors ${user.status === 'suspended' ? 'bg-red-50/50' : ''}`}
                         >
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${user.status === 'suspended' ? 'bg-gray-300' : 'bg-gray-200'}`}>
+                              <div
+                                className={`w-10 h-10 rounded-full flex items-center justify-center ${user.status === 'suspended' ? 'bg-gray-300' : 'bg-gray-200'}`}
+                              >
                                 <Mail className="w-5 h-5 text-gray-600" />
                               </div>
                               <div>
-                                <p className={`font-semibold text-gray-900 ${user.status === 'suspended' ? 'text-gray-500' : ''}`}>{user.full_name}</p>
-                                <p className={`text-sm ${user.status === 'suspended' ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
+                                <p
+                                  className={`font-semibold text-gray-900 ${user.status === 'suspended' ? 'text-gray-500' : ''}`}
+                                >
+                                  {user.full_name}
+                                </p>
+                                <p className={`text-sm ${user.status === 'suspended' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  {user.email}
+                                </p>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={`${ROLES[user.job_role]?.color || "bg-gray-100 text-gray-700"} ${user.status === 'suspended' ? 'opacity-50' : ''}`}>
+                            <Badge
+                              className={`${ROLES[user.job_role]?.color || 'bg-gray-100 text-gray-700'} ${user.status === 'suspended' ? 'opacity-50' : ''}`}
+                            >
                               {ROLES[user.job_role]?.label || user.job_role}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             <div className={`flex items-center gap-2 ${user.status === 'suspended' ? 'text-gray-400' : ''}`}>
                               <Building className="w-4 h-4" />
-                              <span className="capitalize">{user.department || "N/A"}</span>
+                              <span className="capitalize">{user.department || 'N/A'}</span>
                             </div>
                           </TableCell>
-                           <TableCell>
-                             <Badge variant={user.status === 'suspended' ? 'destructive' : 'outline'} className={user.status === 'suspended' ? '' : 'border-green-300 text-green-700 bg-green-50'}>
-                               <span className="capitalize">{user.status}</span>
-                             </Badge>
+                          <TableCell>
+                            <Badge
+                              variant={user.status === 'suspended' ? 'destructive' : 'outline'}
+                              className={user.status === 'suspended' ? '' : 'border-green-300 text-green-700 bg-green-50'}
+                            >
+                              <span className="capitalize">{user.status}</span>
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             {/* A user cannot change their own role directly from this select, 
@@ -862,30 +877,36 @@ export default function UserManagement() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => {
-                                    setUserToUpdateRole(user);
-                                    setSelectedNewRole(user.job_role);
-                                  }}>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setUserToUpdateRole(user);
+                                      setSelectedNewRole(user.job_role);
+                                    }}
+                                  >
                                     <Settings className="w-4 h-4 mr-2" />
                                     Change Role
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     onClick={() => handleSuspendUser(user)}
                                     // Disable suspend/reactivate if current user is not primary admin and target user is primary admin
                                     disabled={!isPrimaryAdmin && user.email === PRIMARY_ADMIN_EMAIL}
                                   >
                                     {user.status === 'suspended' ? (
-                                      <><CheckCircle className="w-4 h-4 mr-2" /> Reactivate</>
+                                      <>
+                                        <CheckCircle className="w-4 h-4 mr-2" /> Reactivate
+                                      </>
                                     ) : (
-                                      <><UserX className="w-4 h-4 mr-2" /> Suspend</>
+                                      <>
+                                        <UserX className="w-4 h-4 mr-2" /> Suspend
+                                      </>
                                     )}
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => setUserToDelete(user)}
                                     // Disable delete if target user is primary admin
-                                    disabled={user.email === PRIMARY_ADMIN_EMAIL} 
+                                    disabled={user.email === PRIMARY_ADMIN_EMAIL}
                                   >
                                     <Trash2 className="w-4 h-4 mr-2" />
                                     Delete User
@@ -907,14 +928,16 @@ export default function UserManagement() {
 
           <TabsContent value="archive">
             <Card className={`bg-white rounded-lg ${ELEVATION[2]}`}>
-               <CardHeader className="border-b border-gray-200">
+              <CardHeader className="border-b border-gray-200">
                 <CardTitle className="flex items-center justify-between">
                   <span>Deleted User Archive</span>
-                   <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-700">
                     {archivedUsers.length} Records
                   </Badge>
                 </CardTitle>
-                 <DialogDescription className="text-sm text-gray-500 mt-2">This is a permanent record of deleted users. This action cannot be undone.</DialogDescription>
+                <DialogDescription className="text-sm text-gray-500 mt-2">
+                  This is a permanent record of deleted users. This action cannot be undone.
+                </DialogDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -954,7 +977,7 @@ export default function UserManagement() {
             </Card>
           </TabsContent>
         </Tabs>
-        
+
         {/* Role Permissions Info */}
         <Card className={`bg-white rounded-lg ${ELEVATION[2]}`}>
           <CardHeader>
@@ -962,11 +985,12 @@ export default function UserManagement() {
               <Shield className="w-5 h-5 text-blue-700" />
               Role Permissions Overview
             </CardTitle>
-             <p className="text-sm text-gray-500 mt-2">
-               This section outlines the permissions for each predefined role. Assigning a role to a user automatically grants them these permissions.
-               <br />
-               Note: The ability to dynamically create new roles is not currently supported through this interface.
-             </p>
+            <p className="text-sm text-gray-500 mt-2">
+              This section outlines the permissions for each predefined role. Assigning a role to a user automatically grants them
+              these permissions.
+              <br />
+              Note: The ability to dynamically create new roles is not currently supported through this interface.
+            </p>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -978,7 +1002,7 @@ export default function UserManagement() {
                     {role.permissions.map((permission) => (
                       <li key={permission} className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 bg-blue-700 rounded-full flex-shrink-0"></div>
-                        <span className="text-xs">{permission.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                        <span className="text-xs">{permission.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</span>
                       </li>
                     ))}
                   </ul>
@@ -990,15 +1014,19 @@ export default function UserManagement() {
       </div>
 
       {/* Role Change Dialog */}
-      <Dialog open={!!userToUpdateRole} onOpenChange={() => {
-        setUserToUpdateRole(null);
-        setSelectedNewRole("");
-      }}>
+      <Dialog
+        open={!!userToUpdateRole}
+        onOpenChange={() => {
+          setUserToUpdateRole(null);
+          setSelectedNewRole('');
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Change Role for {userToUpdateRole?.full_name}</DialogTitle>
-             <DialogDescription>
-              Current Role: <span className="font-medium">{ROLES[userToUpdateRole?.job_role]?.label || userToUpdateRole?.job_role}</span>
+            <DialogDescription>
+              Current Role:{' '}
+              <span className="font-medium">{ROLES[userToUpdateRole?.job_role]?.label || userToUpdateRole?.job_role}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-2">
@@ -1009,11 +1037,7 @@ export default function UserManagement() {
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(ROLES).map(([key, role]) => (
-                  <SelectItem 
-                    key={key} 
-                    value={key}
-                    disabled={userToUpdateRole?.email === PRIMARY_ADMIN_EMAIL}
-                  >
+                  <SelectItem key={key} value={key} disabled={userToUpdateRole?.email === PRIMARY_ADMIN_EMAIL}>
                     {role.label}
                   </SelectItem>
                 ))}
@@ -1021,11 +1045,16 @@ export default function UserManagement() {
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setUserToUpdateRole(null);
-              setSelectedNewRole("");
-            }}>Cancel</Button>
-            <Button 
+            <Button
+              variant="outline"
+              onClick={() => {
+                setUserToUpdateRole(null);
+                setSelectedNewRole('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
               onClick={handleRoleChange}
               disabled={!selectedNewRole || selectedNewRole === userToUpdateRole?.job_role}
               className="bg-blue-700 hover:bg-blue-800"
@@ -1035,19 +1064,24 @@ export default function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Are you sure?</DialogTitle>
             <DialogDescription>
-              This will permanently delete the user <strong className="text-red-600">{userToDelete?.email}</strong> and move their record to the archive. This action cannot be undone.
+              This will permanently delete the user <strong className="text-red-600">{userToDelete?.email}</strong> and move their
+              record to the archive. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUserToDelete(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteUser}>Confirm Deletion</Button>
+            <Button variant="outline" onClick={() => setUserToDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteUser}>
+              Confirm Deletion
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,5 +1,4 @@
 import { Loan } from '@/api/entities';
-import { SendEmail } from '@/api/integrations';
 import { loanService } from '@/api/loan.service';
 import { LoanUtil } from '@/components/cooperative/loan.utils';
 import { Badge } from '@/components/ui/badge';
