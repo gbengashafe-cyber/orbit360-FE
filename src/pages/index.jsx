@@ -2,7 +2,7 @@ import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
 import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
 import Analytics from './Analytics';
 import Appraisals from './Appraisals';
-import AuthorizationCenterWIP from './authorization-center-new';
+import AuthorizationCenterWIP from './authorization-center';
 import ClientAuth from './ClientAuth';
 import CompanyDocuments from './CompanyDocuments';
 import CompensationTool from './CompensationTool';
@@ -182,7 +182,7 @@ function PagesContent() {
 
         <Route path="/Appraisals" element={<Appraisals />} />
 
-        <Route path="/ExitManagement" element={<ExitManagement />} />
+        <Route path="/exit-management" element={<ExitManagement />} />
 
         <Route path="/ExitApprovals" element={<ExitApprovals />} />
 

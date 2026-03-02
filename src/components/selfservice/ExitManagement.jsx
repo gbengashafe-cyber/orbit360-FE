@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { getStatusColor } from '@/pages/authorization-center-new/authorization-center.util';
+import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
 import { showToast } from '@/utils/toast';
 import {
   AlertCircle,
@@ -355,9 +355,14 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Exit Management</h2>
-          <p className="text-gray-600">Submit and track your offboarding process</p>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
+            <FileText className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Exit Management</h1>
+            <p className="text-gray-600">Submit and track your offboarding process</p>
+          </div>
         </div>
         {!activeRequest && (
           <Dialog open={showForm} onOpenChange={setShowForm}>

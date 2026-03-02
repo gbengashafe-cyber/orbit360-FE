@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useGlobalContext } from '@/state/context';
 import { Banknote, Download, RefreshCw, ThumbsDown, ThumbsUp, TrendingUp, Users, ViewIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { getStatusColor } from '../../authorization-center-new/authorization-center.util';
+import { getStatusColor } from '../../authorization-center/authorization-center.util';
 import { LoanForm } from './loan-form';
 
 const LoanApprovalCard = ({ loans, onApprove, onReject, loading }) => {

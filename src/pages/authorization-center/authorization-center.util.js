@@ -35,6 +35,7 @@ export const getStatusColor = (status) => {
     reported: 'bg-blue-100 text-blue-700',
     resolved: 'bg-green-100 text-green-700',
     submitted: 'bg-blue-100 text-blue-700',
+    exited: 'bg-red-100 text-red-700',
     terminated: 'bg-red-100 text-red-700',
     treated: 'bg-yellow-100 text-yellow-700',
     under_investigation: 'bg-yellow-100 text-yellow-700',

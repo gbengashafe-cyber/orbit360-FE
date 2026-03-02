@@ -164,7 +164,7 @@ export function Employees() {
   const handleTerminate = async (employeeId) => {
     if (window.confirm('Are you sure you want to terminate this employee? Their record will be moved to the ex-staff archive.')) {
       try {
-        const response = await employeeService.submitModificationRequest(employeeId, { status: 'terminated' });
+        const response = await employeeService.submitModificationRequest(employeeId, { status: 'exited' });
         refresh();
         toast.success('Success', { description: response.message ?? 'Employee terminated successfully.' });
       } catch (error) {
@@ -252,7 +252,7 @@ export function Employees() {
                 <TabsTrigger value="active">Active Employees</TabsTrigger>
                 <TabsTrigger value="pending_approval">Pending Approval</TabsTrigger>
                 <TabsTrigger value="on_leave">On Leave</TabsTrigger>
-                <TabsTrigger value="terminated">Ex-Staff Archive</TabsTrigger>
+                <TabsTrigger value="exited">Ex-Staff Archive</TabsTrigger>
               </TabsList>
             </CardHeader>
             <CardContent className="p-0 min-h-[400px] relative">
@@ -270,6 +270,7 @@ export function Employees() {
                     onEdit={handleEdit}
                     onTerminate={handleTerminate}
                     onResendInstructions={handleResendInstructions}
+                    currentTab={currentTab}
                   />
                 </TabsContent>
               )}

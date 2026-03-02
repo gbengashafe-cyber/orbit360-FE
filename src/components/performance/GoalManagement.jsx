@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { getStatusColor } from '@/pages/authorization-center-new/authorization-center.util';
+import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
 import { Edit, Plus, Target, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 

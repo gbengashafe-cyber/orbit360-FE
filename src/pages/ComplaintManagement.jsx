@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useNotification } from '@/context/NotificationContext';
 import { AlertTriangle, CheckCircle, Eye } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { getStatusColor } from './authorization-center-new/authorization-center.util';
+import { getStatusColor } from './authorization-center/authorization-center.util';
 
 export default function ComplaintManagement() {
   const { addNotification } = useNotification();

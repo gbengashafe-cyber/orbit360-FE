@@ -78,7 +78,7 @@ const employeePortalNav = [
   { title: 'Appraisals', url: createPageUrl('Appraisals'), icon: BookCopy },
   { title: 'Loan Requests', url: createPageUrl('employee-cooperative'), icon: HandCoins },
   { title: 'Leave Management', url: createPageUrl('leave-management'), icon: PlaneTakeoff },
-  { title: 'Exit Management', url: createPageUrl('ExitManagement'), icon: UserRoundX },
+  { title: 'Exit Management', url: createPageUrl('exit-management'), icon: UserRoundX },
   { title: 'Document Hub', url: createPageUrl('CompanyDocuments'), icon: FileBox },
   { title: 'Staff Complaints', url: createPageUrl('StaffComplaints'), icon: MessageSquareHeart },
   { title: 'Request Training', url: createPageUrl('request-training'), icon: NotebookPen },

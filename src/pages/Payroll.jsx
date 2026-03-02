@@ -30,7 +30,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import z from 'zod';
 import Payslip from '../components/payroll/Payslip';
-import { getStatusColor } from './authorization-center-new/authorization-center.util';
+import { getStatusColor } from './authorization-center/authorization-center.util';
 
 export const payPeriodRegex = /^20\d{2}-(0[1-9]|1[0-2])$/;
 const generatePayrollSchema = z.object({

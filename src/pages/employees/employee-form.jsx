@@ -52,7 +52,6 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
           companyId: '',
           departmentId: '',
           jobRoleId: '',
-          status: 'active',
           hireDate: '',
           supervisorId: '',
           supervisorName: '',
@@ -364,7 +363,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                   required
                 />
               </div>
-              {formData.id ? (
+              {/* {formData.id ? (
                 <div className="space-y-2">
                   <Label htmlFor="status">Employment Status</Label>
                   <Select value={formData.status?.toLowerCase()} onValueChange={(value) => handleInputChange('status', value)}>
@@ -382,7 +381,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                     </SelectContent>
                   </Select>
                 </div>
-              ) : null}
+              ) : null} */}
             </div>
 
             <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mt-6">Reporting Line</h3>

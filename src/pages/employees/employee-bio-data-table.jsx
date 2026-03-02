@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getStatusColor } from '@/pages/authorization-center-new/authorization-center.util';
+import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
 import { Edit, Users } from 'lucide-react';
 
 // export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onResendInstructions }) => {
@@ -43,7 +43,7 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate }) => {
                     <Button variant="outline" onClick={() => onEdit(employee)} title="Edit Employee Details">
                       <Edit className="w-4 h-4" /> Edit
                     </Button>
-                    {employee.status !== 'terminated' ? (
+                    {employee.status?.toLowerCase() !== 'exited' ? (
                       <Button variant="destructive" onClick={() => onTerminate(employee.id)}>
                         <Edit className="w-4 h-4" /> Terminate
                       </Button>

@@ -1,5 +1,4 @@
 import { employeeService, userService } from '@/api';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ExitManagementComponent from '../components/selfservice/ExitManagement';
@@ -129,17 +128,7 @@ export default function ExitManagementPage() {
   return (
     <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
       <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-            <FileText className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Exit Management</h1>
-            <p className="text-gray-600">Manage resignations and the offboarding process</p>
-          </div>
-        </div>
-
-        {isHrAdmin && (
+        {/* {isHrAdmin && (
           <div className="flex flex-col md:flex-row items-center justify-between bg-blue-50 border border-blue-200 p-4 rounded-xl gap-4">
             <p className="text-sm font-medium text-blue-800">Admin: You are viewing an employee portal.</p>
             <div className="w-full md:w-72">
@@ -162,7 +151,7 @@ export default function ExitManagementPage() {
               </Select>
             </div>
           </div>
-        )}
+        )} */}
 
         <ExitManagementComponent employee={currentEmployeeData} isHrAdmin={isHrAdmin} onUpdate={loadBaseData} />
       </div>

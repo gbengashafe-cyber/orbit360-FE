@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 
 import ApplicationPipeline from '../components/recruitment/ApplicationPipeline';
 import JobPostingForm from '../components/recruitment/JobPostingForm';
-import { getStatusColor } from './authorization-center-new/authorization-center.util';
+import { getStatusColor } from './authorization-center/authorization-center.util';
 
 export default function Recruitment() {
   const [jobPostings, setJobPostings] = useState([]);
