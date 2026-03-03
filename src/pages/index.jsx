@@ -1,13 +1,8 @@
 import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
 import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
-import Analytics from './Analytics';
-import Appraisals from './Appraisals';
 import AuthorizationCenterWIP from './authorization-center';
-import ClientAuth from './ClientAuth';
 import CompanyDocuments from './CompanyDocuments';
 import ComplaintManagement from './ComplaintManagement';
-import Contacts from './Contacts';
-import Deals from './Deals';
 import DocumentManagement from './DocumentManagement';
 import { Dashboard } from './employee-portal/dashboard/Dashboard';
 import { EmployeeCooperative } from './employee-portal/employee-cooperative/cooperative-loan';
@@ -15,23 +10,16 @@ import EmployeeDocuments from './EmployeeDocuments';
 import { Employees } from './employees/employees-page';
 import ExitApprovals from './ExitApprovals';
 import ExitManagement from './ExitManagement';
-import ExpenseApprovals from './ExpenseApprovals';
-import Expenses from './Expenses';
 import { HRDashboard } from './hr-portal/dashboard/Dashboard';
 import Cooperative from './hr-portal/loans/Cooperative';
 import MyPayslips from './hr-portal/payslip/payslips';
 import { TrainingRequestReview } from './hr-portal/training-request-review';
-import InstallApp from './InstallApp';
-import KPIManagement from './KPIManagement';
 import Layout from './Layout.jsx';
 import LeaveApprovals from './LeaveApprovals';
 import LeaveManagement from './LeaveManagement';
 import LoginPage from './login/Login';
 import Onboarding from './Onboarding';
 import Payroll from './Payroll';
-import Performance from './Performance';
-import ProjectBoard from './ProjectBoard';
-import Projects from './Projects';
 import Recruitment from './Recruitment';
 import RecruitmentApprovals from './RecruitmentApprovals';
 import StaffComplaints from './StaffComplaints';
@@ -41,8 +29,6 @@ import UserManagement from './UserManagement';
 
 const PAGES = {
   HRDashboard: HRDashboard,
-
-  ClientAuth: ClientAuth,
 
   UserManagement: UserManagement,
 
@@ -56,15 +42,9 @@ const PAGES = {
 
   TaxCalculator: TaxCalculator,
 
-  Projects: Projects,
-
-  ProjectBoard: ProjectBoard,
-
   DocumentManagement: DocumentManagement,
 
   EmployeeDocuments: EmployeeDocuments,
-
-  Performance: Performance,
 
   Onboarding: Onboarding,
 
@@ -72,21 +52,13 @@ const PAGES = {
 
   payslips: MyPayslips,
 
-  Expenses: Expenses,
-
-  ExpenseApprovals: ExpenseApprovals,
-
   LeaveManagement: LeaveManagement,
 
   LeaveApprovals: LeaveApprovals,
 
-  Appraisals: Appraisals,
-
   ExitManagement: ExitManagement,
 
   ExitApprovals: ExitApprovals,
-
-  InstallApp: InstallApp,
 
   StaffComplaints: StaffComplaints,
 
@@ -96,14 +68,8 @@ const PAGES = {
 
   Cooperative: Cooperative,
 
-  KPIManagement: KPIManagement,
-
   CompanyDocuments: CompanyDocuments,
 
-  Analytics: Analytics,
-
-  Contacts,
-  Deals,
   login: LoginPage,
   AuthorizationCenterWIP,
   TrainingRequestReview,
@@ -136,8 +102,6 @@ function PagesContent() {
         <Route path="/authorization-center" element={<AuthorizationCenterWIP />} />
         <Route path="/training-request-reviews" element={<TrainingRequestReview />} />
 
-        <Route path="/ClientAuth" element={<ClientAuth />} />
-
         <Route path="/UserManagement" element={<UserManagement />} />
 
         <Route path="/payroll" element={<Payroll />} />
@@ -150,17 +114,11 @@ function PagesContent() {
 
         <Route path="/TaxCalculator" element={<TaxCalculator />} />
 
-        <Route path="/Projects" element={<Projects />} />
-
-        <Route path="/ProjectBoard" element={<ProjectBoard />} />
-
         <Route path="/HRDashboard" element={<HRDashboard />} />
 
         <Route path="/DocumentManagement" element={<DocumentManagement />} />
 
         <Route path="/EmployeeDocuments" element={<EmployeeDocuments />} />
-
-        <Route path="/Performance" element={<Performance />} />
 
         <Route path="/Onboarding" element={<Onboarding />} />
 
@@ -168,21 +126,13 @@ function PagesContent() {
 
         <Route path="/payslips" element={<MyPayslips />} />
 
-        <Route path="/Expenses" element={<Expenses />} />
-
-        <Route path="/ExpenseApprovals" element={<ExpenseApprovals />} />
-
         <Route path="/leave-management" element={<LeaveManagement />} />
 
         <Route path="/leave-approvals" element={<LeaveApprovals />} />
 
-        <Route path="/Appraisals" element={<Appraisals />} />
-
         <Route path="/exit-management" element={<ExitManagement />} />
 
         <Route path="/ExitApprovals" element={<ExitApprovals />} />
-
-        <Route path="/InstallApp" element={<InstallApp />} />
 
         <Route path="/StaffComplaints" element={<StaffComplaints />} />
 
@@ -193,15 +143,7 @@ function PagesContent() {
         <Route path="/cooperative" element={<Cooperative />} />
         <Route path="/employee-cooperative" element={<EmployeeCooperative />} />
 
-        <Route path="/KPIManagement" element={<KPIManagement />} />
-
         <Route path="/CompanyDocuments" element={<CompanyDocuments />} />
-
-        <Route path="/Analytics" element={<Analytics />} />
-
-        <Route path="/Contacts" element={<Contacts />} />
-
-        <Route path="/Deals" element={<Deals />} />
       </Routes>
     </Layout>
   );

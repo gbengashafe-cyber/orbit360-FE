@@ -41,6 +41,7 @@ export function EmployeeCooperative() {
       });
       setLoans(enrichedLoans);
     } catch (error) {
+      logger.error({ caller: 'Load employee loan data', payload: error });
       toast.error('Error', {
         description: error.message || 'Unable to load your loan history. Kindly contact the administrator.',
       });

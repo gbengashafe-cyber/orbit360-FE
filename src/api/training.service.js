@@ -14,12 +14,17 @@ export const trainingService = {
     return apiClient.get(url);
   },
 
-  // Get specific training request details
+  getRequestsByEmployee: (options) => {
+    const params = makeQueryParams(options);
+
+    const url = `${apiRoutes.training.employeeRequests}?${params}`;
+    return apiClient.get(url);
+  },
+
   getRequestById: async (requestId) => {
     return await apiClient.get(apiRoutes.GetTrainingRequest(requestId));
   },
 
-  // Supervisor approve or reject training request
   supervisorApprove: (requestId, approved, supervisorNote = '') => {
     return apiClient.put(apiRoutes.SupervisorApproveTrainingRequest(requestId), {
       approved,
@@ -27,15 +32,10 @@ export const trainingService = {
     });
   },
 
-  // HR Officer review. Approve or reject training request
-  hrApprove: async (requestId, approved, rejectionReason = '') => {
-    return await apiClient.put(apiRoutes.HRReviewTrainingRequest(requestId), {
-      approved,
-      rejectionReason,
-    });
+  hrReview: (requestId, payload) => {
+    return apiClient.put(apiRoutes.HRReviewTrainingRequest(requestId), payload);
   },
 
-  // HR Manager give final approval or rejection
   finalApprove: (requestId, approved, finalNote = '') => {
     return apiClient.put(apiRoutes.FinalApproveTrainingRequest(requestId), {
       approved,
@@ -43,7 +43,6 @@ export const trainingService = {
     });
   },
 
-  // Delete training request
   deleteRequest: async (requestId) => {
     try {
       const response = await apiClient.delete(apiRoutes.DeleteTrainingRequest(requestId));

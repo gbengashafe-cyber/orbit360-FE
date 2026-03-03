@@ -235,6 +235,10 @@ export class ApiRoutes {
   static FinalApproveTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}/final-approval`;
   static DeleteTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}`;
 
+  static training = {
+    employeeRequests: '/v1/employees/training-requests',
+  };
+
   // Companies
 
   static company = {

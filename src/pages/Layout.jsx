@@ -16,10 +16,7 @@ import {
 import { GlobalContextProvider, useGlobalContext } from '@/state/context';
 import { createPageUrl } from '@/utils';
 import {
-  BadgePercent,
   Banknote,
-  BookCopy,
-  Calculator,
   CheckCircle2,
   ChevronDown,
   ClipboardList,
@@ -31,14 +28,10 @@ import {
   LayoutDashboard,
   Loader2,
   LogOut,
-  MessageSquareHeart,
   NotebookPen,
   PanelLeftClose,
   PanelLeftOpen,
   PlaneTakeoff,
-  Scale,
-  Shuffle,
-  Star,
   UserCheck,
   UserRoundX,
   Users,
@@ -62,27 +55,20 @@ const hrNav = [
   { title: 'Recruitment', url: createPageUrl('Recruitment'), icon: UserCheck },
   { title: 'Recruitment Approvals', url: '/RecruitmentApprovals', icon: CheckCircle2 },
   { title: 'Onboarding', url: createPageUrl('Onboarding'), icon: ClipboardList },
-  { title: 'Performance', url: createPageUrl('Performance'), icon: Star },
   { title: 'Leave Approvals', url: createPageUrl('leave-approvals'), icon: CheckCircle2 },
   { title: 'Exit Review', url: '/ExitApprovals', icon: UserRoundX },
-  { title: 'KPI Management', url: createPageUrl('KPIManagement'), icon: BadgePercent },
-  { title: 'Disciplinary Actions', url: createPageUrl('DisciplinaryActions'), icon: Scale },
   { title: 'Documents', url: createPageUrl('DocumentManagement'), icon: FolderArchive },
-  { title: 'Tax Calculator', url: createPageUrl('TaxCalculator'), icon: Calculator },
 ];
 
 const employeePortalNav = [
   { title: 'Dashboard', url: createPageUrl('dashboard'), icon: LayoutDashboard },
   { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
   { title: 'My Payslips', url: createPageUrl('my-payslips'), icon: FileText },
-  { title: 'Appraisals', url: createPageUrl('Appraisals'), icon: BookCopy },
   { title: 'Loan Requests', url: createPageUrl('employee-cooperative'), icon: HandCoins },
   { title: 'Leave Management', url: createPageUrl('leave-management'), icon: PlaneTakeoff },
   { title: 'Exit Management', url: createPageUrl('exit-management'), icon: UserRoundX },
   { title: 'Document Hub', url: createPageUrl('CompanyDocuments'), icon: FileBox },
-  { title: 'Staff Complaints', url: createPageUrl('StaffComplaints'), icon: MessageSquareHeart },
   { title: 'Request Training', url: createPageUrl('request-training'), icon: NotebookPen },
-  { title: 'Staff Movement', url: createPageUrl('StaffMovement'), icon: Shuffle },
 ];
 
 const adminNav = [
@@ -251,7 +237,7 @@ const LayoutContent = ({ children }) => {
             </div>
             <div className={`flex-1 min-w-0 ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
               <p className="font-medium text-gray-900 text-sm truncate">
-                {currentUser?.firstName}
+                {currentUser?.firstName} {currentUser?.lastName}
                 {isAdmin && (
                   <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                     Admin
