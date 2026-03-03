@@ -4,6 +4,7 @@ import { jobPostingSchema } from './job-posting';
 import { leaveSchema } from './leave';
 import { loanSchema } from './loan';
 import { payrollBatchSchema } from './payroll-batch';
+import { trainingRequestSchema } from './training-request';
 
 export const MODULE_SCHEMAS = {
   payrolls: payrollBatchSchema,
@@ -12,4 +13,5 @@ export const MODULE_SCHEMAS = {
   leaves: leaveSchema,
   'job postings': jobPostingSchema,
   exits: exitSchema,
+  'training requests': trainingRequestSchema,
 };

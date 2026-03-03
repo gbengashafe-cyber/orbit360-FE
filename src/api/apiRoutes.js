@@ -231,7 +231,7 @@ export class ApiRoutes {
   static SubmitTrainingRequest = () => `${ApiRoutes.TrainingRequests}`;
   static GetTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}`;
   static SupervisorApproveTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}/supervisor-approval`;
-  static HRApproveTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}/hr-approval`;
+  static HRReviewTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}/hr-review`;
   static FinalApproveTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}/final-approval`;
   static DeleteTrainingRequest = (id) => `${ApiRoutes.TrainingRequests}/${id}`;
 

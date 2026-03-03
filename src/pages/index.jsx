@@ -5,7 +5,6 @@ import Appraisals from './Appraisals';
 import AuthorizationCenterWIP from './authorization-center';
 import ClientAuth from './ClientAuth';
 import CompanyDocuments from './CompanyDocuments';
-import CompensationTool from './CompensationTool';
 import ComplaintManagement from './ComplaintManagement';
 import Contacts from './Contacts';
 import Deals from './Deals';
@@ -21,6 +20,7 @@ import Expenses from './Expenses';
 import { HRDashboard } from './hr-portal/dashboard/Dashboard';
 import Cooperative from './hr-portal/loans/Cooperative';
 import MyPayslips from './hr-portal/payslip/payslips';
+import { TrainingRequestReview } from './hr-portal/training-request-review';
 import InstallApp from './InstallApp';
 import KPIManagement from './KPIManagement';
 import Layout from './Layout.jsx';
@@ -34,9 +34,9 @@ import ProjectBoard from './ProjectBoard';
 import Projects from './Projects';
 import Recruitment from './Recruitment';
 import RecruitmentApprovals from './RecruitmentApprovals';
-import RequestTraining from './RequestTraining';
 import StaffComplaints from './StaffComplaints';
 import TaxCalculator from './TaxCalculator';
+import RequestTraining from './training-requests/RequestTraining';
 import UserManagement from './UserManagement';
 
 const PAGES = {
@@ -74,8 +74,6 @@ const PAGES = {
 
   Expenses: Expenses,
 
-  CompensationTool: CompensationTool,
-
   ExpenseApprovals: ExpenseApprovals,
 
   LeaveManagement: LeaveManagement,
@@ -104,12 +102,11 @@ const PAGES = {
 
   Analytics: Analytics,
 
-  Contacts: Contacts,
-
-  Deals: Deals,
-
+  Contacts,
+  Deals,
   login: LoginPage,
   AuthorizationCenterWIP,
+  TrainingRequestReview,
 };
 
 function _getCurrentPage(url) {
@@ -137,6 +134,7 @@ function PagesContent() {
         <Route path="/hr-dashboard" element={<HRDashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/authorization-center" element={<AuthorizationCenterWIP />} />
+        <Route path="/training-request-reviews" element={<TrainingRequestReview />} />
 
         <Route path="/ClientAuth" element={<ClientAuth />} />
 
@@ -171,8 +169,6 @@ function PagesContent() {
         <Route path="/payslips" element={<MyPayslips />} />
 
         <Route path="/Expenses" element={<Expenses />} />
-
-        <Route path="/CompensationTool" element={<CompensationTool />} />
 
         <Route path="/ExpenseApprovals" element={<ExpenseApprovals />} />
 

@@ -1,12 +1,4 @@
-import {
-  appraisalService,
-  employeeService,
-  exitService,
-  leaveService,
-  payrollService,
-  recruitmentService,
-  trainingService,
-} from '@/api';
+import { employeeService, exitService, leaveService, payrollService, recruitmentService, trainingService } from '@/api';
 import { authorizationService } from '@/api/authorization.service';
 import { loanService } from '@/api/loan.service';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
@@ -22,16 +14,7 @@ import { AuthorizationViewDialog } from './authorization-center-dialog';
 import { TransactionsTable } from './transaction-table';
 
 export default function AuthorizationCenterWIP() {
-  const TRAINING_MODULE_KEY = 'training_requests';
-  const normalizeModuleName = (moduleName = '') => moduleName.toString().toLowerCase().replace(/-/g, '_');
-  const normalizeStatus = (status = '') => status.toString().toUpperCase();
   const [loading, setLoading] = useState(true);
-  // const [jobPostings, setJobPostings] = useState([]);
-  // const [resignations, setResignations] = useState([]);
-  // const [redeployments, setRedeployments] = useState([]);
-  // const [newStaffRequests, setNewStaffRequests] = useState([]);
-  // const [staffComplaints, setStaffComplaints] = useState([]);
-  // const [appraisals, setAppraisals] = useState([]);
   const [viewingItem, setViewingItem] = useState(null);
   const [activeModule, setActiveModule] = useState('loans');
   const [tabIsLoading, setTabIsLoading] = useState(true);
@@ -39,7 +22,6 @@ export default function AuthorizationCenterWIP() {
   const [pendingStats, setPendingStats] = useState({ total: 0, breakdown: {} });
   const [pendingItems, setPendingItems] = useState({});
   const [pendingItemsPagination, setPendingItemsPagination] = useState({});
-  const [trainingPendingAll, setTrainingPendingAll] = useState([]);
   const [rows, setRows] = useState(25);
   const [approverNote, setApprovalNote] = useState('');
   const [authorizeError, setAuthorizeError] = useState('');
@@ -50,67 +32,18 @@ export default function AuthorizationCenterWIP() {
     setRefreshKey((prev) => prev + 1);
   };
 
-  const getTrainingPendingForCurrentUser = useCallback(async () => {
-    const jobTitle = currentUser?.employeeData?.jobRole?.title?.toString().toLowerCase() || '';
-    const isHrLike = jobTitle.includes('hr') || jobTitle.includes('human');
-    const isHrManager = isHrLike && ['manager', 'chief', 'head'].some((keyword) => jobTitle.includes(keyword));
-    const isSupervisorLike = ['supervisor', 'lead', 'superintendent'].some((keyword) => jobTitle.includes(keyword));
-
-    const response = await trainingService.getRequests();
-    const allRequests = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
-    const nonApprovedRequests = allRequests.filter((request) => !normalizeStatus(request.status).includes('APPROVED'));
-
-    if (isSupervisorLike) {
-      return nonApprovedRequests.filter((request) =>
-        ['PENDING', 'SUPERVISOR_REJECTED'].includes(normalizeStatus(request.status)),
-      );
-    }
-
-    if (isHrManager) {
-      return nonApprovedRequests.filter((request) =>
-        ['PENDING', 'SUPERVISOR_REJECTED', 'HR_REVIEWING', 'HR_REJECTED', 'FINAL_REJECTED'].includes(
-          normalizeStatus(request.status),
-        ),
-      );
-    }
-
-    return nonApprovedRequests.filter((request) =>
-      ['PENDING', 'SUPERVISOR_REJECTED', 'HR_REVIEWING', 'HR_REJECTED'].includes(normalizeStatus(request.status)),
-    );
-  }, [currentUser]);
-
   const getPendingCount = useCallback(async () => {
     setLoading(true);
     try {
       const result = await authorizationService.getPendingCount();
-      const backendStats = result.data || { total: 0, breakdown: {} };
-      let nextStats = { ...backendStats, breakdown: { ...(backendStats.breakdown || {}) } };
-
-      try {
-        const trainingItems = await getTrainingPendingForCurrentUser();
-        setTrainingPendingAll(trainingItems);
-
-        const hasTrainingModule =
-          typeof nextStats.breakdown.training !== 'undefined' ||
-          typeof nextStats.breakdown.trainings !== 'undefined' ||
-          typeof nextStats.breakdown[TRAINING_MODULE_KEY] !== 'undefined';
-
-        if (!hasTrainingModule && trainingItems.length > 0) {
-          nextStats.breakdown[TRAINING_MODULE_KEY] = trainingItems.length;
-          nextStats.total = Number(nextStats.total || 0) + trainingItems.length;
-        }
-      } catch (trainingError) {
-        logger.error({ caller: 'Load training pending fallback', payload: trainingError });
-      }
-
-      setPendingStats(nextStats);
+      setPendingStats(result.data);
     } catch (error) {
       logger.error({ caller: 'List pending auth count', error });
       toast.error('Error', { description: error.message || 'Could not load pending authorization count' });
     } finally {
       setLoading(false);
     }
-  }, [getTrainingPendingForCurrentUser]);
+  }, []);
 
   useEffect(() => {
     getPendingCount();
@@ -120,7 +53,7 @@ export default function AuthorizationCenterWIP() {
     return () => {
       setAuthorizeError(null);
     };
-  }, []);
+  }, [refreshKey]);
 
   const currentPagination = pendingItemsPagination[activeModule]?.page || 1;
 
@@ -130,18 +63,6 @@ export default function AuthorizationCenterWIP() {
         return;
       }
       setTabIsLoading(true);
-
-      if (normalizeModuleName(activeModule) === TRAINING_MODULE_KEY) {
-        const page = Number(currentPagination) || 1;
-        const start = (page - 1) * rows;
-        const items = trainingPendingAll.slice(start, start + rows);
-        const pages = Math.max(1, Math.ceil(trainingPendingAll.length / rows));
-
-        setPendingItems((prev) => ({ ...prev, [activeModule]: items }));
-        setPendingItemsPagination((prev) => ({ ...prev, [activeModule]: { page, pages, total: trainingPendingAll.length } }));
-        return;
-      }
-
       const result = await authorizationService.getModulePending(activeModule, {
         rows,
         page: currentPagination,
@@ -154,7 +75,7 @@ export default function AuthorizationCenterWIP() {
     } finally {
       setTabIsLoading(false);
     }
-  }, [TRAINING_MODULE_KEY, activeModule, currentPagination, pendingStats.breakdown, rows, trainingPendingAll]);
+  }, [activeModule, currentPagination, pendingStats.breakdown, rows]);
 
   useEffect(() => {
     loadPendingModuleItems();
@@ -162,10 +83,11 @@ export default function AuthorizationCenterWIP() {
 
   const handleAuthorize = async (item, action, moduleName) => {
     setAuthorizing(true);
+    setAuthorizeError(null);
     try {
       let responsePayload;
 
-      if (['loans', 'payrolls', 'employees', 'leaves'].includes(moduleName) && action === 'reject' && !approverNote) {
+      if (action === 'reject' && !approverNote) {
         setAuthorizeError('Note is required if action is `Reject`');
         return;
       }
@@ -198,6 +120,13 @@ export default function AuthorizationCenterWIP() {
             ? (responsePayload = await leaveService.updateLeaveStatus(item.id, 'APPROVED'))
             : (responsePayload = await leaveService.updateLeaveStatus(item.id, 'REJECTED'));
           break;
+        case 'training requests': {
+          item.status === 'PENDING_HR_APPROVAL'
+            ? (responsePayload = await trainingService.finalApprove(item.id, action === 'approve', approverNote))
+            : (responsePayload = await trainingService.supervisorApprove(item.id, action === 'approve', approverNote));
+
+          break;
+        }
         case 'exits': {
           responsePayload = await exitService.approveExit(item.id, action === 'approve' ? 'approved' : 'rejected');
           break;
@@ -205,48 +134,6 @@ export default function AuthorizationCenterWIP() {
 
         default:
           throw new Error(`Authorization is not handled for module '${moduleName}'`);
-      }
-
-      switch (normalizeModuleName(moduleName)) {
-        case 'training':
-        case 'trainings':
-        case 'training_requests': {
-          const jobTitle = currentUser?.employeeData?.jobRole?.title?.toString().toLowerCase() || '';
-          const isHrLike = jobTitle.includes('hr') || jobTitle.includes('human');
-          const isHrManager = isHrLike && ['manager', 'chief', 'head'].some((keyword) => jobTitle.includes(keyword));
-          const isSupervisorLike = ['supervisor', 'lead', 'superintendent'].some((keyword) => jobTitle.includes(keyword));
-
-          if (isSupervisorLike) {
-            responsePayload = await trainingService.supervisorApprove(item.id, action === 'approve', approverNote);
-          } else if (isHrManager) {
-            responsePayload = await trainingService.finalApprove(item.id, action === 'approve', approverNote);
-          } else {
-            responsePayload = await trainingService.hrApprove(item.id, action === 'approve', approverNote);
-          }
-          break;
-        }
-        case 'recruitment':
-        case 'recruitments':
-        case 'job_postings': {
-          if (action === 'approve') {
-            responsePayload = await recruitmentService.approveJobPosting(item.id, currentUser?.id || currentUser?.email);
-          } else {
-            responsePayload = await recruitmentService.rejectJobPosting(item.id);
-          }
-          break;
-        }
-        case 'appraisal':
-        case 'appraisals': {
-          responsePayload = await appraisalService.reviewAppraisal(item.id, {
-            status: action === 'approve' ? 'approved' : 'rejected',
-            reviewed_by: currentUser?.id || currentUser?.email,
-            review_note: approverNote,
-            reviewed_at: new Date().toISOString(),
-          });
-          break;
-        }
-        default:
-          break;
       }
 
       if (responsePayload?.message) {
@@ -270,19 +157,18 @@ export default function AuthorizationCenterWIP() {
     }
   };
 
-  const jobTitle = (currentUser?.employeeData?.jobRole?.title || '').toString().toLowerCase();
   const userRole = (currentUser?.role || '').toString().toLowerCase();
   const permissions = Array.isArray(currentUser?.permissions)
     ? currentUser.permissions.map((permission) => permission?.toString().toLowerCase())
     : [];
-  const isManagementRole = jobTitle.includes('head') || jobTitle.includes('manager') || jobTitle.includes('supervisor');
-  const isHrLike = jobTitle.includes('hr') || jobTitle.includes('human');
+
   const hasApprovalPermission =
     permissions.includes('approve_exits') ||
     permissions.includes('approve_recruitment') ||
     permissions.includes('approve_all_requests') ||
     permissions.some((permission) => permission.includes('approve'));
-  const canAuthorize = isManagementRole || isHrLike || hasApprovalPermission || userRole === 'admin';
+
+  const canAuthorize = hasApprovalPermission || userRole === 'admin';
 
   return (
     <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
@@ -362,7 +248,11 @@ export default function AuthorizationCenterWIP() {
           <AuthorizationViewDialog
             authorizeError={authorizeError}
             viewingItem={viewingItem}
-            onOpenChange={() => setViewingItem(null)}
+            onOpenChange={() => {
+              setAuthorizeError(null);
+              setViewingItem(null);
+              setApprovalNote(null);
+            }}
             canAuthorize={canAuthorize}
             handleAuthorize={handleAuthorize}
             authorizing={authorizing}

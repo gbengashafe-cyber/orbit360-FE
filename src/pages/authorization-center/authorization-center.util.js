@@ -12,8 +12,13 @@ export const getStatusColor = (status) => {
     completed: 'bg-green-100 text-green-700',
     draft: 'bg-gray-100 text-gray-700',
     failed: 'bg-red-100 text-red-700',
+    final_approved: 'bg-emerald-100 text-emerald-700',
+    final_rejected: 'bg-red-100 text-red-700',
     generated: 'bg-blue-100 text-blue-700',
     hearing_scheduled: 'bg-purple-100 text-purple-700',
+    hr_approved: 'bg-green-100 text-green-700',
+    hr_rejected: 'bg-red-100 text-red-700',
+    hr_reviewing: 'bg-yellow-100 text-yellow-700',
     in_progress: 'bg-blue-100 text-blue-700',
     investigating: 'bg-orange-100 text-orange-700',
     issues: 'bg-orange-100 text-orange-800',
@@ -35,6 +40,8 @@ export const getStatusColor = (status) => {
     reported: 'bg-blue-100 text-blue-700',
     resolved: 'bg-green-100 text-green-700',
     submitted: 'bg-blue-100 text-blue-700',
+    supervisor_approved: 'bg-green-100 text-green-700',
+    supervisor_rejected: 'bg-red-100 text-red-700',
     exited: 'bg-red-100 text-red-700',
     terminated: 'bg-red-100 text-red-700',
     treated: 'bg-yellow-100 text-yellow-700',
@@ -83,6 +90,13 @@ export const getTransactionProps = (transaction, moduleName) => {
         type = transaction?.employment_type;
         description = transaction?.description?.substring(0, 50);
         initiator = transaction?.created_by;
+      }
+      break;
+    case 'training requests':
+      {
+        type = transaction?.trainingType;
+        description = transaction?.trainingDescription?.substring(0, 50);
+        initiator = `${transaction?.employee?.firstName} ${transaction?.employee?.lastName}`;
       }
 
       break;

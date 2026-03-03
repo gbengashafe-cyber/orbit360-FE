@@ -6,4 +6,6 @@ export const PENDING_STATES = [
   'treated',
   'verdict_delivered',
   'pending_hr_review',
+  'pending_hr_approval',
+  'pending_supervisor_approval',
 ];

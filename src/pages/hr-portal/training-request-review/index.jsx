@@ -1,6 +1,3 @@
-import { Loan } from '@/api/entities';
-import { loanService } from '@/api/loan.service';
-import { LoanUtil } from '@/components/cooperative/loan.utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +9,6 @@ import { useGlobalContext } from '@/state/context';
 import { Banknote, Download, RefreshCw, ThumbsDown, ThumbsUp, TrendingUp, Users, ViewIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { getStatusColor } from '../../authorization-center/authorization-center.util';
-import { LoanForm } from './loan-form';
 
 const LoanApprovalCard = ({ loans, onApprove, onReject, loading }) => {
   if (loans.length === 0) return null;
@@ -70,7 +66,7 @@ const LoanApprovalCard = ({ loans, onApprove, onReject, loading }) => {
   );
 };
 
-export default function Cooperative() {
+export function TrainingRequestReview() {
   const [loans, setLoans] = useState([]);
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -226,12 +222,12 @@ export default function Cooperative() {
         approvedDate: new Date().toISOString().split('T')[0],
       });
       if (loan.employeeEmail) {
-        // await SendEmail({
-        //   to: loan.employeeEmail,
-        //   subject: 'Your Loan Request Has Been Approved',
-        //   body: `<p>Dear ${loan.employeeName},</p><p>Your loan request for <strong>₦${loan.principal.toLocaleString()}</strong> has been approved. Deductions will commence from your next payroll.</p><p>Thank you.</p>`,
-        //   fromName: 'Orbit360 Finance',
-        // });
+        await SendEmail({
+          to: loan.employeeEmail,
+          subject: 'Your Loan Request Has Been Approved',
+          body: `<p>Dear ${loan.employeeName},</p><p>Your loan request for <strong>₦${loan.principal.toLocaleString()}</strong> has been approved. Deductions will commence from your next payroll.</p><p>Thank you.</p>`,
+          fromName: 'Orbit360 Finance',
+        });
       }
       loadData();
     } catch (error) {
@@ -252,12 +248,12 @@ export default function Cooperative() {
         rejectionReason: rejectionReason,
       });
       if (loanToReject.employeeEmail) {
-        // await SendEmail({
-        //   to: loanToReject.employeeEmail,
-        //   subject: 'Update on Your Loan Request',
-        //   body: `<p>Dear ${loanToReject.employeeName},</p><p>We regret to inform you that your loan request for <strong>₦${loanToReject.principal.toLocaleString()}</strong> has been rejected.</p><p><strong>Reason:</strong> ${rejectionReason}</p><p>Thank you.</p>`,
-        //   fromName: 'Orbit360 Finance',
-        // });
+        await SendEmail({
+          to: loanToReject.employeeEmail,
+          subject: 'Update on Your Loan Request',
+          body: `<p>Dear ${loanToReject.employeeName},</p><p>We regret to inform you that your loan request for <strong>₦${loanToReject.principal.toLocaleString()}</strong> has been rejected.</p><p><strong>Reason:</strong> ${rejectionReason}</p><p>Thank you.</p>`,
+          fromName: 'Orbit360 Finance',
+        });
       }
       setLoanToReject(null);
       setRejectionReason('');

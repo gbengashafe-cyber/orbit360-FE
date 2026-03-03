@@ -1,11 +1,11 @@
-import { RequestDetailsView } from '@/components/authorization/request-details-view';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { getTransactionProps } from './authorization-center.util';
+import { RequestDetailsView } from './request-details-view';
 import { LoanUtil } from '@/components/cooperative/loan.utils';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { PENDING_STATES } from '@/constants/pendingState';
-import { DialogDescription } from '@radix-ui/react-dialog';
+import { Button } from '@/components/ui/button';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 
 export const AuthorizationViewDialog = ({
@@ -19,6 +19,7 @@ export const AuthorizationViewDialog = ({
   setApprovalNote,
   approverNote,
 }) => {
+  const { initiator } = getTransactionProps(viewingItem, moduleName);
   return (
     <Dialog open={!!viewingItem} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col gap-y-0 p-0">
@@ -56,18 +57,7 @@ export const AuthorizationViewDialog = ({
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Created By/Reviewed By</p>
-                    <p className="text-gray-900">
-                      {['LOANS'].includes(moduleName?.toUpperCase())
-                        ? `${viewingItem.reviewer?.firstName} ${viewingItem.reviewer?.lastName}`
-                        : null}
-                      {['EXITS'].includes(moduleName?.toUpperCase())
-                        ? `${viewingItem.employee?.firstName} ${viewingItem.employee?.lastName}`
-                        : null}
-
-                      {!['EXITS', 'LOANS'].includes(moduleName?.toUpperCase())
-                        ? `${viewingItem.initiator?.firstName} ${viewingItem.initiator?.lastName}`
-                        : null}
-                    </p>
+                    <p className="text-gray-900">{initiator}</p>
                   </div>
                   {viewingItem.approvedBy && (
                     <>

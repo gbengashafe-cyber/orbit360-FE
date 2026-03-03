@@ -15,6 +15,14 @@ export const TYPE_RENDERERS = {
       return v;
     }
   },
+  timestamp: (v) => {
+    if (!v) return 'N/A';
+    try {
+      return format(new Date(v), 'yyyy-MM-dd HH:mm:ss');
+    } catch {
+      return v;
+    }
+  },
   badge: (v) => (
     <Badge variant="outline" className={getStatusColor(v)}>
       {v ?? 'unknown'}

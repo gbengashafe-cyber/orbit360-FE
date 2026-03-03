@@ -167,12 +167,16 @@ export const apiClient = {
   },
 };
 
-export const makeQueryParams = (options = {}) =>
+export const makeQueryParams = (options = {}) => {
+  const params = new URLSearchParams();
+
   Object.entries(options)
     // eslint-disable-next-line no-unused-vars
     .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join('&');
+    .map(([key, value]) => params.append(key, value));
+
+  return params;
+};
 
 export const useDebounce = (value, delay = 300) => {
   const [debounced, setDebounced] = useState(value);

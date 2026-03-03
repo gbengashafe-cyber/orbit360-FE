@@ -1,10 +1,10 @@
 import { loanService } from '@/api/loan.service';
-import { FieldDisplay } from '@/components/authorization/request-details-view/shared/field-display';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { FieldDisplay } from '@/pages/authorization-center/request-details-view/shared/field-display';
 import { LoanBreakDown } from '@/pages/employee-portal/employee-cooperative/loan-request-form';
 import { logger } from '@/utils';
 import { format } from 'date-fns';
