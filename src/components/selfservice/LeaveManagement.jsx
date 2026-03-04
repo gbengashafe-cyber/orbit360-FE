@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 const FileUploader = ({ files, setFiles, title, description, id }) => {
   const handleFileChange = (e) => {
@@ -147,7 +148,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     setLoading(true);
     try {
       // Use department-specific endpoint to get employees
-      const deptId = employee?.departmentId;
+      const deptId = employee?.department.id;
       const promisesToAwait = [
         leaveService.getLeaves(1, 100),
         employee?.id ? leaveService.getLeaveBalance(employee.id) : Promise.resolve({ data: [] }),
@@ -195,7 +196,6 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
           leaveType: type,
           totalDays: DEFAULT_LEAVE_ENTITLEMENTS[type] || DEFAULT_LEAVE_ENTITLEMENTS.annual,
         }));
-        console.log('Computed leave balances:', computedBalances);
         setLeaveBalanceByType(computedBalances);
       } else {
         setLeaveBalanceByType(balances);
@@ -206,7 +206,6 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         calculateLeaveBalance(requests);
       }
     } catch (error) {
-      console.error('Error loading leave data:', error);
       if (error?.message?.includes('departmentId')) {
         showToast.error('Unable to load department information. Please refresh the page.', 'Error');
       } else {
@@ -228,7 +227,6 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      console.log(`[Leave Calc] ${start.toDateString()} → ${end.toDateString()} = ${result} days (${period})`);
     }
     return result;
   };
@@ -285,11 +283,6 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         formDataPayload.append('handover_documents', file);
       });
 
-      console.log('📤 FormData Payload with files:', {
-        supportingFilesCount: supportingFiles.length,
-        handoverFilesCount: handoverFiles.length,
-      });
-
       const response = await leaveService.createLeaveMultipart(formDataPayload);
 
       // Verify response was successful
@@ -300,12 +293,10 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
       // Backend automatically sends emails to supervisor, HR, and employee
       // No need to send emails from frontend
 
-      console.log('🎉 Calling addNotification with success message');
       addNotification(
         'Leave request submitted successfully! Notification emails have been sent to your supervisor and HR.',
         'success',
       );
-      console.log('✅ addNotification called');
       setShowForm(false);
       resetForm();
       loadData();
@@ -386,8 +377,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
       loadData();
       if (onUpdate) onUpdate();
     } catch (error) {
-      console.error('Error deleting leave request:', error);
-      showToast.error('Failed to delete leave request', 'Error');
+      toast.error('Error', { description: error.message ?? 'Failed to delete leave request' });
     }
   };
 
@@ -655,16 +645,6 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                         return total + days;
                       }, 0);
 
-                    // Debug log
-                    if (balance.leaveType === 'annual' && approvedDaysForType === 0) {
-                      console.log(`Leave Balance Debug [${balance.leaveType}]:`, {
-                        leaveType: balance.leaveType,
-                        totalDays: balance.totalDays,
-                        approvedDays: approvedDaysForType,
-                        approvedRequests: leaveRequests.filter((r) => r.status === 'approved'),
-                      });
-                    }
-
                     const usagePercentage = balance.totalDays > 0 ? (approvedDaysForType / balance.totalDays) * 100 : 0;
 
                     // Color coding for usage: Red (>50% used), Yellow (20-50% used), Blue (<20% used)
@@ -848,7 +828,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={String(emp.id)}>
                       {emp.firstName || emp.first_name} {emp.lastName || emp.last_name} -{' '}
-                      {emp.departmentName || emp.department || 'N/A'}
+                      {emp?.departmentName || emp.department?.name || 'N/A'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -917,24 +897,3 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     </div>
   );
 }
-
-LeaveManagement.propTypes = {
-  employee: PropTypes.shape({
-    id: PropTypes.number,
-    firstName: PropTypes.string,
-    first_name: PropTypes.string,
-    lastName: PropTypes.string,
-    last_name: PropTypes.string,
-    email: PropTypes.string,
-    phone: PropTypes.string,
-    departmentName: PropTypes.string,
-    department: PropTypes.string,
-    annual_leave_entitlement: PropTypes.number,
-    supervisor_name: PropTypes.string,
-    supervisor_id: PropTypes.number,
-    employee_id: PropTypes.number,
-  }),
-  onUpdate: PropTypes.func,
-  preLoadedLeaves: PropTypes.array,
-  leaveBalance: PropTypes.number,
-};

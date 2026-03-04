@@ -44,7 +44,7 @@ export default function RequestTraining() {
       setRequests(response?.data);
     } catch (error) {
       logger.error({ caller: 'Error loading training requests', payload: error });
-      toast.error('Error', { description: 'Failed to load user data. Please refresh the page.' });
+      toast.error('Error', { description: 'Failed to load your training requests. Please refresh the page.' });
     } finally {
       setLoading(false);
     }
