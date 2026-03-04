@@ -49,7 +49,7 @@ export const LoginPage = () => {
         {/* Left panel */}
         <div className="rounded-[2.5rem] flex-1 flex flex-col text-center lg:text-left lg:justify-center py-6 lg:py-10 px-7 lg:px-14 min-w-0 bg-white/85">
           <div className="w-40 mx-auto lg:mx-0">
-            <img src="/orbit360_logo-new.png" />
+            <img src="../../../orbit360_logo-new.png" />
           </div>
           <div className="mx-auto lg:mx-0">
             <h1 className="w-full lg:w-[22ch] text-center lg:text-left text-2xl lg:text-4xl font-bold text-blue-700 leading-tight mb-4 tracking-tight">
@@ -64,7 +64,7 @@ export const LoginPage = () => {
         {/* Right panel */}
         <div className="absolute top-[45%] lg:-top-8 lg:-bottom-8 left-4 lg:left-auto right-4 lg:right-16 grid bg-white py-9 lg:w-[36%] rounded-[2.5rem]">
           <div className="w-40 mx-auto hidden lg:block">
-            <img src="/orbit360_logo-new.png" />
+            <img src="../../../orbit360_logo-new.png" />
           </div>
 
           <form className="w-[75%] mx-auto block" onSubmit={handleSubmit}>
