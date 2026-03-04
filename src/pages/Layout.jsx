@@ -139,13 +139,29 @@ const LayoutContent = ({ children }) => {
       <CollapsibleContent>
         <SidebarGroupContent>
           <SidebarMenu className="space-y-1 mt-1">
+            {/* List the dashboard links first */}
+
             {navItems
               .filter((_item) => {
+                if ([createPageUrl('dashboard'), createPageUrl('hr-dashboard')].includes(_item.url)) {
+                  return true;
+                }
+                return false;
+              })
+              .map((item) => (
+                <NavItem key={item.title} item={item} />
+              ))}
+            {navItems
+              .filter((_item) => {
+                if ([createPageUrl('hr-dashboard'), createPageUrl('dashboard')].includes(_item.url)) {
+                  return false;
+                }
                 if (![createPageUrl('authorization-center'), createPageUrl('exit-approvals')].includes(_item.url)) {
                   return true;
                 }
                 return currentUser.isSupervisor;
               })
+              .sort((a, b) => (a.title > b.title ? 1 : -1))
               .map((item) => (
                 <NavItem key={item.title} item={item} />
               ))}
@@ -154,18 +170,6 @@ const LayoutContent = ({ children }) => {
       </CollapsibleContent>
     </Collapsible>
   );
-
-  if (isLoadingUser) {
-    return (
-      <div className="min-h-screen min-w-72 flex items-center justify-center bg-gray-100">
-        <div className="flex flex-col items-center space-y-3 text-gray-700">
-          <span className="text-lg font-medium flex ">
-            <Loader2 className="w-8 aspect-square animate-spin text-blue-700" /> Loading...
-          </span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex w-full" style={{ backgroundColor: MATERIAL_COLORS.background }}>
@@ -206,8 +210,17 @@ const LayoutContent = ({ children }) => {
           </div>
         </SidebarHeader>
 
-        <SidebarContent className="p-4 space-y-2">
-          {/* <SidebarMenuItem>
+        {isLoadingUser ? (
+          <div className="min-h-screen min-w-72 flex items-center justify-center bg-gray-100">
+            <div className="flex flex-col items-center space-y-3 text-gray-700">
+              <span className="text-lg font-medium flex ">
+                <Loader2 className="w-8 aspect-square animate-spin text-blue-700" /> Loading...
+              </span>
+            </div>
+          </div>
+        ) : (
+          <SidebarContent className="p-4 space-y-2">
+            {/* <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               className={`transition-all duration-200 rounded-lg py-3 px-3 ${location.pathname === createPageUrl('Dashboard') ? 'bg-blue-50 text-blue-700 shadow-sm border-l-4 border-blue-700' : 'hover:bg-gray-50 hover:shadow-sm text-gray-700 hover:text-gray-900'}`}
@@ -218,51 +231,54 @@ const LayoutContent = ({ children }) => {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem> */}
-          {currentUser.isHR ? (
-            <NavGroup title="Human Resources" isOpen={isHrNavOpen} onOpenChange={setHrNavOpen} navItems={hrNav} />
-          ) : null}
-          <NavGroup
-            title="Employee Portal"
-            isOpen={isEmployeePortalNavOpen}
-            onOpenChange={setEmployeePortalNavOpen}
-            navItems={employeePortalNav}
-          />
+            {currentUser.isHR ? (
+              <NavGroup title="Human Resources" isOpen={isHrNavOpen} onOpenChange={setHrNavOpen} navItems={hrNav} />
+            ) : null}
+            <NavGroup
+              title="Employee Portal"
+              isOpen={isEmployeePortalNavOpen}
+              onOpenChange={setEmployeePortalNavOpen}
+              navItems={employeePortalNav}
+            />
 
-          {isAdmin && (
-            <NavGroup title="Administration" isOpen={isAdminNavOpen} onOpenChange={setIsAdminNavOpen} navItems={adminNav} />
-          )}
-        </SidebarContent>
+            {isAdmin && (
+              <NavGroup title="Administration" isOpen={isAdminNavOpen} onOpenChange={setIsAdminNavOpen} navItems={adminNav} />
+            )}
+          </SidebarContent>
+        )}
 
-        <SidebarFooter className="border-t border-gray-100 p-4" style={{ backgroundColor: 'rgba(25, 118, 210, 0.04)' }}>
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
-              style={{ backgroundColor: MATERIAL_COLORS.primary }}
-            >
-              <UserCheck className="w-5 h-5 text-white" />
+        {isLoadingUser ? null : (
+          <SidebarFooter className="border-t border-gray-100 p-4" style={{ backgroundColor: 'rgba(25, 118, 210, 0.04)' }}>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
+                style={{ backgroundColor: MATERIAL_COLORS.primary }}
+              >
+                <UserCheck className="w-5 h-5 text-white" />
+              </div>
+              <div className={`flex-1 min-w-0 ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
+                <p className="font-medium text-gray-900 text-sm truncate">
+                  {currentUser?.firstName} {currentUser?.lastName}
+                  {isAdmin && (
+                    <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                      Admin
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-gray-600 truncate">{currentUser?.email}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-8 h-8 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full"
+                onClick={handleLogout}
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
-            <div className={`flex-1 min-w-0 ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
-              <p className="font-medium text-gray-900 text-sm truncate">
-                {currentUser?.firstName} {currentUser?.lastName}
-                {isAdmin && (
-                  <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                    Admin
-                  </span>
-                )}
-              </p>
-              <p className="text-xs text-gray-600 truncate">{currentUser?.email}</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-8 h-8 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full"
-              onClick={handleLogout}
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        </SidebarFooter>
+          </SidebarFooter>
+        )}
       </Sidebar>
 
       <main className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
