@@ -214,7 +214,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     } finally {
       setLoading(false);
     }
-  }, [calculateLeaveBalance, employee?.annual_leave_entitlement, employee?.id, employee?.departmentId]);
+  }, [calculateLeaveBalance, employee?.annual_leave_entitlement, employee?.id, employee?.department.id]);
 
   useEffect(() => {
     loadData();

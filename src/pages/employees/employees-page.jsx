@@ -173,6 +173,18 @@ export function Employees() {
     }
   };
 
+  const handleReinstate = async (employeeId) => {
+    if (window.confirm('Are you sure you want to reinstate this employee?')) {
+      try {
+        const response = await employeeService.submitModificationRequest(employeeId, { status: 'active' });
+        refresh();
+        toast.success('Success', { description: response.message ?? 'Employee modification submitted successfully.' });
+      } catch (error) {
+        setError(`Failed to submit modification request: ${error.message}`);
+      }
+    }
+  };
+
   return (
     <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
       <div className="max-w-7xl mx-auto space-y-8">
@@ -252,6 +264,7 @@ export function Employees() {
                 <TabsTrigger value="active">Active Employees</TabsTrigger>
                 <TabsTrigger value="pending_approval">Pending Approval</TabsTrigger>
                 <TabsTrigger value="on_leave">On Leave</TabsTrigger>
+                <TabsTrigger value="suspended">Suspended</TabsTrigger>
                 <TabsTrigger value="exited">Ex-Staff Archive</TabsTrigger>
               </TabsList>
             </CardHeader>
@@ -269,6 +282,7 @@ export function Employees() {
                     employees={employees}
                     onEdit={handleEdit}
                     onTerminate={handleTerminate}
+                    onReinstate={handleReinstate}
                     onResendInstructions={handleResendInstructions}
                     currentTab={currentTab}
                   />

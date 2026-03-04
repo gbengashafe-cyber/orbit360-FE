@@ -4,8 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
 import { Edit, Users } from 'lucide-react';
 
-// export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onResendInstructions }) => {
-export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate }) => {
+export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onReinstate }) => {
   return (
     <div className="overflow-x-auto px-5">
       <Table>
@@ -43,11 +42,17 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate }) => {
                     <Button variant="outline" onClick={() => onEdit(employee)} title="Edit Employee Details">
                       <Edit className="w-4 h-4" /> Edit
                     </Button>
+                    {employee.status?.toLowerCase() === 'suspended' ? (
+                      <Button className="bg-green-700" onClick={() => onReinstate(employee.id)}>
+                        <Edit className="w-4 h-4" /> Reinstate
+                      </Button>
+                    ) : null}
                     {employee.status?.toLowerCase() !== 'exited' ? (
                       <Button variant="destructive" onClick={() => onTerminate(employee.id)}>
                         <Edit className="w-4 h-4" /> Terminate
                       </Button>
                     ) : null}
+
                     {/*
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
