@@ -41,8 +41,9 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
 import { isLoggedIn } from '.';
 import EmployeeGate from '../components/EmployeeGate';
-import Logo from '../components/Logo';
 import { localStorageKeys, LocalStorageUtil } from '../utils/local-storage.util';
+
+import logo from '../ORBIT360_logo_white.png';
 
 const hrNav = [
   { title: 'HR Dashboard', url: createPageUrl('hr-dashboard'), icon: LayoutDashboard },
@@ -181,13 +182,18 @@ const LayoutContent = ({ children }) => {
           className="border-b border-gray-100 p-6 flex justify-between items-center"
           style={{ backgroundColor: MATERIAL_COLORS.primary }}
         >
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <Logo size="default" />
             <div className={`${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
               <h2 className="font-bold text-white text-lg">Orbit360</h2>
               <p className="text-xs text-blue-100">Business Platform</p>
             </div>
+          </div> */}
+
+          <div className="w-32 mx-auto hidden lg:block">
+            <img src={logo} />
           </div>
+
           <div className="hidden lg:inline-flex">
             <Button
               variant="ghost"

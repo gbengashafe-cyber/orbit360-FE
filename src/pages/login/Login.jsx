@@ -48,7 +48,7 @@ export const LoginPage = () => {
       {/* Main card */}
       <div className="relative flex rounded-[2.5rem] shadow-2xl w-[98%] md:w-[75%] lg:w-[] min-h-[450px]">
         {/* Left panel */}
-        <div className="rounded-[2.5rem] flex-1 flex flex-col text-center lg:text-left lg:justify-center py-6 lg:py-10 px-7 lg:px-14 min-w-0 bg-white/85">
+        <div className="rounded-[2.5rem] flex-1 flex flex-col gap-y-6 text-center lg:text-left lg:justify-center py-6 lg:py-10 px-7 lg:px-14 min-w-0 bg-white/85">
           <div className="w-40 mx-auto lg:mx-0">
             <img src={logo} />
           </div>
