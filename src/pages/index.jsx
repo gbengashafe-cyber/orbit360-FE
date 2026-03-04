@@ -17,7 +17,7 @@ import { TrainingRequestReview } from './hr-portal/training-request-review';
 import Layout from './Layout.jsx';
 import LeaveApprovals from './LeaveApprovals';
 import LeaveManagement from './LeaveManagement';
-import LoginPage from './login/Login';
+import { LoginPage } from './login/Login';
 import Onboarding from './Onboarding';
 import Payroll from './Payroll';
 import Recruitment from './Recruitment';

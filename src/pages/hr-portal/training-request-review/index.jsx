@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { getStatusColor } from '../../authorization-center/authorization-center.util';
 import { format } from 'date-fns';
 import { TrainingRequestReviewForm } from './training-request-review-form';
+import { PaginationIconsOnly } from '@/components/shared/pagination';
 
 export function TrainingRequestReview() {
   const [trainingRequests, setTrainingRequests] = useState([]);
@@ -142,6 +143,17 @@ export function TrainingRequestReview() {
                 )}
               </TableBody>
             </Table>
+            {trainingRequests?.length ? (
+              <div className="my-10">
+                <PaginationIconsOnly
+                  setCurrentPage={setCurrentPage}
+                  setRows={setRows}
+                  rows={rows}
+                  pages={pages}
+                  currentPage={currentPage}
+                />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>
