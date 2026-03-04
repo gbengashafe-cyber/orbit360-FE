@@ -6,14 +6,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { logger } from '@/utils';
 import { showToast } from '@/utils/toast';
 import { BookOpen, Eye, GraduationCap, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { getStatusColor } from '../authorization-center/authorization-center.util';
 import { RequestDeleteConfirmation } from './request-delete-confirmation';
 import { TrainingRequestForm } from './training-request-form';
-import { toast } from 'sonner';
-import { logger } from '@/utils';
 
 export default function RequestTraining() {
   const [requests, setRequests] = useState([]);
@@ -40,7 +40,7 @@ export default function RequestTraining() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await trainingService.getRequests();
+      const response = await trainingService.getRequestsByEmployee();
       setRequests(response?.data);
     } catch (error) {
       logger.error({ caller: 'Error loading training requests', payload: error });
