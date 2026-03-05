@@ -1,10 +1,11 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
-import { Edit, Users } from 'lucide-react';
+import { Edit, MoreHorizontal, Users, UserX } from 'lucide-react';
 
-export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onReinstate }) => {
+export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onReinstate, onSuspend }) => {
   return (
     <div className="overflow-x-auto px-5">
       <Table>
@@ -47,13 +48,7 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onReinsta
                         <Edit className="w-4 h-4" /> Reinstate
                       </Button>
                     ) : null}
-                    {employee.status?.toLowerCase() !== 'exited' ? (
-                      <Button variant="destructive" onClick={() => onTerminate(employee.id)}>
-                        <Edit className="w-4 h-4" /> Terminate
-                      </Button>
-                    ) : null}
 
-                    {/*
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="w-8 h-8">
@@ -61,12 +56,15 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onReinsta
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(employee)}>
+                        {/* <DropdownMenuItem onClick={() => onEdit(employee)}>
                           <Edit className="w-4 h-4 mr-2" /> Edit Employee Details
+                        </DropdownMenuItem> */}
+                        <DropdownMenuItem onClick={() => onSuspend(employee.id)}>
+                          <Edit className="w-4 h-4 mr-2" /> Suspend
                         </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => onResendInstructions(employee)}>
+                        {/* <DropdownMenuItem onClick={() => onResendInstructions(employee)}>
                           <Mail className="w-4 h-4 mr-2" /> Resend Login Instructions
-                        </DropdownMenuItem> 
+                        </DropdownMenuItem>  */}
                         {employee.status !== 'terminated' && (
                           <DropdownMenuItem onClick={() => onTerminate(employee.id)} className="text-red-600">
                             <UserX className="w-4 h-4 mr-2" /> Terminate
@@ -74,7 +72,6 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onReinsta
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    */}
                   </TableCell>
                 </TableRow>
               ))

@@ -184,6 +184,17 @@ export function Employees() {
       }
     }
   };
+  const handleSuspend = async (employeeId) => {
+    if (window.confirm('Are you sure you want to suspend this employee?')) {
+      try {
+        const response = await employeeService.submitModificationRequest(employeeId, { status: 'SUSPENDED' });
+        refresh();
+        toast.success('Success', { description: response.message ?? 'Employee modification submitted successfully.' });
+      } catch (error) {
+        setError(`Failed to submit modification request: ${error.message}`);
+      }
+    }
+  };
 
   return (
     <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
@@ -282,6 +293,7 @@ export function Employees() {
                     employees={employees}
                     onEdit={handleEdit}
                     onTerminate={handleTerminate}
+                    onSuspend={handleSuspend}
                     onReinstate={handleReinstate}
                     onResendInstructions={handleResendInstructions}
                     currentTab={currentTab}

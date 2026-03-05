@@ -18,14 +18,10 @@ export const EmployeeSchema = {
     {
       title: 'Employment Details',
       fields: [
+        { label: 'Status', path: 'employeeDraft.status', type: 'badge' },
         { label: 'Hire Date', path: 'employeeDraft.hireDate', type: 'date' },
         { label: 'Department', path: 'employeeDraft.department.name', type: 'string' },
-        { label: 'Job Role', path: 'employeeDraft.jobRole', type: 'string' },
-      ],
-    },
-    {
-      title: 'Reporting Line',
-      fields: [
+        { label: 'Job Role', path: 'employeeDraft.jobRole.title', type: 'string' },
         {
           label: 'Supervisor',
           path: 'employeeDraft.draftSupervisor',
@@ -34,6 +30,7 @@ export const EmployeeSchema = {
         },
       ],
     },
+
     {
       title: 'Compensation & Benefits (Annual)',
       fields: [
