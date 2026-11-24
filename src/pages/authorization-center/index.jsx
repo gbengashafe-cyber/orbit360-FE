@@ -1,4 +1,12 @@
-import { employeeService, exitService, leaveService, payrollService, recruitmentService, trainingService } from '@/api';
+import {
+  complaintService,
+  employeeService,
+  exitService,
+  leaveService,
+  payrollService,
+  recruitmentService,
+  trainingService,
+} from '@/api';
 import { authorizationService } from '@/api/authorization.service';
 import { loanService } from '@/api/loan.service';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
@@ -129,6 +137,12 @@ export default function AuthorizationCenterWIP() {
         }
         case 'exits': {
           responsePayload = await exitService.approveExit(item.id, action === 'approve' ? 'approved' : 'rejected');
+          break;
+        }
+        case 'complaints': {
+          action === 'approve'
+            ? (responsePayload = await complaintService.approveComplaint(item.id, { note: approverNote }))
+            : (responsePayload = await complaintService.rejectComplaint(item.id, { note: approverNote }));
           break;
         }
 

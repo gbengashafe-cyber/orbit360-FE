@@ -1,3 +1,4 @@
+import { complaintTypeLabel, submitterName } from '@/pages/complaints/complaint.constants';
 import { format } from 'date-fns';
 
 export const getStatusColor = (status) => {
@@ -37,7 +38,9 @@ export const getStatusColor = (status) => {
     pending_supervisor_approval: 'bg-orange-100 text-orange-700',
     processed: 'bg-green-100 text-green-700',
     rejected: 'bg-red-100 text-red-700',
-    reported: 'bg-blue-100 text-blue-700',
+    rejected_by_approver: 'bg-red-100 text-red-700',
+    rejected_by_reviewer: 'bg-red-100 text-red-700',
+    reported:'bg-blue-100 text-blue-700',
     resolved: 'bg-green-100 text-green-700',
     submitted: 'bg-blue-100 text-blue-700',
     supervisor_approved: 'bg-green-100 text-green-700',
@@ -104,6 +107,13 @@ export const getTransactionProps = (transaction, moduleName) => {
       type = 'Exit Request';
       description = `${transaction.employee.firstName} ${transaction.employee.lastName}`;
       initiator = `${transaction.employee.firstName} ${transaction.employee.lastName}`;
+      break;
+    case 'complaints':
+      type = complaintTypeLabel(transaction?.complaintType);
+      description = `${transaction?.reference ?? ''} ${transaction?.title ?? ''}`.trim();
+      // Anonymous complaints never carry submitter details.
+      initiator = submitterName(transaction);
+      createdAt = transaction?.submittedAt ? format(new Date(transaction.submittedAt), 'dd-MMM-yyyy') : createdAt;
       break;
     default:
       break;

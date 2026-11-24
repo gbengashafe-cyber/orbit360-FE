@@ -28,6 +28,7 @@ import {
   LayoutDashboard,
   Loader2,
   LogOut,
+  MessageSquareWarning,
   NotebookPen,
   PanelLeftClose,
   PanelLeftOpen,
@@ -59,6 +60,13 @@ const hrNav = [
   { title: 'Leave Approvals', url: createPageUrl('leave-approvals'), icon: CheckCircle2 },
   { title: 'Exit Review', url: '/ExitApprovals', icon: UserRoundX },
   { title: 'Documents', url: createPageUrl('DocumentManagement'), icon: FolderArchive },
+  {
+    title: 'Staff Complaints',
+    url: createPageUrl('complaint-management'),
+    icon: MessageSquareWarning,
+    // Shown only to users with at least one of these permissions.
+    permissions: ['MANAGE_COMPLAINTS', 'APPROVE_COMPLAINTS'],
+  },
 ];
 
 const employeePortalNav = [
@@ -70,12 +78,18 @@ const employeePortalNav = [
   { title: 'Exit Management', url: createPageUrl('exit-management'), icon: UserRoundX },
   { title: 'Document Hub', url: createPageUrl('CompanyDocuments'), icon: FileBox },
   { title: 'Request Training', url: createPageUrl('request-training'), icon: NotebookPen },
+  { title: 'Staff Complaints', url: createPageUrl('staff-complaints'), icon: MessageSquareWarning },
 ];
 
 const adminNav = [
   { title: 'User Management', url: createPageUrl('UserManagement'), icon: Users },
   { title: 'Install App', url: createPageUrl('InstallApp'), icon: Download },
 ];
+
+const hasAnyPermission = (user, permissions) => {
+  const userPermissions = (user?.permissions ?? []).map((permission) => permission?.toString().toUpperCase());
+  return permissions.some((permission) => userPermissions.includes(permission));
+};
 
 const LayoutContent = ({ children }) => {
   const location = useLocation();
@@ -154,6 +168,9 @@ const LayoutContent = ({ children }) => {
             {navItems
               .filter((_item) => {
                 if ([createPageUrl('hr-dashboard'), createPageUrl('dashboard')].includes(_item.url)) {
+                  return false;
+                }
+                if (_item.permissions && !hasAnyPermission(currentUser, _item.permissions)) {
                   return false;
                 }
                 if (![createPageUrl('authorization-center'), createPageUrl('exit-approvals')].includes(_item.url)) {

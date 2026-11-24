@@ -1,3 +1,4 @@
+import { complaintSchema } from './complaint';
 import { EmployeeSchema } from './employee';
 import { exitSchema } from './exits';
 import { jobPostingSchema } from './job-posting';
@@ -14,4 +15,5 @@ export const MODULE_SCHEMAS = {
   'job postings': jobPostingSchema,
   exits: exitSchema,
   'training requests': trainingRequestSchema,
+  complaints: complaintSchema,
 };

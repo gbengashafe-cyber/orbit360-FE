@@ -2,7 +2,7 @@ import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
 import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
 import AuthorizationCenterWIP from './authorization-center';
 import CompanyDocuments from './CompanyDocuments';
-import ComplaintManagement from './ComplaintManagement';
+import ComplaintManagement from './complaints/complaint-management';
 import DocumentManagement from './DocumentManagement';
 import { Dashboard } from './employee-portal/dashboard/Dashboard';
 import { EmployeeCooperative } from './employee-portal/employee-cooperative/cooperative-loan';
@@ -22,7 +22,7 @@ import Onboarding from './Onboarding';
 import Payroll from './Payroll';
 import Recruitment from './Recruitment';
 import RecruitmentApprovals from './RecruitmentApprovals';
-import StaffComplaints from './StaffComplaints';
+import StaffComplaints from './complaints/staff-complaints';
 import TaxCalculator from './TaxCalculator';
 import RequestTraining from './training-requests/RequestTraining';
 import UserManagement from './UserManagement';
@@ -60,9 +60,9 @@ const PAGES = {
 
   ExitApprovals: ExitApprovals,
 
-  StaffComplaints: StaffComplaints,
+  'staff-complaints': StaffComplaints,
 
-  ComplaintManagement: ComplaintManagement,
+  'complaint-management': ComplaintManagement,
 
   RequestTraining: RequestTraining,
 
@@ -134,9 +134,11 @@ function PagesContent() {
 
         <Route path="/ExitApprovals" element={<ExitApprovals />} />
 
-        <Route path="/StaffComplaints" element={<StaffComplaints />} />
+        <Route path="/staff-complaints" element={<StaffComplaints />} />
+        <Route path="/StaffComplaints" element={<Navigate to="/staff-complaints" replace />} />
 
-        <Route path="/ComplaintManagement" element={<ComplaintManagement />} />
+        <Route path="/complaint-management" element={<ComplaintManagement />} />
+        <Route path="/ComplaintManagement" element={<Navigate to="/complaint-management" replace />} />
 
         <Route path="/request-training" element={<RequestTraining />} />
 

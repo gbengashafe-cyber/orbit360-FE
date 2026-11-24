@@ -197,13 +197,15 @@ export class ApiRoutes {
   };
 
   // Complaints
-  static GetComplaints = '/v1/complaints';
-  static GetComplaintById = (id) => `/v1/complaints/${id}`;
-  static CreateComplaint = '/v1/complaints';
-  static UpdateComplaint = (id) => `/v1/complaints/${id}`;
-  static DeleteComplaint = (id) => `/v1/complaints/${id}`;
-  static ResolveComplaint = (id) => `/v1/complaints/${id}/resolve`;
-  static CloseComplaint = (id) => `/v1/complaints/${id}/close`;
+  static complaints = {
+    list: '/v1/complaints',
+    mine: '/v1/complaints/me',
+    byId: (id) => `/v1/complaints/${id}`,
+    create: '/v1/complaints',
+    review: (id) => `/v1/complaints/${id}/review`,
+    approve: (id) => `/v1/complaints/${id}/approve`,
+    reject: (id) => `/v1/complaints/${id}/reject`,
+  };
 
   // Performance Management
   static GetPerformanceDashboard = '/v1/performance/dashboard';

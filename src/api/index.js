@@ -12,3 +12,4 @@ export { departmentService } from './department.service';
 export { trainingService } from './training.service';
 
 export { exitService } from './exit.service';
+export { complaintService } from './complaint.service';
