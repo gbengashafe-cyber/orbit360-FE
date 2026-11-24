@@ -17,7 +17,7 @@ const personName = (person) => (person ? `${person.firstName} ${person.lastName}
 
 export function ComplaintStatusBadge({ status, audience = 'hr' }) {
   return (
-    <Badge className={getStatusColor(status?.toLowerCase())}>
+    <Badge className={`whitespace-nowrap ${getStatusColor(status?.toLowerCase())}`}>
       {statusLabel(status, audience === 'employee' ? EMPLOYEE_STATUS_LABELS : HR_STATUS_LABELS)}
     </Badge>
   );
@@ -25,7 +25,11 @@ export function ComplaintStatusBadge({ status, audience = 'hr' }) {
 
 export function UrgencyBadge({ value }) {
   const option = urgencyOption(value);
-  return <Badge className={option?.className ?? 'bg-gray-100 text-gray-700'}>{option?.label ?? value ?? '—'}</Badge>;
+  return (
+    <Badge className={`whitespace-nowrap ${option?.className ?? 'bg-gray-100 text-gray-700'}`}>
+      {option?.label ?? value ?? '—'}
+    </Badge>
+  );
 }
 
 function Section({ title, children }) {

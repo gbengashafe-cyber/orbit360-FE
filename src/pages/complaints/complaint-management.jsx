@@ -1,16 +1,19 @@
 import { complaintService } from '@/api';
+import { DateRangePicker } from '@/components/shared/date-picker';
+import { DebouncedSearch } from '@/components/shared/debounced-search';
+import { FilterSelect } from '@/components/shared/filter-select';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGlobalContext } from '@/state/context';
 import { logger } from '@/utils';
 import { format } from 'date-fns';
-import { Eye, MessageSquareWarning, RefreshCw, Shield } from 'lucide-react';
+import { Eye, FilterX, MessageSquareWarning, RefreshCw, Shield } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { complaintTypeLabel, submitterName } from './complaint.constants';
+import { COMPLAINT_URGENCY, complaintTypeLabel, HR_STATUS_LABELS, submitterName } from './complaint.constants';
 import { ComplaintStatusBadge, UrgencyBadge } from './complaint-details';
 import { ComplaintReviewDialog } from './complaint-review-dialog';
 
@@ -19,6 +22,11 @@ const VIEWS = [
   { value: 'PENDING_APPROVAL', label: 'Awaiting HR Manager' },
   { value: 'all', label: 'All Complaints' },
 ];
+
+const EMPTY_FILTERS = { status: '', severity: '', search: '', dateFrom: '', dateTo: '' };
+
+const STATUS_OPTIONS = Object.entries(HR_STATUS_LABELS).map(([value, label]) => ({ value, label }));
+const URGENCY_OPTIONS = COMPLAINT_URGENCY.map(({ value, label }) => ({ value, label }));
 
 const hasPermission = (user, permission) =>
   (user?.permissions ?? []).some((value) => value?.toString().toUpperCase() === permission);
@@ -31,15 +39,34 @@ export default function ComplaintManagement() {
 
   const [view, setView] = useState(canAuthorize && !canReview ? 'PENDING_APPROVAL' : 'PENDING_REVIEW');
   const [complaints, setComplaints] = useState([]);
-  const [total, setTotal] = useState(0);
+  const [tabCounts, setTabCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [selected, setSelected] = useState(null);
   const [rows, setRows] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
   const [pages, setPages] = useState(1);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [searchInput, setSearchInput] = useState('');
 
   const allowed = canReview || canAuthorize;
+  const hasActiveFilters = Object.entries(filters).some(([, value]) => !!value);
+
+  const updateFilters = (changes) => {
+    setFilters((previous) => ({ ...previous, ...changes }));
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setSearchInput('');
+    setFilters(EMPTY_FILTERS);
+    setCurrentPage(1);
+  };
+
+  const handleSearch = useCallback((value) => {
+    setFilters((previous) => (previous.search === value ? previous : { ...previous, search: value }));
+    setCurrentPage(1);
+  }, []);
 
   // HR Managers start on their own queue once permissions are known.
   useEffect(() => {
@@ -56,10 +83,14 @@ export default function ComplaintManagement() {
       const response = await complaintService.getComplaints({
         page: currentPage,
         rows,
-        status: view === 'all' ? undefined : view,
+        // Queue tabs fix the status; the status filter applies on "All Complaints".
+        status: view === 'all' ? filters.status || undefined : view,
+        severity: filters.severity || undefined,
+        search: filters.search || undefined,
+        dateFrom: filters.dateFrom || undefined,
+        dateTo: filters.dateTo || undefined,
       });
       setComplaints(response?.data ?? []);
-      setTotal(response?.pagination?.total ?? 0);
       setPages(response?.pagination?.pages || 1);
     } catch (error) {
       logger.error({ caller: 'Load complaints for HR', payload: { message: error?.message } });
@@ -68,11 +99,36 @@ export default function ComplaintManagement() {
     } finally {
       setLoading(false);
     }
-  }, [allowed, currentPage, rows, view]);
+  }, [allowed, currentPage, rows, view, filters]);
+
+  // Tab totals follow the search/urgency/date filters (each tab supplies its own status).
+  const loadCounts = useCallback(async () => {
+    if (!allowed) return;
+    try {
+      const response = await complaintService.getComplaintCounts({
+        severity: filters.severity || undefined,
+        search: filters.search || undefined,
+        dateFrom: filters.dateFrom || undefined,
+        dateTo: filters.dateTo || undefined,
+      });
+      setTabCounts(response?.data ?? {});
+    } catch (error) {
+      logger.error({ caller: 'Load complaint counts', payload: { message: error?.message } });
+    }
+  }, [allowed, filters.severity, filters.search, filters.dateFrom, filters.dateTo]);
+
+  const refresh = useCallback(() => {
+    loadData();
+    loadCounts();
+  }, [loadData, loadCounts]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    loadCounts();
+  }, [loadCounts]);
 
   if (isLoadingUser) {
     return <div className="p-8 text-center">Loading...</div>;
@@ -105,17 +161,14 @@ export default function ComplaintManagement() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="icon" onClick={loadData} disabled={loading} title="Refresh">
+          <Button variant="outline" size="icon" onClick={refresh} disabled={loading} title="Refresh">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
         <Card>
-          <CardHeader className="space-y-4">
-            <div>
-              <CardTitle>Complaints ({total})</CardTitle>
-              <CardDescription>Identities are hidden for complaints submitted anonymously.</CardDescription>
-            </div>
+          <CardHeader className="space-y-5 pb-4">
+            {/* Queues: same tab style as the rest of the app (e.g. Employee Directory), with counts */}
             <Tabs
               value={view}
               onValueChange={(value) => {
@@ -123,14 +176,64 @@ export default function ComplaintManagement() {
                 setCurrentPage(1);
               }}
             >
-              <TabsList className="flex flex-wrap justify-start h-auto gap-x-4">
+              <TabsList className="grid w-full grid-flow-col justify-start">
                 {VIEWS.map((option) => (
-                  <TabsTrigger key={option.value} value={option.value} className="py-2 px-6">
+                  <TabsTrigger key={option.value} value={option.value} className="gap-2">
                     {option.label}
+                    <span className="min-w-[1.5rem] rounded-full bg-gray-200 px-2 py-0.5 text-center text-xs font-semibold text-gray-700">
+                      {tabCounts[option.value] ?? 0}
+                    </span>
                   </TabsTrigger>
                 ))}
               </TabsList>
             </Tabs>
+
+            {/* Toolbar: search + compact filters */}
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="w-full lg:w-80">
+                <DebouncedSearch
+                  value={searchInput}
+                  onChange={setSearchInput}
+                  onSearch={handleSearch}
+                  placeholder="Search complaints..."
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {view === 'all' ? (
+                  <FilterSelect
+                    id="complaint-status-filter"
+                    label="Status"
+                    value={filters.status}
+                    onChange={(status) => updateFilters({ status })}
+                    options={STATUS_OPTIONS}
+                    allLabel="All statuses"
+                  />
+                ) : null}
+                <FilterSelect
+                  id="complaint-urgency-filter"
+                  label="Urgency"
+                  value={filters.severity}
+                  onChange={(severity) => updateFilters({ severity })}
+                  options={URGENCY_OPTIONS}
+                  allLabel="All urgency levels"
+                />
+                <DateRangePicker
+                  id="complaint-date-filter"
+                  compact
+                  className="w-auto"
+                  value={{ from: filters.dateFrom, to: filters.dateTo }}
+                  onChange={({ from, to }) => updateFilters({ dateFrom: from, dateTo: to })}
+                  maxDate={new Date()}
+                  placeholder="Date submitted"
+                />
+                {hasActiveFilters ? (
+                  <Button variant="ghost" onClick={clearFilters} className="text-gray-600">
+                    <FilterX className="w-4 h-4 mr-1" />
+                    Clear filters
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -187,7 +290,7 @@ export default function ComplaintManagement() {
                         <TableCell>
                           <Button variant="outline" size="sm" onClick={() => setSelected(complaint)}>
                             <Eye className="w-4 h-4 mr-1" />
-                            {canReview && complaint.status === 'PENDING_REVIEW' ? 'Review' : 'View'}
+                            {canReview && complaint.status === 'PENDING_REVIEW' && !complaint.isOwnComplaint ? 'Review' : 'View'}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -218,7 +321,7 @@ export default function ComplaintManagement() {
         onOpenChange={(open) => !open && setSelected(null)}
         canReview={canReview}
         canAuthorize={canAuthorize}
-        onReviewed={loadData}
+        onReviewed={refresh}
       />
     </div>
   );

@@ -200,6 +200,7 @@ export class ApiRoutes {
   static complaints = {
     list: '/v1/complaints',
     mine: '/v1/complaints/me',
+    counts: '/v1/complaints/counts',
     byId: (id) => `/v1/complaints/${id}`,
     create: '/v1/complaints',
     review: (id) => `/v1/complaints/${id}/review`,

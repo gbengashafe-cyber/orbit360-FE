@@ -34,7 +34,8 @@ export function ComplaintReviewDialog({ complaint, open, onOpenChange, canReview
 
   const awaitingReview = complaint?.status === 'PENDING_REVIEW';
   const awaitingAuthorization = complaint?.status === 'PENDING_APPROVAL';
-  const showReviewForm = canReview && awaitingReview;
+  const isOwn = !!complaint?.isOwnComplaint;
+  const showReviewForm = canReview && awaitingReview && !isOwn;
 
   const handleSubmit = async () => {
     if (submittingRef.current) return;
@@ -107,7 +108,17 @@ export function ComplaintReviewDialog({ complaint, open, onOpenChange, canReview
             </div>
           ) : null}
 
-          {canAuthorize && awaitingAuthorization ? (
+          {isOwn ? (
+            <Alert className="border-blue-200 bg-blue-50">
+              <Info className="w-4 h-4" />
+              <AlertDescription className="text-blue-700">
+                You submitted this complaint, so you can&apos;t review or authorize it. Another HR Officer or HR Manager must
+                act on it.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {canAuthorize && awaitingAuthorization && !isOwn ? (
             <Alert className="border-blue-200 bg-blue-50">
               <Info className="w-4 h-4" />
               <AlertDescription className="text-blue-700">

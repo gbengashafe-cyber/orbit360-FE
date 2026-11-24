@@ -12,8 +12,16 @@ export const complaintService = {
   },
 
   // HR Officer / HR Manager: all complaints, identities masked for anonymous ones.
-  async getComplaints({ page = 1, rows = 25, status } = {}) {
-    return apiClient.get(`${ApiRoutes.complaints.list}?${makeQueryParams({ page, rows, status })}`);
+  // Filters: status, severity, search (staff name/ID, complaint ID, subject), dateFrom/dateTo ('YYYY-MM-DD').
+  async getComplaints({ page = 1, rows = 25, status, severity, search, dateFrom, dateTo } = {}) {
+    return apiClient.get(
+      `${ApiRoutes.complaints.list}?${makeQueryParams({ page, rows, status, severity, search, dateFrom, dateTo })}`,
+    );
+  },
+
+  // HR: totals per tab ({ PENDING_REVIEW, PENDING_APPROVAL, all }) for the given severity/search/date filters.
+  async getComplaintCounts({ severity, search, dateFrom, dateTo } = {}) {
+    return apiClient.get(`${ApiRoutes.complaints.counts}?${makeQueryParams({ severity, search, dateFrom, dateTo })}`);
   },
 
   async getComplaintById(id) {

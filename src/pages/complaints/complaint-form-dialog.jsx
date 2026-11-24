@@ -1,4 +1,5 @@
 import { complaintService } from '@/api';
+import { DatePicker } from '@/components/shared/date-picker';
 import { FormSubmitErrorV1 } from '@/components/shared/submit-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -200,7 +201,13 @@ export function ComplaintFormDialog({ open, onOpenChange, onSuccess }) {
                     <FormItem>
                       <FormLabel>Incident Date (Optional)</FormLabel>
                       <FormControl>
-                        <Input type="date" max={todayIsoDate()} disabled={submitting} {...field} />
+                        <DatePicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          maxDate={todayIsoDate()}
+                          placeholder="Select incident date"
+                          disabled={submitting}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
