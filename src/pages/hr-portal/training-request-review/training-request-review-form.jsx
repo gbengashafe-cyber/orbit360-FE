@@ -64,7 +64,7 @@ export const TrainingRequestReviewForm = ({ showForm, setShowForm, onCancel, tra
     }
   };
 
-  const isLockedForReview = !['PENDING_SUPERVISOR_APPROVAL', 'PENDING_HR_REVIEW'].includes(
+  const isLockedForReview = !['PENDING_HR_REVIEW'].includes(
     trainingRequest?.status?.toUpperCase(),
   );
 
