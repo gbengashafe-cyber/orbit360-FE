@@ -1,4 +1,5 @@
 import { localStorageKeys, LocalStorageUtil } from '@/utils/local-storage.util';
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router';
 import AuthorizationCenterWIP from './authorization-center';
 import CompanyDocuments from './CompanyDocuments';
@@ -27,6 +28,9 @@ import StaffComplaints from './complaints/staff-complaints';
 import TaxCalculator from './TaxCalculator';
 import RequestTraining from './training-requests/RequestTraining';
 import UserManagement from './UserManagement';
+
+// Development-only reference for DESIGN.md. Not included in production builds.
+const DesignSystemPage = import.meta.env.DEV ? lazy(() => import('./design-system')) : null;
 
 const PAGES = {
   HRDashboard: HRDashboard,
@@ -76,6 +80,7 @@ const PAGES = {
   TrainingRequestReview,
   notifications: NotificationCenter,
   preferences: NotificationPreferences,
+  ...(DesignSystemPage ? { 'design-system': DesignSystemPage } : {}),
 };
 
 function _getCurrentPage(url) {
@@ -152,6 +157,17 @@ function PagesContent() {
         <Route path="/employee-cooperative" element={<EmployeeCooperative />} />
 
         <Route path="/CompanyDocuments" element={<CompanyDocuments />} />
+
+        {DesignSystemPage ? (
+          <Route
+            path="/design-system"
+            element={
+              <Suspense fallback={null}>
+                <DesignSystemPage />
+              </Suspense>
+            }
+          />
+        ) : null}
       </Routes>
     </Layout>
   );

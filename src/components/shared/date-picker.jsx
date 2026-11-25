@@ -3,6 +3,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FILTER_CONTROL_STATES } from '@/components/shared/filter-control-states';
 import { cn } from '@/lib/utils';
+import { countWorkingDays, formatDate, formatDateRange } from '@/components/system/format';
 import { format, isValid, parseISO } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useState } from 'react';
@@ -10,11 +11,12 @@ import { useState } from 'react';
 /**
  * Shared date pickers.
  * - Values are plain 'YYYY-MM-DD' strings ('' when empty), so they work directly with forms and API query params.
- * - Dates are displayed in the app's 'dd-MMM-yyyy' format.
+ * - Dates are displayed as "02 Dec 2026" (DESIGN.md §4).
+ * - Weeks start on Monday. With `workingDaysOnly`, weekends and `holidays` ('YYYY-MM-DD') are greyed out and
+ *   the range picker shows the number of working days.
  * - One month is shown at a time. Click the month or year in the header to jump straight to it.
  */
 
-const DISPLAY_FORMAT = 'dd-MMM-yyyy';
 const DEFAULT_FROM_YEAR = 2015;
 
 const toDate = (value) => {
@@ -25,8 +27,12 @@ const toDate = (value) => {
 
 const toIso = (date) => (date ? format(date, 'yyyy-MM-dd') : '');
 
-const disabledDays = (minDate, maxDate) => {
+const disabledDays = (minDate, maxDate, { workingDaysOnly = false, holidays = [] } = {}) => {
   const rules = [];
+  if (workingDaysOnly) {
+    rules.push({ dayOfWeek: [0, 6] });
+    holidays.map(toDate).filter(Boolean).forEach((day) => rules.push(day));
+  }
   const min = toDate(minDate);
   const max = toDate(maxDate);
   if (min) rules.push({ before: min });
@@ -47,7 +53,7 @@ const CAPTION_CLASSES = {
   vhidden: 'sr-only',
 };
 
-function SharedCalendar({ minDate, maxDate, fromYear, toYear, ...props }) {
+function SharedCalendar({ minDate, maxDate, fromYear, toYear, workingDaysOnly, holidays, ...props }) {
   const max = toDate(maxDate);
   const min = toDate(minDate);
 
@@ -57,7 +63,7 @@ function SharedCalendar({ minDate, maxDate, fromYear, toYear, ...props }) {
       captionLayout="dropdown-buttons"
       fromYear={fromYear ?? min?.getFullYear() ?? DEFAULT_FROM_YEAR}
       toYear={toYear ?? max?.getFullYear() ?? new Date().getFullYear() + 5}
-      disabled={disabledDays(minDate, maxDate)}
+      disabled={disabledDays(minDate, maxDate, { workingDaysOnly, holidays })}
       classNames={CAPTION_CLASSES}
       // Passing `components` replaces the Calendar's own, so the arrow icons are repeated here.
       components={{
@@ -81,7 +87,7 @@ function TriggerButton({ id, label, placeholder, disabled, className, onClear, s
           variant="outline"
           disabled={disabled}
           className={cn(
-            'w-full justify-start text-left font-normal',
+            'w-full justify-start px-2.5 text-left font-normal',
             showClear && 'pr-9',
             compact
               ? label
@@ -91,8 +97,8 @@ function TriggerButton({ id, label, placeholder, disabled, className, onClear, s
             FILTER_CONTROL_STATES.disabled,
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
           <span className="truncate">{label || placeholder}</span>
+          {showClear ? null : <CalendarIcon className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
         </Button>
       </PopoverTrigger>
       {showClear ? (
@@ -120,6 +126,8 @@ export function DatePicker({
   toYear,
   disabled = false,
   clearable = true,
+  workingDaysOnly = false,
+  holidays = [],
   className,
 }) {
   const [open, setOpen] = useState(false);
@@ -129,7 +137,7 @@ export function DatePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <TriggerButton
         id={id}
-        label={selected ? format(selected, DISPLAY_FORMAT) : ''}
+        label={selected ? formatDate(toIso(selected)) : ''}
         placeholder={placeholder}
         disabled={disabled}
         className={className}
@@ -145,6 +153,8 @@ export function DatePicker({
           maxDate={maxDate}
           fromYear={fromYear}
           toYear={toYear}
+          workingDaysOnly={workingDaysOnly}
+          holidays={holidays}
           onSelect={(date) => {
             onChange(toIso(date));
             setOpen(false);
@@ -170,17 +180,16 @@ export function DateRangePicker({
   toYear,
   disabled = false,
   compact = false, // toolbar style: highlighted while a date is selected
+  workingDaysOnly = false, // grey out weekends and holidays and show the working-day count
+  holidays = [],
   className,
 }) {
   const [open, setOpen] = useState(false);
   const from = toDate(value?.from);
   const to = toDate(value?.to);
 
-  const label = from
-    ? to && toIso(to) !== toIso(from)
-      ? `${format(from, DISPLAY_FORMAT)} – ${format(to, DISPLAY_FORMAT)}`
-      : format(from, DISPLAY_FORMAT)
-    : '';
+  const label = from ? formatDateRange(toIso(from), toIso(to ?? from), { fallback: '' }) : '';
+  const workingDays = from ? countWorkingDays(toIso(from), toIso(to ?? from), holidays) : 0;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -203,10 +212,16 @@ export function DateRangePicker({
           maxDate={maxDate}
           fromYear={fromYear}
           toYear={toYear}
+          workingDaysOnly={workingDaysOnly}
+          holidays={holidays}
           onSelect={(range) => onChange({ from: toIso(range?.from), to: toIso(range?.to ?? range?.from) })}
         />
         <div className="flex items-center justify-between gap-4 border-t px-3 py-2">
-          <p className="text-xs text-muted-foreground">Pick one date, or a start and end date.</p>
+          <p className="text-xs text-muted-foreground tabular-nums">
+            {workingDaysOnly && from
+              ? `${workingDays} working day${workingDays === 1 ? '' : 's'}`
+              : 'Pick one date, or a start and end date.'}
+          </p>
           <div className="flex gap-1">
             <Button
               type="button"

@@ -40,7 +40,8 @@ export function NotificationCenterProvider({ children }) {
         const alerts = response?.data ?? [];
         for (const alert of alerts) {
           if (!shouldPresentRealtimeAlert(deliveredIds, suppressedKeys, alert)) continue;
-          toast(alert.title, { description: alert.message, duration: 7000 });
+          // Real-time banners use the info tone (DESIGN.md §6 Toasts).
+          toast.info(alert.title, { description: alert.message });
           refreshUnread().catch(() => {});
         }
         if (alerts.length) {

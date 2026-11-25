@@ -1,28 +1,32 @@
-import { useTheme } from "next-themes"
-import { Toaster as Sonner } from "sonner"
+import { AlertCircle, CheckCircle2, Clock, Info, Loader2 } from 'lucide-react';
+import { Toaster as Sonner, toast } from 'sonner';
 
-const Toaster = ({
-  ...props
-}) => {
-  const { theme = "system" } = useTheme()
+/*
+ * The app's only toast system (DESIGN.md §6 Toasts).
+ * - Five tones: toast.success, toast.error, toast.info, toast.warning (pending tone) and toast() (neutral).
+ * - One shape: icon, title, one line of text, close button. No actions (hidden by CSS in index.css).
+ * - Errors stay until dismissed; everything else closes after 5 seconds.
+ * Colours and layout live in index.css under "Toasts (Sonner)".
+ */
 
-  return (
-    <Sonner
-      theme={theme}
-      className="toaster group"
-      toastOptions={{
-        classNames: {
-          toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton:
-            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-        },
-      }}
-      {...props} />
-  );
+// Errors stay on screen until the user dismisses them, wherever toast.error is called from.
+if (!toast.error.__orbitSticky) {
+  const showError = toast.error;
+  toast.error = Object.assign((message, options) => showError(message, { duration: Infinity, ...options }), {
+    __orbitSticky: true,
+  });
 }
 
-export { Toaster }
+const icons = {
+  success: <CheckCircle2 className="h-[18px] w-[18px]" />,
+  error: <AlertCircle className="h-[18px] w-[18px]" />,
+  info: <Info className="h-[18px] w-[18px]" />,
+  warning: <Clock className="h-[18px] w-[18px]" />,
+  loading: <Loader2 className="h-[18px] w-[18px] animate-spin" />,
+};
+
+const Toaster = (props) => (
+  <Sonner theme="light" position="top-right" richColors closeButton duration={5000} visibleToasts={4} icons={icons} {...props} />
+);
+
+export { Toaster };

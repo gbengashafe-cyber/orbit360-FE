@@ -4,7 +4,20 @@
 Everyone working on `orbit360-FE` (people and AI agents) follows it for new work and for any screen they touch.
 
 - Visual reference with live examples: [`docs/design/design-system-proposal.html`](docs/design/design-system-proposal.html) (open it in a browser).
-- Implementation status: **tokens and shared components are not built yet** (rollout step 1). Until they land, follow the rules below with existing shadcn components and neutral classes, and never add new gradients, decorative icons or one-off colours.
+- Implementation status: **step 1 is built** (tokens, restyled shadcn components, shared components, Sonner toasts). Pages are migrated in steps 2–4; until a page is migrated it may still show old gradients and icon tiles. Never add new ones.
+- Live reference in the running app: `/design-system` (development builds only; it renders the real components).
+
+### Where things live
+
+| Need                                                                                                                                      | Use                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Buttons, inputs, select, dropdown menu, dialog, sheet, popover, calendar, table, tabs, tooltip, badge, card                               | `@/components/ui/*` (restyled shadcn)                                                                                                                                                  |
+| Page header, status badge, table shell + pagination, row ⋯ menu, empty state, stat card, form section/field, confirm dialog, date pickers | `@/components/system`                                                                                                                                                                  |
+| Date and money formatting (`formatDate`, `formatDateRange`, `formatDateTime`, `formatCurrency`, `countWorkingDays`)                       | `@/components/system`                                                                                                                                                                  |
+| Toasts                                                                                                                                    | `toast` from `sonner` (`toast.success`, `toast.error`, `toast.info`, `toast.warning` for the pending tone, `toast()` for neutral)                                                      |
+| Colours                                                                                                                                   | Tailwind tokens: `bg-primary`, `text-muted-foreground`, `border-border`, `bg-brand-50`, `text-status-danger`, `bg-status-success-bg`, … (`gray-*`/`slate-*` map to the Orbit neutrals) |
+| Type scale                                                                                                                                | `text-page-title`, `text-section-title`, `text-card-title`, `text-body`, `text-label`, `text-caption`                                                                                  |
+| Floating surfaces                                                                                                                         | `shadow-overlay` (the only shadow)                                                                                                                                                     |
 
 ---
 
@@ -166,15 +179,15 @@ Neutral surface. Colour only when the number is itself a status (e.g. a pending 
 
 Badges show a dot plus a sentence-case label, never raw values like `PENDING_REVIEW`. One shared map covers every module:
 
-| Tone    | Label(s)                                                              | Values                                                                                                                     |
-| ------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| pending | Pending review · Pending approval · Awaiting supervisor · Awaiting HR | `pending`, `PENDING_REVIEW`, `PENDING_APPROVAL`, `PENDING_SUPERVISOR_APPROVAL`, `PENDING_HR_REVIEW`, `PENDING_HR_APPROVAL` |
-| info    | Awaiting disbursement · Active · On leave                             | `PENDING_DISBURSEMENT`, `ACTIVE`, `ON_LEAVE`                                                                               |
-| success | Approved · Paid off                                                   | `approved`, `APPROVED`, `PAID_OFF`                                                                                         |
-| danger  | Rejected                                                              | `rejected`, `REJECTED`, `SUPERVISOR_REJECTED`, `HR_REJECTED`, `REJECTED_BY_REVIEWER`, `REJECTED_BY_APPROVER`               |
-| neutral | Cancelled · Draft                                                     | `CANCELLED`, `draft`                                                                                                       |
+| Tone    | Label(s)                                                                                            | Values                                                                                                                     |
+| ------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| pending | Pending review · Pending approval · Awaiting supervisor · Awaiting HR review · Awaiting HR approval | `pending`, `PENDING_REVIEW`, `PENDING_APPROVAL`, `PENDING_SUPERVISOR_APPROVAL`, `PENDING_HR_REVIEW`, `PENDING_HR_APPROVAL` |
+| info    | Awaiting disbursement · Active · On leave                                                           | `PENDING_DISBURSEMENT`, `ACTIVE`, `ON_LEAVE`                                                                               |
+| success | Approved · Paid off                                                                                 | `approved`, `APPROVED`, `PAID_OFF`                                                                                         |
+| danger  | Rejected                                                                                            | `rejected`, `REJECTED`, `SUPERVISOR_REJECTED`, `HR_REJECTED`, `REJECTED_BY_REVIEWER`, `REJECTED_BY_APPROVER`               |
+| neutral | Cancelled · Draft                                                                                   | `CANCELLED`, `draft`                                                                                                       |
 
-New statuses are added to this map, not styled locally (no new `getStatusColor` functions).
+New statuses are added to the map in `src/components/system/status.js`, not styled locally (no new `getStatusColor` functions). Unknown values render as a neutral badge with a readable label.
 
 ## 8. Icons
 
@@ -191,7 +204,7 @@ One set (`lucide-react`), 16px (18px in the sidebar), stroke 1.75.
 
 ## 10. Rollout
 
-1. Tokens and base components (`src/index.css`, `tailwind.config.js`, shadcn restyle, shared components in `src/components/system/`, dev-only `/design-system` page). No page logic changes.
+1. ✅ Tokens and base components (`src/index.css`, `tailwind.config.js`, shadcn restyle, shared components in `src/components/system/`, dev-only `/design-system` page). No page logic changes.
 2. App shell: sidebar, shared top bar with the notification bell, mobile menu.
 3. Employee portal pages.
 4. HR portal pages.

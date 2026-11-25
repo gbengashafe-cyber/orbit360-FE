@@ -1,6 +1,20 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useCallback, useContext, useMemo } from 'react';
+import { toast } from 'sonner';
 
-const NotificationContext = createContext();
+/*
+ * Legacy toast API, kept so older pages keep working while they are migrated.
+ * It now forwards to Sonner, the app's only toast system (DESIGN.md §6 Toasts).
+ * New code should call `toast` from 'sonner' directly; don't use this context.
+ */
+
+const NotificationContext = createContext(null);
+
+const showByType = {
+  success: toast.success,
+  error: (message, options) => toast.error(message, options),
+  warning: toast.warning,
+  info: toast.info,
+};
 
 export const useNotification = () => {
   const context = useContext(NotificationContext);
@@ -11,42 +25,19 @@ export const useNotification = () => {
 };
 
 export const NotificationProvider = ({ children }) => {
-  const [notifications, setNotifications] = useState([]);
-
-  const addNotification = useCallback((message, type = 'success', duration = 5000) => {
-    const id = Date.now();
-    const notification = {
-      id,
-      message,
-      type, // 'success', 'error', 'warning', 'info'
-      duration,
-    };
-
-    setNotifications((prev) => [...prev, notification]);
-
-    // Auto-remove notification after duration
-    if (duration > 0) {
-      setTimeout(() => {
-        removeNotification(id);
-      }, duration);
-    }
-
-    return id;
+  const addNotification = useCallback((message, type = 'success', duration) => {
+    const show = showByType[type] ?? toast;
+    // `duration` 0 used to mean "stay open"; errors stay open regardless.
+    const options = duration === 0 ? { duration: Infinity } : duration ? { duration } : undefined;
+    return show(message, options);
   }, []);
 
-  const removeNotification = useCallback((id) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
-  }, []);
+  const removeNotification = useCallback((id) => toast.dismiss(id), []);
 
-  const value = {
-    notifications,
-    addNotification,
-    removeNotification,
-  };
-
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
+  const value = useMemo(
+    () => ({ notifications: [], addNotification, removeNotification }),
+    [addNotification, removeNotification],
   );
+
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 };

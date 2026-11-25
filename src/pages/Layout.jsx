@@ -310,7 +310,8 @@ const LayoutContent = ({ children }) => {
 };
 
 export default function Layout({ children, currentPageName }) {
-  if (['PublicJobView', 'ScrollBoard', 'login'].includes(currentPageName?.toLowerCase())) {
+  // 'design-system' is the development-only DESIGN.md reference page; it renders without the app shell.
+  if (['PublicJobView', 'ScrollBoard', 'login', 'design-system'].includes(currentPageName?.toLowerCase())) {
     return <>{children}</>;
   }
 

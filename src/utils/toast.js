@@ -1,45 +1,26 @@
-// Toast utility that uses NotificationContext via a helper
-let notificationCallback = null;
+import { toast } from 'sonner';
 
-export const setNotificationCallback = (callback) => {
-  console.log('🔧 setNotificationCallback called');
-  notificationCallback = callback;
+/*
+ * Legacy helper, kept so older pages keep working while they are migrated.
+ * It forwards to Sonner, the app's only toast system (DESIGN.md §6 Toasts).
+ * New code should call `toast` from 'sonner' directly.
+ */
+
+const DEFAULT_TITLES = ['Success', 'Error', 'Info', 'Warning'];
+
+// The message becomes the toast title; a custom title (not the old generic default) becomes the title
+// and the message its one line of text.
+const show = (type) => (message, title) => {
+  if (!title || DEFAULT_TITLES.includes(title)) return toast[type](message);
+  return toast[type](title, { description: message });
 };
 
+// No longer needed: toasts no longer go through NotificationContext. Kept as a no-op for old callers.
+export const setNotificationCallback = () => {};
+
 export const showToast = {
-  success: (message, title = 'Success') => {
-    console.log('🟢 showToast.success called:', { message, title, hasCallback: !!notificationCallback });
-    if (notificationCallback) {
-      notificationCallback(`${title}: ${message}`, 'success', 3000);
-    } else {
-      console.warn('⚠️ notificationCallback not set!');
-    }
-  },
-
-  error: (message, title = 'Error') => {
-    console.log('🔴 showToast.error called:', { message, title, hasCallback: !!notificationCallback });
-    if (notificationCallback) {
-      notificationCallback(`${title}: ${message}`, 'error', 4000);
-    } else {
-      console.warn('⚠️ notificationCallback not set!');
-    }
-  },
-
-  info: (message, title = 'Info') => {
-    console.log('🔵 showToast.info called:', { message, title, hasCallback: !!notificationCallback });
-    if (notificationCallback) {
-      notificationCallback(`${title}: ${message}`, 'info', 3000);
-    } else {
-      console.warn('⚠️ notificationCallback not set!');
-    }
-  },
-
-  warning: (message, title = 'Warning') => {
-    console.log('🟡 showToast.warning called:', { message, title, hasCallback: !!notificationCallback });
-    if (notificationCallback) {
-      notificationCallback(`${title}: ${message}`, 'warning', 3500);
-    } else {
-      console.warn('⚠️ notificationCallback not set!');
-    }
-  },
+  success: show('success'),
+  error: show('error'),
+  info: show('info'),
+  warning: show('warning'),
 };
