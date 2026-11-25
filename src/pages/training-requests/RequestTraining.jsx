@@ -168,7 +168,7 @@ export default function RequestTraining() {
                           View
                         </Button>
 
-                        {request?.status.toUpperCase() === 'PENDING' ? (
+                        {request?.status.toUpperCase() === 'PENDING_SUPERVISOR_APPROVAL' ? (
                           <Button
                             size="sm"
                             variant="destructive"

@@ -1,5 +1,6 @@
 import { trainingService } from '@/api';
 import { FormSubmitErrorV1 } from '@/components/shared/submit-error';
+import { useNotificationCenter } from '@/context/NotificationCenterContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 export const TrainingRequestForm = ({ showForm, onOpenChange }) => {
+  const { suppressRealtimeAlert } = useNotificationCenter();
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -36,6 +38,10 @@ export const TrainingRequestForm = ({ showForm, onOpenChange }) => {
 
     try {
       const response = await trainingService.submitRequest(formData);
+      const requestId = response?.data?.id;
+      if (requestId) {
+        suppressRealtimeAlert({ eventType: 'TRAINING_APPLIED', entityType: 'training_request', entityId: requestId });
+      }
       toast.success('Success', {
         description: response?.data?.message || 'Your training request has been submitted successfully!',
       });

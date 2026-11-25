@@ -255,6 +255,16 @@ export class ApiRoutes {
   };
   // Health Check
   static Health = '/health';
+
+  static notifications = {
+    feed: '/v1/notifications',
+    unreadCount: '/v1/notifications/unread-count',
+    markAllRead: '/v1/notifications/read-all',
+    markRead: (id) => `/v1/notifications/${id}/read`,
+    preferences: '/v1/notifications/preferences',
+    realtime: '/v1/notifications/realtime',
+    acknowledgeRealtime: '/v1/notifications/realtime/acknowledge',
+  };
 }
 
 export const apiRoutes = ApiRoutes;

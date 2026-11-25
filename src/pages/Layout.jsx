@@ -12,8 +12,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { GlobalContextProvider, useGlobalContext } from '@/state/context';
+import { NotificationCenterProvider, useNotificationCenter } from '@/context/NotificationCenterContext';
+import NotificationBell from '@/components/notifications/NotificationBell';
 import { createPageUrl } from '@/utils';
 import {
   Banknote,
@@ -30,8 +34,7 @@ import {
   LogOut,
   MessageSquareWarning,
   NotebookPen,
-  PanelLeftClose,
-  PanelLeftOpen,
+  Bell,
   PlaneTakeoff,
   UserCheck,
   UserRoundX,
@@ -70,6 +73,7 @@ const hrNav = [
 ];
 
 const employeePortalNav = [
+  { title: 'Notification Hub', url: '/notifications', icon: Bell, notificationHub: true },
   { title: 'Dashboard', url: createPageUrl('dashboard'), icon: LayoutDashboard },
   { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
   { title: 'My Payslips', url: createPageUrl('my-payslips'), icon: FileText },
@@ -93,12 +97,15 @@ const hasAnyPermission = (user, permissions) => {
 
 const LayoutContent = ({ children }) => {
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isHrNavOpen, setHrNavOpen] = useState(false);
   const [isEmployeePortalNavOpen, setEmployeePortalNavOpen] = useState(false);
   const [isAdminNavOpen, setIsAdminNavOpen] = useState(false);
 
   const { currentUser, isAdmin, isLoadingUser } = useGlobalContext();
+  const { setOpenMobile } = useSidebar();
+  const { unread } = useNotificationCenter();
+
+  useEffect(() => { setOpenMobile(false); }, [location.pathname, setOpenMobile]);
 
   useEffect(() => {
     const path = location.pathname;
@@ -134,9 +141,10 @@ const LayoutContent = ({ children }) => {
             : 'hover:bg-gray-50 hover:shadow-sm text-gray-700 hover:text-gray-900'
         }`}
       >
-        <Link to={item.url} className="flex items-center gap-3 font-medium">
+        <Link to={item.url} onClick={() => setOpenMobile(false)} className="flex items-center gap-3 font-medium">
           <item.icon className="w-5 h-5" />
-          <span>{item.title}</span>
+          <span className="flex-1">{item.title}</span>
+          {item.notificationHub && unread.total > 0 && <span className="rounded-full bg-red-600 px-2 text-xs leading-5 text-white">{unread.total > 99 ? '99+' : unread.total}</span>}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -215,16 +223,6 @@ const LayoutContent = ({ children }) => {
             <img src={logo} />
           </div>
 
-          <div className="hidden lg:inline-flex">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-white hover:bg-blue-800"
-            >
-              {sidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
-            </Button>
-          </div>
         </SidebarHeader>
 
         {isLoadingUser ? (
@@ -273,7 +271,7 @@ const LayoutContent = ({ children }) => {
               >
                 <UserCheck className="w-5 h-5 text-white" />
               </div>
-              <div className={`flex-1 min-w-0 ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
+              <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-900 text-sm truncate">
                   {currentUser?.firstName} {currentUser?.lastName}
                   {isAdmin && (
@@ -299,6 +297,10 @@ const LayoutContent = ({ children }) => {
       </Sidebar>
 
       <main className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b bg-white px-3 shadow-sm sm:px-5">
+          <SidebarTrigger aria-label="Open navigation menu" className="h-10 w-10" />
+          <NotificationBell />
+        </header>
         <div className="flex-1 overflow-auto">
           <div className="h-full">{children}</div>
         </div>
@@ -321,7 +323,9 @@ export default function Layout({ children, currentPageName }) {
             '--sidebar-width-mobile': '20rem',
           }}
         >
-          <LayoutContent>{children}</LayoutContent>
+          <NotificationCenterProvider>
+            <LayoutContent>{children}</LayoutContent>
+          </NotificationCenterProvider>
         </SidebarProvider>
       </GlobalContextProvider>
     </EmployeeGate>

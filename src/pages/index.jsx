@@ -19,6 +19,7 @@ import LeaveApprovals from './LeaveApprovals';
 import LeaveManagement from './LeaveManagement';
 import { LoginPage } from './login/Login';
 import Onboarding from './Onboarding';
+import NotificationCenter, { NotificationPreferences } from './notifications/NotificationCenter';
 import Payroll from './Payroll';
 import Recruitment from './Recruitment';
 import RecruitmentApprovals from './RecruitmentApprovals';
@@ -73,6 +74,8 @@ const PAGES = {
   login: LoginPage,
   AuthorizationCenterWIP,
   TrainingRequestReview,
+  notifications: NotificationCenter,
+  preferences: NotificationPreferences,
 };
 
 function _getCurrentPage(url) {
@@ -141,6 +144,9 @@ function PagesContent() {
         <Route path="/ComplaintManagement" element={<Navigate to="/complaint-management" replace />} />
 
         <Route path="/request-training" element={<RequestTraining />} />
+
+        <Route path="/notifications" element={<NotificationCenter />} />
+        <Route path="/notifications/preferences" element={<NotificationPreferences />} />
 
         <Route path="/cooperative" element={<Cooperative />} />
         <Route path="/employee-cooperative" element={<EmployeeCooperative />} />
