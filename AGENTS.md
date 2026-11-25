@@ -27,6 +27,9 @@ When you touch an existing screen, bring it in line with DESIGN.md in the same c
 
 ## Project basics
 
+- Before feature development, read the canonical cross-repository backlog at `../Orbit360-BE/docs/PROJECT-TODO.md` and the relevant feature specification. If a specification is missing, record the gap and resolve unclear product decisions before implementing.
+- Create a Markdown implementation plan before building a new feature. Update the canonical backlog after completing or partially completing a task, recording blockers and unresolved product decisions. Never mark a feature complete without appropriate verification and recorded results. Do not create a duplicate project backlog.
+
 - React 18 + Vite, JSX, Tailwind CSS, shadcn/ui components in `src/components/ui/`, icons from `lucide-react`.
 - API calls go through `src/api/*.service.js` and `apiClient`.
 - Run `npm run lint` and `npm run build` before handing work back.
