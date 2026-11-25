@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbit 360 Design Proposal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body { margin: 0; }
+/* Layout: a single reading column for the proposal; app previews sit in fixed light "screens" because they show the product as it will ship (light theme). */
+:root {
+  /* Proposal page chrome */
+  --bg: #F6F8FB;
+  --surface: #FFFFFF;
+  --fg: #141A26;
+  --fg-muted: #4D5769;
+  --fg-subtle: #6B7689;
+  --line: #E2E7EF;
+  --accent: #1A66E3;
+  --accent-soft: #EEF4FE;
+  --code-bg: #EEF1F6;
+
+  /* Orbit 360 app tokens (the proposal itself). Previews always use these light values. */
+  --o-brand-50: #EEF4FE;
+  --o-brand-100: #DCE8FC;
+  --o-brand-600: #1A66E3;
+  --o-brand-700: #1553BD;
+  --o-indigo: #14069A;
+  --o-gray-0: #FFFFFF;
+  --o-gray-50: #F6F8FB;
+  --o-gray-100: #EEF1F6;
+  --o-gray-200: #E2E7EF;
+  --o-gray-300: #CBD3DF;
+  --o-gray-400: #98A3B5;
+  --o-gray-500: #6B7689;
+  --o-gray-600: #4D5769;
+  --o-gray-700: #363F4F;
+  --o-gray-900: #141A26;
+  --o-success-fg: #157347; --o-success-bg: #E8F6EE; --o-success-line: #BFE5CF;
+  --o-pending-fg: #8A5300; --o-pending-bg: #FFF4DE; --o-pending-line: #F2D49A;
+  --o-danger-fg: #B42318;  --o-danger-bg: #FDECEA;  --o-danger-line: #F5C2BD;
+  --o-info-fg: #1553BD;    --o-info-bg: #EEF4FE;    --o-info-line: #C9DBFA;
+  --o-neutral-fg: #4D5769; --o-neutral-bg: #EEF1F6; --o-neutral-line: #D7DDE7;
+  --o-danger-solid: #D92D20;
+  --o-shadow-overlay: 0 8px 24px rgba(20, 26, 38, 0.12), 0 1px 2px rgba(20, 26, 38, 0.08);
+
+  /* "Before" preview only: colours copied from the current code */
+  --old-bg: #F5F5F5;
+  --old-blue-700: #1D4ED8;
+  --old-blue-800: #1E40AF;
+  --old-gray-900: #111827;
+  --old-gray-600: #4B5563;
+  --old-red: #EF4444;
+  --old-yellow-bg: #FEF9C3; --old-yellow-fg: #854D0E;
+  --old-green-bg: #DCFCE7;  --old-green-fg: #166534;
+  --old-red-bg: #FEE2E2;    --old-red-fg: #991B1B;
+  --old-gray-bg: #F3F4F6;   --old-gray-fg: #1F2937;
+
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F131B; --surface: #171C26; --fg: #E8ECF3; --fg-muted: #A9B3C4; --fg-subtle: #8792A6;
+    --line: #2A3242; --accent: #6FA0F2; --accent-soft: #1A2740; --code-bg: #1F2633;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F131B; --surface: #171C26; --fg: #E8ECF3; --fg-muted: #A9B3C4; --fg-subtle: #8792A6;
+  --line: #2A3242; --accent: #6FA0F2; --accent-soft: #1A2740; --code-bg: #1F2633;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-block: 40px 96px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+h1, h2, h3 { text-wrap: balance; margin: 0; color: var(--fg); }
+h1 { font-size: 32px; line-height: 40px; font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: 22px; line-height: 30px; font-weight: 600; letter-spacing: -0.005em; }
+h3 { font-size: 16px; line-height: 24px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.muted { color: var(--fg-muted); }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-subtle); }
+code, .mono { font-family: var(--font-mono); font-size: 13px; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+.doc-head { display: flex; flex-direction: column; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 32px; }
+.doc-meta { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 13px; color: var(--fg-muted); }
+.doc-meta b { color: var(--fg); font-weight: 600; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; }
+.toc a { color: var(--fg-muted); text-decoration: none; }
+.toc a:hover { color: var(--accent); }
+
+section { display: flex; flex-direction: column; gap: 20px; scroll-margin-top: 16px; }
+.section-head { display: flex; flex-direction: column; gap: 6px; }
+
+/* Principles */
+.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0; border-top: 1px solid var(--line); }
+.principle { padding: 18px 20px 18px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.principle h3 { font-size: 15px; }
+.principle p { font-size: 14px; color: var(--fg-muted); }
+
+/* Colour */
+.swatch-group { display: flex; flex-direction: column; gap: 10px; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.swatch { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.chip { height: 56px; border-bottom: 1px solid var(--line); }
+.swatch-label { padding: 8px 10px; display: flex; flex-direction: column; gap: 0; font-size: 12px; line-height: 18px; }
+.swatch-label b { font-weight: 600; font-size: 13px; }
+.swatch-label span { color: var(--fg-subtle); font-family: var(--font-mono); font-size: 11.5px; }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.rule { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rule h3 { font-size: 14px; }
+.rule p, .rule li { font-size: 14px; color: var(--fg-muted); }
+.rule ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+.rule.yes h3::before { content: "Use "; color: var(--o-success-fg); }
+.rule.no h3::before { content: "Remove "; color: var(--o-danger-fg); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rule.yes h3::before { color: #6FD49C; } :root:not([data-theme="light"]) .rule.no h3::before { color: #F59A92; } }
+:root[data-theme="dark"] .rule.yes h3::before { color: #6FD49C; }
+:root[data-theme="dark"] .rule.no h3::before { color: #F59A92; }
+
+/* Tables in the doc */
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table.doc { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+table.doc th, table.doc td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.doc th { font-size: 12px; font-weight: 600; color: var(--fg-subtle); background: var(--bg); }
+table.doc tr:last-child td { border-bottom: 0; }
+table.doc td.num { font-variant-numeric: tabular-nums; }
+
+/* Specimen area: always renders the app's light theme */
+.specimen {
+  background: var(--o-gray-0);
+  color: var(--o-gray-900);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  color-scheme: light;
+}
+.specimen-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.specimen-label { font-size: 12px; font-weight: 600; color: var(--o-gray-500); min-width: 96px; }
+
+/* Type scale */
+.type-row { display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--o-gray-200); }
+.type-row:last-child { border-bottom: 0; }
+.type-row .spec { font-family: var(--font-mono); font-size: 12px; color: var(--o-gray-500); }
+.t-title { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; }
+.t-section { font-size: 18px; line-height: 28px; font-weight: 600; }
+.t-card { font-size: 16px; line-height: 24px; font-weight: 600; }
+.t-body { font-size: 14px; line-height: 20px; }
+.t-label { font-size: 13px; line-height: 18px; font-weight: 500; }
+.t-caption { font-size: 12px; line-height: 16px; color: var(--o-gray-500); }
+.t-num { font-size: 14px; line-height: 20px; font-variant-numeric: tabular-nums; }
+
+/* ── Orbit components (proposal) ─────────────────────────────── */
+.o-btn {
+  font: 500 14px/20px var(--font-ui);
+  height: 36px; padding: 0 14px;
+  border-radius: 6px; border: 1px solid transparent;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; white-space: nowrap;
+}
+.o-btn.sm { height: 32px; padding: 0 10px; font-size: 13px; }
+.o-btn.primary { background: var(--o-brand-600); color: var(--o-gray-0); }
+.o-btn.primary:hover { background: var(--o-brand-700); }
+.o-btn.secondary { background: var(--o-gray-0); color: var(--o-gray-900); border-color: var(--o-gray-300); }
+.o-btn.secondary:hover { background: var(--o-gray-50); }
+.o-btn.ghost { background: transparent; color: var(--o-gray-700); }
+.o-btn.ghost:hover { background: var(--o-gray-100); }
+.o-btn.danger { background: var(--o-danger-solid); color: var(--o-gray-0); }
+.o-btn.danger-ghost { background: transparent; color: var(--o-danger-fg); }
+.o-btn.danger-ghost:hover { background: var(--o-danger-bg); }
+.o-btn.link { background: none; border: 0; padding: 0; height: auto; color: var(--o-brand-600); }
+.o-btn.link:hover { text-decoration: underline; }
+.o-btn.icon { width: 36px; padding: 0; }
+.o-btn:focus-visible { outline: 2px solid var(--o-brand-600); outline-offset: 2px; }
+.o-btn svg { width: 16px; height: 16px; }
+
+.o-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 500 12px/16px var(--font-ui);
+  padding: 2px 8px; border-radius: 4px; border: 1px solid;
+  white-space: nowrap;
+}
+.o-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.o-badge.pending { color: var(--o-pending-fg); background: var(--o-pending-bg); border-color: var(--o-pending-line); }
+.o-badge.success { color: var(--o-success-fg); background: var(--o-success-bg); border-color: var(--o-success-line); }
+.o-badge.danger { color: var(--o-danger-fg); background: var(--o-danger-bg); border-color: var(--o-danger-line); }
+.o-badge.info { color: var(--o-info-fg); background: var(--o-info-bg); border-color: var(--o-info-line); }
+.o-badge.neutral { color: var(--o-neutral-fg); background: var(--o-neutral-bg); border-color: var(--o-neutral-line); }
+
+.o-field { display: flex; flex-direction: column; gap: 6px; min-width: 200px; flex: 1; }
+.o-field label { font: 500 13px/18px var(--font-ui); color: var(--o-gray-700); }
+.o-input {
+  font: 400 14px/20px var(--font-ui); color: var(--o-gray-900);
+  height: 36px; padding: 0 10px; border: 1px solid var(--o-gray-300); border-radius: 6px; background: var(--o-gray-0);
+  width: 100%;
+}
+.o-input:focus { outline: none; border-color: var(--o-brand-600); box-shadow: 0 0 0 3px var(--o-brand-100); }
+.o-field .hint { font-size: 12px; color: var(--o-gray-500); }
+.o-field.error .o-input { border-color: var(--o-danger-solid); }
+.o-field.error .hint { color: var(--o-danger-fg); }
+
+.spacing-scale { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; }
+.space { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: var(--o-gray-500); font-family: var(--font-mono); }
+.space i { display: block; background: var(--o-brand-100); border: 1px solid var(--o-brand-600); width: 20px; }
+.radius-demo { display: flex; flex-wrap: wrap; gap: 16px; }
+.radius-demo div { width: 120px; height: 64px; border: 1px solid var(--o-gray-300); background: var(--o-gray-50); display: flex; align-items: flex-end; padding: 8px; font-size: 12px; color: var(--o-gray-600); }
+.elev-demo { display: flex; flex-wrap: wrap; gap: 20px; }
+.elev-demo div { width: 200px; padding: 14px; font-size: 13px; color: var(--o-gray-600); background: var(--o-gray-0); border-radius: 8px; }
+
+/* ── Before / after screens ─────────────────────────────────── */
+.compare { display: grid; grid-template-columns: 1fr; gap: 28px; }
+.screen-block { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.screen-caption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.screen-caption b { font-size: 15px; }
+.screen-caption span { font-size: 13px; color: var(--fg-muted); }
+.screen-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.screen { min-width: 880px; color-scheme: light; font-family: var(--font-ui); }
+.screen svg { flex-shrink: 0; }
+
+/* Before (faithful to the current cooperative-loan.jsx) */
+.before { background: var(--old-bg); padding: 32px; color: var(--old-gray-900); }
+.before .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+.before .title-wrap { display: flex; align-items: center; gap: 12px; }
+.before .tile { width: 48px; height: 48px; border-radius: 16px; background: linear-gradient(135deg, var(--old-blue-700), var(--old-blue-800)); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(29, 78, 216, 0.25); color: var(--o-gray-0); }
+.before .tile svg { width: 24px; height: 24px; }
+.before h4 { font-size: 30px; line-height: 36px; font-weight: 700; margin: 0; }
+.before .sub { color: var(--old-gray-600); font-size: 15px; }
+.before .btns { display: flex; gap: 8px; }
+.before .b-out { width: 40px; height: 40px; border: 1px solid #E5E7EB; border-radius: 6px; background: var(--o-gray-0); display: flex; align-items: center; justify-content: center; }
+.before .b-grad { height: 40px; padding: 0 16px; border-radius: 6px; border: 0; color: var(--o-gray-0); font: 500 14px var(--font-ui); background: linear-gradient(90deg, var(--old-blue-700), var(--old-blue-800)); box-shadow: 0 10px 15px -3px rgba(29, 78, 216, 0.25); display: flex; align-items: center; gap: 8px; }
+.before .card { background: var(--o-gray-0); border-radius: 12px; border: 1px solid #E5E7EB; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 24px; }
+.before .card-title { font-size: 24px; font-weight: 600; margin: 0 0 4px; }
+.before .card-desc { color: #6B7280; font-size: 14px; margin-bottom: 20px; }
+.before table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.before th { text-align: left; color: #6B7280; font-weight: 500; padding: 10px 8px; border-bottom: 1px solid #E5E7EB; }
+.before td { padding: 12px 8px; border-bottom: 1px solid #E5E7EB; }
+.before .old-badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; text-transform: lowercase; }
+.before .old-badge.y { background: var(--old-yellow-bg); color: var(--old-yellow-fg); }
+.before .old-badge.g { background: var(--old-green-bg); color: var(--old-green-fg); }
+.before .old-badge.r { background: var(--old-red-bg); color: var(--old-red-fg); }
+.before .old-badge.n { background: var(--old-gray-bg); color: var(--old-gray-fg); }
+.before .acts { display: flex; gap: 8px; }
+.before .a-out { height: 32px; padding: 0 10px; border: 1px solid #E5E7EB; border-radius: 6px; background: var(--o-gray-0); display: inline-flex; align-items: center; gap: 4px; font: 500 13px var(--font-ui); }
+.before .a-red { height: 32px; padding: 0 10px; border: 0; border-radius: 6px; background: var(--old-red); color: var(--o-gray-0); display: inline-flex; align-items: center; gap: 4px; font: 500 13px var(--font-ui); }
+.before svg.s { width: 16px; height: 16px; }
+
+/* After (proposal) */
+.after { background: var(--o-gray-50); padding: 28px 32px 32px; color: var(--o-gray-900); font-size: 14px; line-height: 20px; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+.page-header .ph-text { display: flex; flex-direction: column; gap: 4px; }
+.page-header .ph-title { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+.page-header .ph-desc { color: var(--o-gray-600); font-size: 14px; }
+.page-header .ph-actions { display: flex; gap: 8px; }
+.panel { background: var(--o-gray-0); border: 1px solid var(--o-gray-200); border-radius: 8px; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--o-gray-200); }
+.panel-head h5 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; }
+.panel-head .count { color: var(--o-gray-500); font-weight: 400; }
+.panel-tools { display: flex; gap: 8px; }
+.o-select { font: 400 13px/18px var(--font-ui); height: 32px; padding: 0 28px 0 10px; border: 1px solid var(--o-gray-300); border-radius: 6px; background: var(--o-gray-0); color: var(--o-gray-700); appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--o-gray-500) 50%), linear-gradient(135deg, var(--o-gray-500) 50%, transparent 50%); background-position: calc(100% - 14px) 14px, calc(100% - 10px) 14px; background-size: 4px 4px; background-repeat: no-repeat; }
+table.o-table { width: 100%; border-collapse: collapse; }
+table.o-table th { text-align: left; font: 500 12px/16px var(--font-ui); color: var(--o-gray-500); padding: 10px 16px; background: var(--o-gray-50); border-bottom: 1px solid var(--o-gray-200); white-space: nowrap; }
+table.o-table td { padding: 10px 16px; border-bottom: 1px solid var(--o-gray-100); white-space: nowrap; }
+table.o-table tbody tr { cursor: pointer; }
+table.o-table tbody tr:hover td { background: var(--o-gray-50); }
+table.o-table .r { text-align: right; font-variant-numeric: tabular-nums; }
+table.o-table .num { font-variant-numeric: tabular-nums; }
+table.o-table .sub { color: var(--o-gray-500); font-size: 12px; line-height: 16px; }
+table.o-table td.actions { text-align: right; }
+table.o-table td.actions .row-acts { display: inline-flex; gap: 4px; justify-content: flex-end; }
+.panel-foot { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; color: var(--o-gray-500); font-size: 13px; }
+.panel-foot .pager { display: flex; gap: 6px; }
+
+.diff-notes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--fg-muted); max-width: 80ch; }
+
+/* Empty state */
+.empty { padding: 40px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.empty b { font-size: 15px; font-weight: 600; color: var(--o-gray-900); }
+.empty p { color: var(--o-gray-600); font-size: 14px; max-width: 44ch; }
+.empty .o-btn { margin-top: 8px; }
+
+/* ── Overlays: select, menu, calendar, dialog, toast ───────────── */
+.overlay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; align-items: start; }
+.demo { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.demo-title { font: 600 12px/16px var(--font-ui); color: var(--o-gray-500); }
+.o-trigger {
+  font: 400 14px/20px var(--font-ui); color: var(--o-gray-900);
+  height: 36px; padding: 0 10px; border: 1px solid var(--o-gray-300); border-radius: 6px; background: var(--o-gray-0);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+}
+.o-trigger.open { border-color: var(--o-brand-600); box-shadow: 0 0 0 3px var(--o-brand-100); }
+.o-trigger svg { width: 16px; height: 16px; color: var(--o-gray-500); }
+.o-trigger .placeholder { color: var(--o-gray-500); }
+.o-pop { background: var(--o-gray-0); border: 1px solid var(--o-gray-200); border-radius: 8px; box-shadow: var(--o-shadow-overlay); padding: 4px; }
+.o-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 32px; padding: 0 8px; border-radius: 4px; font-size: 14px; color: var(--o-gray-900); }
+.o-item.hl { background: var(--o-gray-100); }
+.o-item.sel { font-weight: 500; }
+.o-item.sel svg { width: 16px; height: 16px; color: var(--o-brand-600); }
+.o-item.danger { color: var(--o-danger-fg); }
+.o-item .kbd { color: var(--o-gray-500); font-size: 12px; }
+.o-sep { height: 1px; background: var(--o-gray-200); margin: 4px -4px; }
+.o-group { font: 500 12px/16px var(--font-ui); color: var(--o-gray-500); padding: 6px 8px 4px; }
+.menu-anchor { display: flex; justify-content: flex-end; }
+.menu-anchor + .o-pop { width: 200px; margin-left: auto; }
+
+.cal { width: 280px; padding: 12px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-head b { font-size: 14px; font-weight: 600; }
+.cal-nav { display: flex; gap: 4px; }
+.cal-nav span { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--o-gray-600); border: 1px solid var(--o-gray-200); }
+.cal-nav svg { width: 14px; height: 14px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; font-variant-numeric: tabular-nums; }
+.cal-grid .wd { font-size: 12px; color: var(--o-gray-500); height: 28px; line-height: 28px; }
+.cal-grid .d { font-size: 13px; height: 34px; line-height: 34px; border-radius: 6px; color: var(--o-gray-900); }
+.cal-grid .d.out { color: var(--o-gray-400); }
+.cal-grid .d.off { color: var(--o-gray-400); text-decoration: line-through; }
+.cal-grid .d.today { box-shadow: inset 0 0 0 1px var(--o-brand-600); }
+.cal-grid .d.sel { background: var(--o-brand-600); color: var(--o-gray-0); font-weight: 600; }
+.cal-grid .d.range { background: var(--o-brand-50); border-radius: 0; }
+.cal-foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--o-gray-200); margin-top: 8px; padding-top: 8px; font-size: 12px; color: var(--o-gray-500); }
+
+.dialog-stage { position: relative; background: rgba(20, 26, 38, 0.45); border-radius: 8px; padding: 40px 16px; display: flex; justify-content: center; }
+.o-dialog { background: var(--o-gray-0); border-radius: 8px; box-shadow: var(--o-shadow-overlay); width: 100%; max-width: 460px; }
+.o-dialog-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 20px 20px 0; }
+.o-dialog-head h6 { margin: 0; font-size: 18px; line-height: 28px; font-weight: 600; color: var(--o-gray-900); }
+.o-dialog-head p { font-size: 14px; color: var(--o-gray-600); margin-top: 4px; }
+.o-dialog-head .x { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--o-gray-500); flex-shrink: 0; }
+.o-dialog-head .x svg { width: 16px; height: 16px; }
+.o-dialog-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+.o-dialog-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--o-gray-200); background: var(--o-gray-50); border-radius: 0 0 8px 8px; }
+.kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; }
+.kv dt { color: var(--o-gray-500); font-size: 13px; }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.toast-stack { display: flex; flex-direction: column; gap: 10px; max-width: 380px; }
+.o-toast { display: grid; grid-template-columns: 18px 1fr 20px; gap: 10px; align-items: start; background: var(--o-gray-0); border: 1px solid var(--o-gray-200); border-radius: 8px; box-shadow: var(--o-shadow-overlay); padding: 12px 12px 12px 14px; }
+.o-toast > svg { width: 18px; height: 18px; margin-top: 1px; }
+.o-toast.success { background: var(--o-success-bg); border-color: var(--o-success-line); }
+.o-toast.error { background: var(--o-danger-bg); border-color: var(--o-danger-line); }
+.o-toast.info { background: var(--o-info-bg); border-color: var(--o-info-line); }
+.o-toast.pending { background: var(--o-pending-bg); border-color: var(--o-pending-line); }
+.o-toast.success > svg, .o-toast.success b { color: var(--o-success-fg); }
+.o-toast.error > svg, .o-toast.error b { color: var(--o-danger-fg); }
+.o-toast.info > svg, .o-toast.info b { color: var(--o-info-fg); }
+.o-toast.pending > svg, .o-toast.pending b { color: var(--o-pending-fg); }
+.o-toast.neutral { background: var(--o-neutral-bg); border-color: var(--o-neutral-line); }
+.o-toast.neutral > svg, .o-toast.neutral b { color: var(--o-gray-700); }
+/* Fixed shape: title + one line of text, no actions, so every toast is the same height. */
+.o-toast { min-height: 64px; align-items: center; }
+.o-toast > div { min-width: 0; }
+.o-toast b, .o-toast span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.o-toast span { color: var(--o-gray-700); }
+.o-toast .close { color: var(--o-gray-500); }
+.toast-rules { width: 100%; }
+.o-toast b { display: block; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--o-gray-900); }
+.o-toast span { display: block; font-size: 13px; line-height: 18px; color: var(--o-gray-600); }
+.o-toast .t-action { margin-top: 6px; font-size: 13px; font-weight: 500; color: var(--o-brand-600); }
+.o-toast .close { color: var(--o-gray-400); }
+.o-toast .close svg { width: 16px; height: 16px; }
+
+/* Code */
+pre { margin: 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; color: var(--fg); }
+
+/* Decisions */
+.decisions { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.decision { display: grid; grid-template-columns: 28px 1fr; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.decision .n { font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
+.decision h3 { font-size: 15px; }
+.decision p { font-size: 14px; color: var(--fg-muted); }
+
+.steps { display: flex; flex-direction: column; gap: 0; border-left: 2px solid var(--line); margin-left: 6px; }
+.step { position: relative; padding: 0 0 18px 22px; display: flex; flex-direction: column; gap: 2px; }
+.step::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+.step b { font-size: 15px; }
+.step span { font-size: 14px; color: var(--fg-muted); }
+
+@media (max-width: 640px) {
+  h1 { font-size: 26px; line-height: 34px; }
+  .type-row { grid-template-columns: 1fr; gap: 2px; }
+  .specimen { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+    <symbol id="i-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></symbol>
+    <symbol id="i-chev-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-chev-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></symbol>
+    <symbol id="i-chev-d" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></symbol>
+    <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5h.01"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <header class="doc-head">
+    <span class="eyebrow">Design system · approved 25 Nov 2026</span>
+    <h1>Orbit 360 Design Proposal</h1>
+    <p class="muted">One visual language for every Orbit 360 module: the colours, type, spacing and components every screen will use, the rules for icons and colour, and a before/after of a real screen. All decisions below are agreed. Next, this becomes the tokens and shared components in <code>orbit360-FE</code>.</p>
+    <div class="doc-meta">
+      <span><b>Stack</b> React, Tailwind, shadcn/ui (kept)</span>
+      <span><b>Scope</b> HR portal and Employee portal</span>
+      <span><b>Theme</b> Light now, tokens ready for dark</span>
+      <span><b>Approved</b> 25 Nov 2026</span>
+    </div>
+    <nav class="toc" aria-label="Sections">
+      <a href="#principles">Principles</a>
+      <a href="#color">Colour</a>
+      <a href="#type">Type</a>
+      <a href="#space">Spacing &amp; surfaces</a>
+      <a href="#components">Components</a>
+      <a href="#overlays">Overlays</a>
+      <a href="#status">Status language</a>
+      <a href="#icons">Icons</a>
+      <a href="#compare">Before / after</a>
+      <a href="#code">In the code</a>
+      <a href="#decisions">Decisions</a>
+    </nav>
+  </header>
+
+  <section id="principles">
+    <div class="section-head">
+      <span class="eyebrow">Principles</span>
+      <h2>Five rules the whole system follows</h2>
+    </div>
+    <div class="principles">
+      <div class="principle"><h3>Quiet by default</h3><p>White and grey do most of the work. Borders separate things; shadows only lift things that float, such as menus and dialogs.</p></div>
+      <div class="principle"><h3>One accent, used on purpose</h3><p>Orbit blue marks the one primary action, the active page and links. If everything is blue, nothing is.</p></div>
+      <div class="principle"><h3>Icons earn their place</h3><p>An icon stays only if it helps someone find or recognise something faster. Decoration goes.</p></div>
+      <div class="principle"><h3>One status language</h3><p>Every request in every module uses the same five status colours and the same plain-English labels.</p></div>
+      <div class="principle"><h3>Dense, readable data</h3><p>HR work is tables and forms. 14px text, compact rows, right-aligned money in tabular figures.</p></div>
+    </div>
+  </section>
+
+  <section id="color">
+    <div class="section-head">
+      <span class="eyebrow">Colour</span>
+      <h2>Brand blue, cool neutrals, five status tones</h2>
+      <p class="muted">The blue is taken from the Orbit 360 logo. The greys lean slightly blue so they sit with it instead of looking flat. The logo's indigo is kept for the logo and charts only.</p>
+    </div>
+
+    <div class="swatch-group">
+      <h3>Brand</h3>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:var(--o-brand-600)"></div><div class="swatch-label"><b>brand-600</b><span>#1A66E3</span>Primary buttons, active nav, links, focus</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-brand-700)"></div><div class="swatch-label"><b>brand-700</b><span>#1553BD</span>Hover and pressed</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-brand-100)"></div><div class="swatch-label"><b>brand-100</b><span>#DCE8FC</span>Focus ring, selected row</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-brand-50)"></div><div class="swatch-label"><b>brand-50</b><span>#EEF4FE</span>Active nav background</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-indigo)"></div><div class="swatch-label"><b>indigo</b><span>#14069A</span>Logo and charts only</div></div>
+      </div>
+    </div>
+
+    <div class="swatch-group">
+      <h3>Neutrals</h3>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:var(--o-gray-0)"></div><div class="swatch-label"><b>gray-0</b><span>#FFFFFF</span>Cards, inputs</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-gray-50)"></div><div class="swatch-label"><b>gray-50</b><span>#F6F8FB</span>Page background</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-gray-100)"></div><div class="swatch-label"><b>gray-100</b><span>#EEF1F6</span>Hover, table dividers</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-gray-200)"></div><div class="swatch-label"><b>gray-200</b><span>#E2E7EF</span>Borders</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-gray-300)"></div><div class="swatch-label"><b>gray-300</b><span>#CBD3DF</span>Input borders</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-gray-500)"></div><div class="swatch-label"><b>gray-500</b><span>#6B7689</span>Secondary text</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-gray-700)"></div><div class="swatch-label"><b>gray-700</b><span>#363F4F</span>Labels</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-gray-900)"></div><div class="swatch-label"><b>gray-900</b><span>#141A26</span>Body text, headings</div></div>
+      </div>
+    </div>
+
+    <div class="swatch-group">
+      <h3>Status tones</h3>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:var(--o-pending-bg)"></div><div class="swatch-label"><b>pending</b><span>#8A5300 on #FFF4DE</span>Waiting for someone</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-success-bg)"></div><div class="swatch-label"><b>success</b><span>#157347 on #E8F6EE</span>Approved, paid off</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-danger-bg)"></div><div class="swatch-label"><b>danger</b><span>#B42318 on #FDECEA</span>Rejected, errors</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-info-bg)"></div><div class="swatch-label"><b>info</b><span>#1553BD on #EEF4FE</span>In progress, active</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--o-neutral-bg)"></div><div class="swatch-label"><b>neutral</b><span>#4D5769 on #EEF1F6</span>Cancelled, draft</div></div>
+      </div>
+    </div>
+
+    <div class="rules">
+      <div class="rule yes"><h3>colour for meaning</h3><ul><li>Brand blue for the main action, active nav, links and focus</li><li>Status tones only for status, alerts and validation</li><li>Everything else neutral</li></ul></div>
+      <div class="rule no"><h3>colour as decoration</h3><ul><li>Gradients on buttons, headers or cards</li><li>A different colour per stat card or per module</li><li>Raw hex values or Tailwind colours like <code>purple-500</code> in pages</li></ul></div>
+    </div>
+  </section>
+
+  <section id="type">
+    <div class="section-head">
+      <span class="eyebrow">Typography</span>
+      <h2>One family, six sizes</h2>
+      <p class="muted">Inter for all interface text, hosted with the app so the installable version works offline. The logo keeps its own geometric wordmark. Money, counts and dates use tabular figures so columns line up.</p>
+    </div>
+    <div class="specimen">
+      <div class="type-row"><span class="spec">Page title · 24/32 · 600</span><span class="t-title">Leave Management</span></div>
+      <div class="type-row"><span class="spec">Section · 18/28 · 600</span><span class="t-section">Leave balance</span></div>
+      <div class="type-row"><span class="spec">Card title · 16/24 · 600</span><span class="t-card">Requested loans</span></div>
+      <div class="type-row"><span class="spec">Body · 14/20 · 400</span><span class="t-body">Your leave request submitted on 02 Dec 2026 has been approved.</span></div>
+      <div class="type-row"><span class="spec">Label · 13/18 · 500</span><span class="t-label">Monthly deduction</span></div>
+      <div class="type-row"><span class="spec">Caption · 12/16 · 400</span><span class="t-caption">Deducted from your December 2026 payroll</span></div>
+      <div class="type-row"><span class="spec">Dates · DD Mon YYYY</span><span class="t-num">02 Dec 2026 &nbsp; 01 Dec 2026 – 28 Feb 2027 &nbsp; 02 Dec 2026, 14:30</span></div>
+      <div class="type-row"><span class="spec">Figures · tabular</span><span class="t-num">₦1,250,000.00 &nbsp; ₦52,500.00 &nbsp; ₦112,000.00</span></div>
+    </div>
+  </section>
+
+  <section id="space">
+    <div class="section-head">
+      <span class="eyebrow">Spacing &amp; surfaces</span>
+      <h2>A 4px grid, three radii, two elevations</h2>
+    </div>
+    <div class="specimen">
+      <div class="specimen-row">
+        <span class="specimen-label">Spacing</span>
+        <div class="spacing-scale">
+          <div class="space"><i style="height:4px"></i>4</div>
+          <div class="space"><i style="height:8px"></i>8</div>
+          <div class="space"><i style="height:12px"></i>12</div>
+          <div class="space"><i style="height:16px"></i>16</div>
+          <div class="space"><i style="height:24px"></i>24</div>
+          <div class="space"><i style="height:32px"></i>32</div>
+          <div class="space"><i style="height:48px"></i>48</div>
+        </div>
+      </div>
+      <div class="specimen-row">
+        <span class="specimen-label">Radius</span>
+        <div class="radius-demo">
+          <div style="border-radius:4px">4px · badges</div>
+          <div style="border-radius:6px">6px · buttons, inputs</div>
+          <div style="border-radius:8px">8px · cards, dialogs</div>
+        </div>
+      </div>
+      <div class="specimen-row">
+        <span class="specimen-label">Elevation</span>
+        <div class="elev-demo">
+          <div style="border:1px solid var(--o-gray-200)">Flat + border<br>Cards, tables, panels</div>
+          <div style="box-shadow:var(--o-shadow-overlay)">Overlay shadow<br>Menus, popovers, dialogs</div>
+        </div>
+      </div>
+    </div>
+    <p class="muted">That replaces today's mix of <code>rounded-lg/xl/2xl/full</code> and about 145 uses of <code>shadow-lg/xl/2xl</code>.</p>
+  </section>
+
+  <section id="components">
+    <div class="section-head">
+      <span class="eyebrow">Components</span>
+      <h2>Buttons, fields and states</h2>
+      <p class="muted">These restyle the existing shadcn components through tokens, so every screen picks them up. A few Orbit components are added on top: PageHeader, StatusBadge, DataTable shell, EmptyState, StatCard, FormSection and ConfirmDialog.</p>
+    </div>
+    <div class="specimen">
+      <div class="specimen-row">
+        <span class="specimen-label">Buttons</span>
+        <button class="o-btn primary" type="button">Submit request</button>
+        <button class="o-btn secondary" type="button">Save draft</button>
+        <button class="o-btn ghost" type="button">Cancel</button>
+        <button class="o-btn link" type="button">View details</button>
+      </div>
+      <div class="specimen-row">
+        <span class="specimen-label">Destructive</span>
+        <button class="o-btn danger" type="button">Cancel request</button>
+        <button class="o-btn danger-ghost sm" type="button">Cancel</button>
+        <span class="t-caption">Solid red only inside the confirmation dialog. In dropdown menus, red text.</span>
+      </div>
+      <div class="specimen-row">
+        <span class="specimen-label">Icon-only</span>
+        <button class="o-btn secondary icon" type="button" aria-label="Refresh"><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
+        <span class="t-caption">Allowed when the icon is universal; always has an accessible label and a tooltip.</span>
+      </div>
+      <div class="specimen-row" style="align-items:flex-start">
+        <span class="specimen-label">Fields</span>
+        <div class="o-field"><label for="f-amt">Principal amount</label><input class="o-input" id="f-amt" value="₦250,000.00"><span class="hint">Maximum ₦3,000,000 for a car loan</span></div>
+        <div class="o-field error"><label for="f-ten">Tenure (months)</label><input class="o-input" id="f-ten" value="48"><span class="hint">Car loans can't be longer than 36 months</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="overlays">
+    <div class="section-head">
+      <span class="eyebrow">Components</span>
+      <h2>Dropdowns, calendar, modal and toasts</h2>
+      <p class="muted">Everything that floats shares one surface: white, a 1px border, 8px corners and the single overlay shadow. Each replaces the current mix of shadcn defaults, the native date input and hand-built popups.</p>
+    </div>
+
+    <div class="specimen">
+      <div class="overlay-grid">
+        <div class="demo">
+          <span class="demo-title">Select (one value from a list)</span>
+          <div class="o-field" style="min-width:0">
+            <label for="sel-demo">Leave type</label>
+            <div class="o-trigger open" id="sel-demo" role="combobox" aria-expanded="true" aria-controls="sel-list"><span>Annual leave</span><svg aria-hidden="true"><use href="#i-chev-d"/></svg></div>
+          </div>
+          <div class="o-pop" id="sel-list" role="listbox">
+            <div class="o-item sel" role="option" aria-selected="true">Annual leave <svg aria-hidden="true"><use href="#i-check"/></svg></div>
+            <div class="o-item hl" role="option">Sick leave</div>
+            <div class="o-item" role="option">Compassionate leave</div>
+            <div class="o-item" role="option">Study leave</div>
+            <div class="o-item" role="option">Maternity leave</div>
+          </div>
+          <span class="t-caption">Same height and border as text inputs. A check marks the chosen option. Lists longer than about 8 items get a search box at the top (combobox).</span>
+        </div>
+
+        <div class="demo">
+          <span class="demo-title">Dropdown menu (row actions)</span>
+          <div class="menu-anchor"><button class="o-btn secondary icon sm" type="button" aria-label="More actions" style="width:32px"><svg aria-hidden="true"><use href="#i-more"/></svg></button></div>
+          <div class="o-pop" role="menu">
+            <div class="o-group">Loan · Salary advance</div>
+            <div class="o-item hl" role="menuitem">View details</div>
+            <div class="o-item" role="menuitem">Edit request</div>
+            <div class="o-item" role="menuitem">Download schedule (CSV)</div>
+            <div class="o-sep" role="separator"></div>
+            <div class="o-item danger" role="menuitem">Cancel request…</div>
+          </div>
+          <span class="t-caption">Any table where rows can have more than one action uses this menu on every row, even rows where only one item applies, so the column lines up. Items are text only; actions that don't apply are hidden; the destructive item is last and red, with "…" when it opens a confirmation. Tables with a single action make the whole row clickable instead.</span>
+        </div>
+
+        <div class="demo">
+          <span class="demo-title">Date picker</span>
+          <div class="o-field" style="min-width:0">
+            <label for="date-demo">Start date</label>
+            <div class="o-trigger open" id="date-demo" role="button" aria-expanded="true"><span>02 Dec 2026</span><svg aria-hidden="true"><use href="#i-cal"/></svg></div>
+          </div>
+          <div class="o-pop cal" aria-label="December 2026">
+            <div class="cal-head"><b>December 2026</b><span class="cal-nav"><span aria-label="Previous month"><svg aria-hidden="true"><use href="#i-chev-l"/></svg></span><span aria-label="Next month"><svg aria-hidden="true"><use href="#i-chev-r"/></svg></span></span></div>
+            <div class="cal-grid">
+              <span class="wd">Mo</span><span class="wd">Tu</span><span class="wd">We</span><span class="wd">Th</span><span class="wd">Fr</span><span class="wd">Sa</span><span class="wd">Su</span>
+              <span class="d out">30</span><span class="d">1</span><span class="d sel">2</span><span class="d range">3</span><span class="d range">4</span><span class="d off">5</span><span class="d off">6</span>
+              <span class="d range">7</span><span class="d range">8</span><span class="d sel">9</span><span class="d">10</span><span class="d">11</span><span class="d off">12</span><span class="d off">13</span>
+              <span class="d">14</span><span class="d">15</span><span class="d">16</span><span class="d">17</span><span class="d">18</span><span class="d off">19</span><span class="d off">20</span>
+              <span class="d">21</span><span class="d">22</span><span class="d">23</span><span class="d">24</span><span class="d off">25</span><span class="d off">26</span><span class="d off">27</span>
+              <span class="d">28</span><span class="d">29</span><span class="d">30</span><span class="d">31</span><span class="d out">1</span><span class="d out">2</span><span class="d out">3</span>
+            </div>
+            <div class="cal-foot"><span>02 Dec – 09 Dec 2026 · 6 working days</span><span class="o-btn link" style="font-size:12px">Clear</span></div>
+          </div>
+          <span class="t-caption">Weeks start on Monday. Weekends and public holidays (25–26 Dec shown) are greyed out when a form counts working days. The field always shows "02 Dec 2026"; nobody types a date format.</span>
+        </div>
+      </div>
+
+      <div class="demo">
+        <span class="demo-title">Modal (dialog)</span>
+        <div class="dialog-stage">
+          <div class="o-dialog" role="dialog" aria-labelledby="dlg-title" aria-describedby="dlg-desc">
+            <div class="o-dialog-head">
+              <div><h6 id="dlg-title">Cancel this loan request?</h6><p id="dlg-desc">HR will stop reviewing it. You can submit a new request at any time.</p></div>
+              <span class="x" aria-label="Close"><svg aria-hidden="true"><use href="#i-x"/></svg></span>
+            </div>
+            <div class="o-dialog-body">
+              <dl class="kv">
+                <dt>Type</dt><dd>Salary advance</dd>
+                <dt>Principal</dt><dd>₦150,000.00</dd>
+                <dt>Requested</dt><dd>03 Nov 2026</dd>
+              </dl>
+              <div class="o-field" style="min-width:0"><label for="dlg-reason">Reason (optional)</label><input class="o-input" id="dlg-reason" placeholder="e.g. No longer needed"></div>
+            </div>
+            <div class="o-dialog-foot">
+              <button class="o-btn secondary" type="button">Keep request</button>
+              <button class="o-btn danger" type="button">Cancel request</button>
+            </div>
+          </div>
+        </div>
+        <span class="t-caption">Title is a question or a task, the description says what will happen, buttons say exactly what they do ("Keep request", not "No"). Primary action on the right. Forms longer than one screen open as a side sheet instead of a modal.</span>
+      </div>
+
+      <div class="demo">
+        <span class="demo-title">Toasts (top right, one system: Sonner)</span>
+        <div class="toast-stack">
+          <div class="o-toast success" role="status"><svg aria-hidden="true"><use href="#i-ok"/></svg><div><b>Leave request submitted</b><span>Your supervisor has been notified.</span></div><span class="close" aria-label="Dismiss"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+          <div class="o-toast error" role="alert"><svg aria-hidden="true"><use href="#i-alert"/></svg><div><b>Couldn't load your payslips</b><span>Check your connection and refresh the page.</span></div><span class="close" aria-label="Dismiss"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+          <div class="o-toast info" role="status"><svg aria-hidden="true"><use href="#i-info"/></svg><div><b>Loan approved</b><span>Your loan request submitted on 02/12/2026 has been approved.</span></div><span class="close" aria-label="Dismiss"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+          <div class="o-toast pending" role="status"><svg aria-hidden="true"><use href="#i-clock"/></svg><div><b>Session ends in 2 minutes</b><span>Save your work to avoid losing changes.</span></div><span class="close" aria-label="Dismiss"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+          <div class="o-toast neutral" role="status"><svg aria-hidden="true"><use href="#i-info"/></svg><div><b>Loan request cancelled</b><span>HR will no longer review it.</span></div><span class="close" aria-label="Dismiss"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+        </div>
+        <span class="t-caption">Five tones, one shape: icon, title, one line of text and a close button. Toasts never contain buttons or links, so every toast is the same height; anything to open or act on lives in the Notification Hub or on the page. Text longer than one line is cut with "…". Errors stay until dismissed; the rest close after 5 seconds. The custom NotificationBar is retired so there is one toast system, and real-time notification banners use the info tone.</span>
+      </div>
+
+      <div class="demo">
+        <span class="demo-title">When to show a toast</span>
+        <div class="table-scroll toast-rules" style="border-color:var(--o-gray-200);background:var(--o-gray-0)">
+          <table class="doc" style="color:var(--o-gray-900)">
+            <thead><tr><th style="background:var(--o-gray-50);color:var(--o-gray-500)">Situation</th><th style="background:var(--o-gray-50);color:var(--o-gray-500)">Feedback</th><th style="background:var(--o-gray-50);color:var(--o-gray-500)">Example</th></tr></thead>
+            <tbody>
+              <tr><td>An action finished and the screen doesn't already show the result</td><td><span class="o-badge success">Success toast</span></td><td>"Leave request submitted", "Profile saved", "Payroll sent for approval"</td></tr>
+              <tr><td>An action failed, or data couldn't load</td><td><span class="o-badge danger">Error toast</span></td><td>"Couldn't submit your request"</td></tr>
+              <tr><td>Something was cancelled, removed or undone</td><td><span class="o-badge neutral">Neutral toast</span></td><td>"Loan request cancelled", "Draft discarded"</td></tr>
+              <tr><td>Something happened elsewhere that affects you</td><td><span class="o-badge info">Info toast</span></td><td>"Your loan request was approved" (real-time notification)</td></tr>
+              <tr><td>A warning about time or state</td><td><span class="o-badge pending">Pending toast</span></td><td>"Session ends in 2 minutes"</td></tr>
+              <tr><td>A form field is wrong</td><td>Inline message under the field, no toast</td><td>"Car loans can't be longer than 36 months"</td></tr>
+              <tr><td>The result is already visible</td><td>No toast</td><td>A filter changes, a dialog closes and the row updates</td></tr>
+              <tr><td>Signing in</td><td>No toast: a greeting on the dashboard</td><td>"Good morning, Ada" in the dashboard header</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="status">
+    <div class="section-head">
+      <span class="eyebrow">Status language</span>
+      <h2>One map for every module</h2>
+      <p class="muted">Today 25 separate places decide status colours, and labels show raw values like <code>PENDING_REVIEW</code>. A single <code>StatusBadge</code> will own the colour and the wording for all of them.</p>
+    </div>
+    <div class="table-scroll">
+      <table class="doc">
+        <thead><tr><th>Tone</th><th>Label shown</th><th>Values it covers</th></tr></thead>
+        <tbody>
+          <tr><td><span class="o-badge pending">Pending</span></td><td>Pending review · Pending approval · Awaiting supervisor · Awaiting HR</td><td class="mono">pending, PENDING_REVIEW, PENDING_APPROVAL, PENDING_SUPERVISOR_APPROVAL, PENDING_HR_REVIEW, PENDING_HR_APPROVAL</td></tr>
+          <tr><td><span class="o-badge info">Info</span></td><td>Awaiting disbursement · Active · On leave</td><td class="mono">PENDING_DISBURSEMENT, ACTIVE, ON_LEAVE</td></tr>
+          <tr><td><span class="o-badge success">Success</span></td><td>Approved · Paid off</td><td class="mono">approved, APPROVED, PAID_OFF</td></tr>
+          <tr><td><span class="o-badge danger">Danger</span></td><td>Rejected</td><td class="mono">rejected, REJECTED, SUPERVISOR_REJECTED, HR_REJECTED, REJECTED_BY_REVIEWER, REJECTED_BY_APPROVER</td></tr>
+          <tr><td><span class="o-badge neutral">Neutral</span></td><td>Cancelled · Draft</td><td class="mono">CANCELLED, draft</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="icons">
+    <div class="section-head">
+      <span class="eyebrow">Icons</span>
+      <h2>Keep about a third, remove the rest</h2>
+      <p class="muted">Today 73 files use icons, about 390 times, including 24 gradient icon tiles beside page titles. One icon set (lucide), one size (16px, 18px in the sidebar), 1.75 stroke.</p>
+    </div>
+    <div class="rules">
+      <div class="rule yes"><h3>icons here</h3><ul><li>Sidebar navigation items</li><li>Icon-only buttons (refresh, close, more actions), with a label for screen readers</li><li>Alerts and toasts, to show their tone</li><li>Inputs where the icon is the meaning (search, calendar)</li></ul></div>
+      <div class="rule no"><h3>icons here</h3><ul><li>Beside page titles, including the coloured tiles</li><li>On card and section titles</li><li>On text buttons ("Initiate new request" doesn't need a plus)</li><li>On form labels and stat cards</li></ul></div>
+    </div>
+  </section>
+
+  <section id="compare">
+    <div class="section-head">
+      <span class="eyebrow">Before / after</span>
+      <h2>Employee portal: Loans</h2>
+      <p class="muted">The same screen and the same data. The "before" is rebuilt from the current <code>cooperative-loan.jsx</code>. Rows are example data.</p>
+    </div>
+
+    <div class="compare">
+      <div class="screen-block">
+        <div class="screen-caption"><b>Before</b><span>Current styling</span></div>
+        <div class="screen-scroll">
+          <div class="screen before" aria-label="Current loans screen">
+            <div class="head">
+              <div class="title-wrap">
+                <div class="tile"><svg aria-hidden="true"><use href="#i-cash"/></svg></div>
+                <div><h4>Cooperative / Thrift &amp; Loans</h4><div class="sub">View and make loan requests.</div></div>
+              </div>
+              <div class="btns">
+                <span class="b-out"><svg class="s" aria-hidden="true"><use href="#i-refresh"/></svg></span>
+                <span class="b-grad"><svg class="s" aria-hidden="true"><use href="#i-plus"/></svg>Initiate new request</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Requested Loans</div>
+              <div class="card-desc">A list of all previously requested.</div>
+              <table>
+                <thead><tr><th>Type</th><th>Principal</th><th>Monthly Deduction</th><th>Request Date</th><th>Start Date</th><th>End Date</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                  <tr><td>SALARY ADVANCE</td><td>₦150000</td><td>₦52500</td><td>11/3/2026</td><td>12/1/2026</td><td>2/28/2027</td><td><span class="old-badge y">pending review</span></td><td><div class="acts"><span class="a-out"><svg class="s" aria-hidden="true"><use href="#i-eye"/></svg></span><span class="a-red"><svg class="s" aria-hidden="true"><use href="#i-trash"/></svg> Cancel</span></div></td></tr>
+                  <tr><td>THRIFT</td><td>₦500000</td><td>₦45833.33</td><td>8/14/2026</td><td>9/1/2026</td><td>8/31/2027</td><td><span class="old-badge g">active</span></td><td><div class="acts"><span class="a-out"><svg class="s" aria-hidden="true"><use href="#i-eye"/></svg></span><span class="a-out"><svg class="s" aria-hidden="true"><use href="#i-download"/></svg> Schedule</span></div></td></tr>
+                  <tr><td>CAR LOAN</td><td>₦2400000</td><td>₦112000</td><td>2/2/2026</td><td>3/1/2026</td><td>2/28/2028</td><td><span class="old-badge r">rejected</span></td><td><div class="acts"><span class="a-out"><svg class="s" aria-hidden="true"><use href="#i-eye"/></svg></span></div></td></tr>
+                  <tr><td>PERSONAL LOAN</td><td>₦300000</td><td>₦27500</td><td>9/10/2025</td><td>10/1/2025</td><td>9/30/2026</td><td><span class="old-badge n">paid off</span></td><td><div class="acts"><span class="a-out"><svg class="s" aria-hidden="true"><use href="#i-eye"/></svg></span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-block">
+        <div class="screen-caption"><b>After</b><span>Proposed system</span></div>
+        <div class="screen-scroll">
+          <div class="screen after" aria-label="Proposed loans screen">
+            <div class="page-header">
+              <div class="ph-text">
+                <h4 class="ph-title">Loans</h4>
+                <span class="ph-desc">Request a cooperative loan or thrift and track it through approval and repayment.</span>
+              </div>
+              <div class="ph-actions">
+                <button class="o-btn secondary icon" type="button" aria-label="Refresh"><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
+                <button class="o-btn primary" type="button">New loan request</button>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h5>Your requests <span class="count">· 4</span></h5>
+                <div class="panel-tools">
+                  <label class="sr" for="status-filter" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Status</label>
+                  <select class="o-select" id="status-filter"><option>All statuses</option><option>Pending</option><option>Active</option><option>Closed</option></select>
+                </div>
+              </div>
+              <table class="o-table">
+                <thead><tr><th>Type</th><th class="r">Principal</th><th class="r">Monthly deduction</th><th>Requested</th><th>Repayment period</th><th>Status</th><th class="r"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Actions</span></th></tr></thead>
+                <tbody>
+                  <tr><td>Salary advance</td><td class="r">₦150,000.00</td><td class="r">₦52,500.00</td><td class="num">03 Nov 2026</td><td class="num">01 Dec 2026 – 28 Feb 2027<div class="sub">3 months</div></td><td><span class="o-badge pending">Pending review</span></td><td class="actions"><button class="o-btn ghost sm icon" type="button" aria-label="Actions" style="width:32px"><svg aria-hidden="true"><use href="#i-more"/></svg></button></td></tr>
+                  <tr><td>Thrift</td><td class="r">₦500,000.00</td><td class="r">₦45,833.33</td><td class="num">14 Aug 2026</td><td class="num">01 Sep 2026 – 31 Aug 2027<div class="sub">12 months</div></td><td><span class="o-badge info">Active</span></td><td class="actions"><button class="o-btn ghost sm icon" type="button" aria-label="Actions" style="width:32px"><svg aria-hidden="true"><use href="#i-more"/></svg></button></td></tr>
+                  <tr><td>Car loan</td><td class="r">₦2,400,000.00</td><td class="r">₦112,000.00</td><td class="num">02 Feb 2026</td><td class="num">01 Mar 2026 – 28 Feb 2028<div class="sub">24 months</div></td><td><span class="o-badge danger">Rejected</span></td><td class="actions"><button class="o-btn ghost sm icon" type="button" aria-label="Actions" style="width:32px"><svg aria-hidden="true"><use href="#i-more"/></svg></button></td></tr>
+                  <tr><td>Personal loan</td><td class="r">₦300,000.00</td><td class="r">₦27,500.00</td><td class="num">10 Sep 2025</td><td class="num">01 Oct 2025 – 30 Sep 2026<div class="sub">12 months</div></td><td><span class="o-badge success">Paid off</span></td><td class="actions"><button class="o-btn ghost sm icon" type="button" aria-label="Actions" style="width:32px"><svg aria-hidden="true"><use href="#i-more"/></svg></button></td></tr>
+                </tbody>
+              </table>
+              <div class="panel-foot">
+                <span>Showing 1–4 of 4</span>
+                <span class="pager">
+                  <button class="o-btn secondary sm icon" type="button" aria-label="Previous page" disabled style="width:32px;opacity:.5"><svg aria-hidden="true"><use href="#i-chev-l"/></svg></button>
+                  <button class="o-btn secondary sm icon" type="button" aria-label="Next page" disabled style="width:32px;opacity:.5"><svg aria-hidden="true"><use href="#i-chev-r"/></svg></button>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ul class="diff-notes">
+      <li>The gradient icon tile and gradient button are gone. One solid blue button carries the only primary action.</li>
+      <li>The title says what the page is ("Loans") and the description says what you can do there.</li>
+      <li>Money is right-aligned with separators and kobo; dates read as "03 Nov 2026", so nobody has to guess day versus month.</li>
+      <li>Start and end dates merge into one period with the length underneath, saving a column.</li>
+      <li>Statuses read as words ("Pending review"), with the same colours every module will use.</li>
+      <li>Each row has one actions button (⋯) that opens the dropdown menu, so the column stays narrow and aligned. Clicking anywhere on a row opens its details.</li>
+      <li>The card has a border and no shadow; the page background is a cool grey instead of <code>#F5F5F5</code>.</li>
+    </ul>
+
+    <div class="screen-block">
+      <div class="screen-caption"><b>Empty state</b><span>Text and one action, no illustration</span></div>
+      <div class="specimen" style="padding:0">
+        <div class="empty">
+          <b>No loan requests yet</b>
+          <p>When you request a loan or thrift, it appears here with its approval status and repayment schedule.</p>
+          <button class="o-btn primary" type="button">New loan request</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="code">
+    <div class="section-head">
+      <span class="eyebrow">In the code</span>
+      <h2>How this lands in orbit360-FE</h2>
+      <p class="muted">shadcn already reads its colours from CSS variables, so most of the change is in one file. Today <code>--primary</code> is the shadcn default near-black, which is why pages hard-code blues on top.</p>
+    </div>
+    <pre><code style="background:none;padding:0">/* src/index.css (excerpt) */
+:root {
+  --background: 216 33% 97%;      /* gray-50  #F6F8FB */
+  --foreground: 220 31% 11%;      /* gray-900 #141A26 */
+  --card: 0 0% 100%;
+  --primary: 217 80% 50%;         /* brand-600 #1A66E3 */
+  --primary-foreground: 0 0% 100%;
+  --muted-foreground: 218 12% 48%;/* gray-500 */
+  --border: 217 27% 91%;          /* gray-200 */
+  --input: 216 23% 83%;           /* gray-300 */
+  --ring: 217 80% 50%;
+  --destructive: 4 74% 49%;
+  --radius: 0.5rem;               /* 8px cards; 6px controls derived */
+  --status-pending: 35 100% 27%;  --status-pending-bg: 40 100% 93%;
+  --status-success: 152 69% 27%;  --status-success-bg: 146 47% 94%;
+  /* … danger, info, neutral */
+}</code></pre>
+    <div class="rules">
+      <div class="rule"><h3>New shared components</h3><p><code>PageHeader</code>, <code>StatusBadge</code>, <code>DataTable</code> shell (loading, empty, error, pagination), <code>EmptyState</code>, <code>StatCard</code>, <code>FormSection</code>, <code>ConfirmDialog</code>, <code>DatePicker</code> / <code>DateRangePicker</code>, <code>formatDate</code>, in <code>src/components/system/</code>. Select, DropdownMenu, Dialog, Sheet, Popover and the Sonner toaster are restyled shadcn components; the custom <code>NotificationBar</code> is removed.</p></div>
+      <div class="rule"><h3>Guard rails</h3><p>An ESLint rule flags <code>bg-gradient-*</code>, raw hex colours, <code>shadow-lg/xl/2xl</code> and palette colours like <code>purple-500</code> in pages, so new work (from people or Codex) can't drift back.</p></div>
+      <div class="rule"><h3>Reference</h3><p>A short <code>DESIGN.md</code> and a dev-only <code>/design-system</code> page that renders every token and component from the real code.</p></div>
+    </div>
+  </section>
+
+  <section id="decisions">
+    <div class="section-head">
+      <span class="eyebrow">Decisions · agreed</span>
+      <h2>Agreed decisions</h2>
+    </div>
+    <div class="decisions">
+      <div class="decision"><span class="n">1</span><div><h3>Brand blue #1A66E3</h3><p>Taken from the logo.</p></div></div>
+      <div class="decision"><span class="n">2</span><div><h3>Inter as the interface font</h3><p>Neutral and very legible for tables and figures. The logo wordmark stays as it is.</p></div></div>
+      <div class="decision"><span class="n">3</span><div><h3>Compact density</h3><p>36px buttons and inputs, 40px table rows, 14px body text.</p></div></div>
+      <div class="decision"><span class="n">4</span><div><h3>Status map and labels</h3><p>The five tones and labels above: "Active" loans as info, "Paid off" as success.</p></div></div>
+      <div class="decision"><span class="n">5</span><div><h3>Icon policy</h3><p>Keep icons only in navigation, icon-only buttons, alerts and meaningful inputs.</p></div></div>
+      <div class="decision"><span class="n">6</span><div><h3>Dates read "02 Dec 2026"</h3><p>Two-digit day, short month, full year in tables, lists, pickers, dialogs and toasts. Ranges as "01 Dec 2026 – 28 Feb 2027"; with time, "02 Dec 2026, 14:30". Always Africa/Lagos. Exception: notification messages keep the approved copy with DD/MM/YYYY ("submitted on 02/12/2026").</p></div></div>
+      <div class="decision"><span class="n">7</span><div><h3>Light theme only for now</h3><p>Tokens are structured so dark mode can be added later without touching pages.</p></div></div>
+    </div>
+  </section>
+
+  <section id="rollout">
+    <div class="section-head">
+      <span class="eyebrow">Rollout</span>
+      <h2>Build order</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><b>Tokens and base components</b><span>index.css, Tailwind config, shadcn restyle, the new shared components and the reference page. No page logic changes.</span></div>
+      <div class="step"><b>App shell</b><span>Sidebar, the shared top bar with the notification bell, and the mobile menu.</span></div>
+      <div class="step"><b>Employee portal pages</b><span>Dashboard, Loans, Leave, Training, Complaints, Payslips, Notification Hub.</span></div>
+      <div class="step"><b>HR portal pages</b><span>Authorization Center, Employees, Payroll, reviews and approvals.</span></div>
+      <div class="step"><b>Lint guard and clean-up</b><span>Turn the rule on and remove dead files such as <code>Login copy.jsx</code> and the <code>RequestTraining_NEW/UPDATED</code> pages.</span></div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

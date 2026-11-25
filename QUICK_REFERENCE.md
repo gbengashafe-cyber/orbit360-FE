@@ -1,3 +1,5 @@
+> **UI and styling:** follow [DESIGN.md](DESIGN.md). For toasts use Sonner (`toast` from `sonner`) as described there; the `showToast` helper shown below is being retired.
+
 # Leave Management API Integration - Quick Reference
 
 ## Key Service Methods
