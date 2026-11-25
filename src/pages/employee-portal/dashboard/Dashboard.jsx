@@ -1,89 +1,40 @@
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/system';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useGlobalContext } from '@/state/context';
 import { createPageUrl } from '@/utils';
-import { HandCoins, Loader, PlaneTakeoff, Star } from 'lucide-react';
+import { HandCoins, PlaneTakeoff } from 'lucide-react';
 import { Link } from 'react-router';
-
-// Material Design Color Palette
-const MATERIAL_COLORS = {
-  primary: '#1976D2', // Blue 700
-  primaryLight: '#42A5F5', // Blue 400
-  primaryDark: '#0D47A1', // Blue 900
-  secondary: '#388E3C', // Green 600
-  secondaryLight: '#66BB6A', // Green 400
-  error: '#D32F2F', // Red 700
-  warning: '#F57C00', // Orange 700
-  success: '#388E3C', // Green 600
-  info: '#0288D1', // Light Blue 600
-  surface: '#FFFFFF',
-  background: '#FAFAFA', // Grey 50
-  onSurface: '#212121', // Grey 900
-  onBackground: '#212121',
-};
 
 export function Dashboard() {
   const { currentUser, isLoadingUser } = useGlobalContext();
+  const employee = currentUser?.employeeData;
+
+  if (isLoadingUser) {
+    return <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 sm:p-6 lg:p-8" aria-busy="true"><Skeleton className="h-16 w-72" /><Skeleton className="h-36 w-full" /><Skeleton className="h-32 w-full" /></div>;
+  }
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: MATERIAL_COLORS.background }}>
-      <div className="max-w-7xl mx-auto space-y-8">
-        {isLoadingUser ? (
-          <Loader />
-        ) : (
-          <div className="grid mx-20 mt-20 p-10 lg:grid-cols-3 gap-4 bg-blue-100/70 rounded-2xl">
-            <div>
-              <h1 className="text-4xl text-gray-900 mb-2">Welcome, {currentUser?.employeeData?.firstName ?? ''}</h1>
-              <p className="text-gray-500 font-medium">{currentUser?.employeeData?.jobRole?.title ?? ''}</p>
-            </div>
-            <div className="grid gap-2 justify-end col-span-2 ">
-              <p>
-                <EmployeeDetailsLabel>Staff ID:</EmployeeDetailsLabel> {currentUser?.employeeData?.staffId ?? ''}
-              </p>
-              <p>
-                <EmployeeDetailsLabel>Supervisor:</EmployeeDetailsLabel> {currentUser?.employeeData?.supervisor?.firstName ?? ''}{' '}
-                {currentUser?.employeeData?.supervisor?.lastName ?? ''}
-              </p>
-              <p>
-                <EmployeeDetailsLabel>Department:</EmployeeDetailsLabel> {currentUser?.employeeData?.department?.name ?? ''}
-              </p>
-              <p>
-                <EmployeeDetailsLabel>SBU:</EmployeeDetailsLabel> {currentUser?.employeeData?.company?.name ?? ''}
-              </p>
-            </div>
-          </div>
-        )}
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <PageHeader title={`Welcome, ${employee?.firstName ?? ''}`.replace(/, $/, '')} description={employee?.jobRole?.title || 'Your employee portal'} />
 
-        <Card>
-          <CardHeader>
-            <p className="flex text-gray-500">
-              <Star className="text-blue-400 w-3 me-2" />
-              Shortcuts
-            </p>
-          </CardHeader>
-          <CardContent className="grid md:grid-flow-col lg:justify-start gap-4">
-            {SHORTCUTS.map((_shortcut) => (
-              <Link
-                key={_shortcut.title}
-                to={_shortcut.url}
-                className="flex items-center gap-3 font- min-w-40 p-4 bg-slate-100 hover:bg-slate-200 rounded-xl"
-              >
-                <_shortcut.icon className="w-5 text-blue-600" />
-                <span role="link">{_shortcut.title}</span>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      <Card><CardContent className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Detail label="Staff ID" value={employee?.staffId} />
+        <Detail label="Supervisor" value={[employee?.supervisor?.firstName, employee?.supervisor?.lastName].filter(Boolean).join(' ')} />
+        <Detail label="Department" value={employee?.department?.name} />
+        <Detail label="SBU" value={employee?.company?.name} />
+      </CardContent></Card>
+
+      <Card><CardHeader className="pb-3"><CardTitle>Shortcuts</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-3">
+        {SHORTCUTS.map((shortcut) => <Link key={shortcut.title} to={shortcut.url} className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"><shortcut.icon className="h-4 w-4 text-primary" strokeWidth={1.75} />{shortcut.title}</Link>)}
+      </CardContent></Card>
     </div>
   );
 }
 
-const EmployeeDetailsLabel = ({ children }) => {
-  return <Label className="text-gray-500 w-24 mr-2 inline-block text-right">{children}</Label>;
-};
+function Detail({ label, value }) { return <div className="min-w-0"><p className="text-label text-muted-foreground">{label}</p><p className="truncate text-body text-foreground">{value || '—'}</p></div>; }
 
 const SHORTCUTS = [
-  { title: 'Leave Management', url: createPageUrl('leave-management'), icon: PlaneTakeoff },
-  { title: 'Loan Requests', url: createPageUrl('employee-cooperative'), icon: HandCoins },
+  { title: 'Leave management', url: createPageUrl('leave-management'), icon: PlaneTakeoff },
+  { title: 'Loan requests', url: createPageUrl('employee-cooperative'), icon: HandCoins },
 ];

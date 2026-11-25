@@ -3,6 +3,7 @@ import { apiClient, apiRoutes, userService } from '@/api';
 import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { EmptyState, PageHeader } from '@/components/system';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -253,25 +254,18 @@ export default function ExitApprovals() {
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Exit Request Approvals</h1>
-          <p className="text-gray-600">Review and approve employee exit requests</p>
-        </div>
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        <PageHeader title="Exit request approvals" description="Review employee exit requests." />
 
         {pendingExits.length === 0 ? (
           <Card>
-            <CardContent className="p-12 text-center">
-              <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-semibold text-gray-600">No Pending Approvals</h3>
-              <p className="text-gray-500">There are no exit requests awaiting your approval.</p>
-            </CardContent>
+            <CardContent><EmptyState title="No pending approvals" description="There are no exit requests awaiting your approval." /></CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
             {pendingExits.map((exit) => (
-              <Card key={exit.id} className="bg-white shadow-md">
+              <Card key={exit.id}>
                 <CardContent className="p-6">
                   <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <div className="flex-1">

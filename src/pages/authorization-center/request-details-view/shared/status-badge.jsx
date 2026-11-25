@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
+import { StatusBadge as SharedStatusBadge } from '@/components/system';
 
-export const StatusBadge = ({ status }) => (status ? <Badge className={getStatusColor(status)}>{status}</Badge> : 'N/A');
+export const StatusBadge = ({ status }) => (status ? <SharedStatusBadge status={status} /> : 'N/A');

@@ -463,11 +463,11 @@ export default function DocumentManagement() {
     }
 
     return (
-        <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+            <div className="space-y-6">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Document Management</h1>
+                        <h1 className="text-page-title text-foreground">Document management</h1>
                         <p className="text-gray-600">
                             {canManage ? 'Securely store and manage HR files and documents.' : 'View HR documents and resources.'}
                         </p>

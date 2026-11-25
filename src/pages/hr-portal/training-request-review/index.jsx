@@ -1,10 +1,10 @@
 import { trainingService } from '@/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { logger } from '@/utils';
-import { Banknote, RefreshCw, ViewIcon } from 'lucide-react';
+import { RefreshCw, ViewIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { getStatusColor } from '../../authorization-center/authorization-center.util';
@@ -59,15 +59,12 @@ export function TrainingRequestReview() {
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-              <Banknote className="w-6 h-6 text-white" />
-            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Training Request Review</h1>
+              <h1 className="text-page-title text-foreground">Training request review</h1>
               <p className="text-gray-600">Manage employee Training Requests.</p>
             </div>
           </div>
@@ -92,11 +89,7 @@ export function TrainingRequestReview() {
         ) : null}
 
         <Card>
-          <CardHeader>
-            <CardTitle>All Training Requests</CardTitle>
-            <CardDescription>A list of all training requests initiated by employees.</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <Table>
               <TableHeader>
                 <TableRow>

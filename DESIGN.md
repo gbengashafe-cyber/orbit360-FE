@@ -4,7 +4,7 @@
 Everyone working on `orbit360-FE` (people and AI agents) follows it for new work and for any screen they touch.
 
 - Visual reference with live examples: [`docs/design/design-system-proposal.html`](docs/design/design-system-proposal.html) (open it in a browser).
-- Implementation status: **step 1 is built** (tokens, restyled shadcn components, shared components, Sonner toasts). Pages are migrated in steps 2–4; until a page is migrated it may still show old gradients and icon tiles. Never add new ones.
+- Implementation status: **Steps 1–4 are closed following the product designer's visual review.** This records product design sign-off; it does not assert automated or comprehensive browser testing.
 - Live reference in the running app: `/design-system` (development builds only; it renders the real components).
 
 ### Where things live
@@ -67,6 +67,7 @@ Everyone working on `orbit360-FE` (people and AI agents) follows it for new work
 ### Colour rules
 
 - **Do:** brand blue for the main action, active nav, links and focus; status tones only for status, alerts, validation and toasts; everything else neutral.
+- Primary action buttons use Orbit primary blue (`bg-primary`). Green is reserved for semantic success states, not ordinary primary actions.
 - **Don't:** gradients anywhere (`bg-gradient-*`), a different colour per stat card or module, raw hex values in pages, Tailwind palette colours (`purple-500`, `emerald-600`, …) in pages, coloured shadows.
 - Once step 1 lands, colours are used only through tokens (`bg-primary`, `text-muted-foreground`, `border-border`, status token classes). The shadcn CSS variables in `src/index.css` map to the values above (`--primary` = brand-600, `--background` = gray-50, `--border` = gray-200, …).
 
@@ -96,6 +97,7 @@ One family: **Inter** (self-hosted with the app so the installable app works off
 ## 5. Spacing, radius, elevation
 
 - **Spacing:** 4px grid. Use 4, 8, 12, 16, 24, 32, 48. Use `gap` on flex/grid instead of per-element margins.
+- All feature pages use consistent responsive horizontal padding and content alignment, so page headers, toolbars and content surfaces line up across modules.
 - **Radius:** 4px badges · 6px buttons and inputs · 8px cards, dialogs, popovers, toasts. No `rounded-xl/2xl` on surfaces; `rounded-full` only for avatars and dots.
 - **Elevation:** two levels only.
   - Flat + 1px border: cards, tables, panels.
@@ -120,6 +122,14 @@ One family: **Inter** (self-hosted with the app so the installable app works off
 ### Page header (`PageHeader`)
 
 Title (what the page is), one-line description (what you can do there), actions on the right. **No icon or coloured tile beside the title.**
+
+Keep the page title, description and content hierarchy consistent across features, using the approved type scale and spacing.
+
+### Tables and tabs
+
+- Do not add table headings or descriptions that repeat the page title. Retain a heading when it is needed to distinguish multiple datasets.
+- Table toolbars contain only relevant functional controls, such as applicable filters, search and actions.
+- Use the Staff Complaints tab styling as the standard reference for tabs across the application.
 
 ### Forms
 
@@ -225,10 +235,33 @@ On mobile, the sidebar is a closed-by-default drawer. The menu button opens it, 
 
 ## 11. Rollout
 
+**Steps 1–4: closed following the product designer's visual review.** The earlier implementation notes and checklist below are retained as historical context, not as the current sign-off status. Visual review does not substitute for automated tests or comprehensive browser testing.
+
 1. ✅ Tokens and base components (`src/index.css`, `tailwind.config.js`, shadcn restyle, shared components in `src/components/system/`, dev-only `/design-system` page). No page logic changes.
 2. App shell: sidebar, shared top bar with the notification bell, mobile menu.
-3. Employee portal pages.
-4. HR portal pages.
-5. ESLint guard (flags `bg-gradient-*`, raw hex colours, `shadow-lg/xl/2xl` and Tailwind palette colours in pages) and removal of dead files (`Login copy.jsx`, `RequestTraining_NEW.jsx`, `RequestTraining_UPDATED.jsx`).
+3. ✅ Initial employee and HR portal standardisation: employee dashboard, HR analytics dashboard, employee loan requests and HR cooperative loans now use the shared page-header/status/formatting patterns. Legacy Material gradients, page-local backgrounds, decorative title tiles and local loan status badges were removed from these views.
+4. ✅ Employees and leave management: employee directory, employee list statuses/dates, employee leave requests, embedded approver view and leave approvals now use the shared page header, status, empty-state, date-range and statistic-card patterns. Legacy gradients, page-local backgrounds and local leave status badge styles were removed without changing the existing workflows.
+   Additional partial coverage: the employee training request page and authorization center use shared page headers and status badges; authorization details and complaint details also use shared status badges, preserving audience-specific complaint labels.
+5. Future work: ESLint guard (flags `bg-gradient-*`, raw hex colours, `shadow-lg/xl/2xl` and Tailwind palette colours in pages) and removal of dead files (`Login copy.jsx`, `RequestTraining_NEW.jsx`, `RequestTraining_UPDATED.jsx`).
 
 When you change a screen, bring it in line with this document in the same change, without mixing in logic changes.
+
+### Historical Step 3 working checklist
+
+This checklist captures earlier implementation notes before the product designer's visual review; it is not the current closure decision.
+
+- [ ] Recruitment and approvals — partial: shared headers and status badges; forms, cards, dialogs and actions remain.
+- [ ] Onboarding — partial: page header and first panel; search, upload and document details remain.
+- [ ] Payroll — pending.
+- [ ] HR and employee payslips — pending.
+- [ ] Employee training requests and forms — partial: request header and statuses; forms, priority and dialogs remain.
+- [ ] HR training review — pending.
+- [ ] HR documents and employee document hub — pending.
+- [ ] HR and employee complaints — partial: detail status badge; page and dialogs remain.
+- [ ] Employee exits and HR exit review — pending.
+- [ ] Authorization center and details — partial: header, summary and some status badges; dialogs and remaining fields remain.
+- [ ] Performance and appraisal — pending review of existing components and routing.
+- [ ] Notification center and preferences — pending.
+- [ ] Other legacy pages, forms and tables — pending.
+
+Latest hierarchy pass: HR and employee complaints, employee exit management, exit approvals, payroll, HR training review, payslips, and document hubs have updated main headings and page surfaces. Their forms, tables and dialogs remain subject to the partial/pending items above.

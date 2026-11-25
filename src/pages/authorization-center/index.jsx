@@ -11,11 +11,12 @@ import { authorizationService } from '@/api/authorization.service';
 import { loanService } from '@/api/loan.service';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader, StatCard } from '@/components/system';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGlobalContext } from '@/state/context';
 import { logger } from '@/utils';
-import { ClipboardList, RefreshCw, XCircle } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { AuthorizationViewDialog } from './authorization-center-dialog';
@@ -185,41 +186,20 @@ export default function AuthorizationCenterWIP() {
   const canAuthorize = hasApprovalPermission || userRole === 'admin';
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-700 to-purple-800 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-700/25">
-            <ClipboardList className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Authorization Center</h1>
-            <p className="text-gray-600">Central hub for all authorizations and approvals</p>
-          </div>
-        </div>
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        <PageHeader title="Authorization center" description="Review authorizations and approvals." />
 
         <div className="grid md:grid-flow-col gap-4 md:justify-between items-end">
-          <Card className=" bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
-            <CardContent className="p-6">
-              <div className="flex gap-x-8 items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Authorization</p>
-                  <p className="text-2xl font-bold text-yellow-600">{loading ? 0 : pendingStats.total}</p>
-                </div>
-                <XCircle className="w-8 h-8 text-yellow-600" />
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard label="Pending authorization" value={loading ? 0 : pendingStats.total} tone="pending" />
 
           <Button variant="outline" size="icon" onClick={refresh} title={'Refresh'}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
-        <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
-          <CardHeader>
-            <CardTitle>All Transactions & Authorizations</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card>
+          <CardContent className="pt-6">
             <Tabs value={activeModule} onValueChange={setActiveModule}>
               <TabsList className="flex flex-wrap justify-start h-auto gap-x-4">
                 {Object.keys(pendingStats.breakdown)?.length

@@ -177,8 +177,9 @@ const LayoutContent = ({ children }) => {
   );
 
   const employeeItems = employeePortalNav.filter((item) => isVisible(item, currentUser));
-  const compactNavigationItems = [...(userIsHR ? hrNav : []), ...employeeItems, ...(isAdmin ? adminNav : [])]
-    .filter((item, index, items) => items.findIndex((candidate) => candidate.url === item.url) === index);
+  const compactHrItems = userIsHR ? hrNav.filter((item) => isVisible(item, currentUser)) : [];
+  const compactEmployeeItems = employeeItems.filter((item) => !compactHrItems.some((hrItem) => hrItem.url === item.url));
+  const compactAdminItems = adminNav.filter((item) => ![...compactHrItems, ...compactEmployeeItems].some((other) => other.url === item.url));
   const isSidebarCollapsed = state === 'collapsed';
 
   return (
@@ -198,11 +199,25 @@ const LayoutContent = ({ children }) => {
             <Loader2 className="h-5 w-5 animate-spin" aria-label="Loading navigation" />
           </div>
         ) : (
-          <SidebarContent className="px-3 py-4">
+          <SidebarContent className="overflow-x-hidden overflow-y-auto px-3 py-4 group-data-[collapsible=icon]:overflow-y-auto group-data-[collapsible=icon]:[scrollbar-width:none] group-data-[collapsible=icon]:[&::-webkit-scrollbar]:hidden">
             {isSidebarCollapsed ? (
-              <SidebarGroup className="p-0">
-                <SidebarGroupContent><NavigationItems items={compactNavigationItems} /></SidebarGroupContent>
-              </SidebarGroup>
+              <>
+                {userIsHR && compactHrItems.length > 0 ? (
+                  <SidebarGroup className="shrink-0 p-0">
+                    <SidebarGroupContent><NavigationItems items={compactHrItems} /></SidebarGroupContent>
+                  </SidebarGroup>
+                ) : null}
+                {userIsHR && compactHrItems.length > 0 && compactEmployeeItems.length > 0 ? <SidebarSeparator className="mx-0 my-2 w-full shrink-0" /> : null}
+                <SidebarGroup className="shrink-0 p-0">
+                  <SidebarGroupContent><NavigationItems items={compactEmployeeItems} /></SidebarGroupContent>
+                </SidebarGroup>
+                {isAdmin && compactAdminItems.length > 0 ? (
+                  <>
+                    <SidebarSeparator className="mx-0 my-2 w-full shrink-0" />
+                    <SidebarGroup className="shrink-0 p-0"><SidebarGroupContent><NavigationItems items={compactAdminItems} /></SidebarGroupContent></SidebarGroup>
+                  </>
+                ) : null}
+              </>
             ) : (
               <>
                 {userIsHR ? (

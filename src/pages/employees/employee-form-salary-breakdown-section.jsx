@@ -17,9 +17,9 @@ export const SalaryBreakdown = ({
   annualPensionDeduction,
 }) => {
   return (
-    <Card className="mt-6 border-green-200 shadow-lg bg-green-50/30">
-      <CardHeader className="bg-gradient-to-r from-green-700 to-green-800 text-white rounded-t-lg">
-        <CardTitle className="text-white">Net Salary Computation</CardTitle>
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle>Net salary computation</CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

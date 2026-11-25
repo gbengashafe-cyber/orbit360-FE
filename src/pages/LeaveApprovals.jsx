@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { leaveService, employeeService } from '@/api';
 import { showToast } from '@/utils/toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { EmptyState, PageHeader, StatCard, StatusBadge, formatDate, formatDateRange } from '@/components/system';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
     Dialog,
@@ -13,9 +14,8 @@ import {
     DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle2, Loader2, Calendar, ThumbsUp, ThumbsDown, Download, FileText } from 'lucide-react';
+import { Loader2, Download, FileText } from 'lucide-react';
 import { calculateBusinessDays } from '@/utils/leaveCalculator';
 
 export default function LeaveApprovalsPage() {
@@ -67,25 +67,6 @@ export default function LeaveApprovalsPage() {
         return 'Unknown Employee';
     };
 
-    const confirmApproval = async () => {
-        if (!selectedLeave) return;
-
-        setIsProcessing(true);
-        try {
-            await leaveService.updateLeaveStatus(selectedLeave.id, 'approved');
-
-            showToast.success('Leave request approved successfully', 'Success');
-            setApprovalDialogOpen(false);
-            setSelectedLeave(null);
-            loadData();
-        } catch (error) {
-            console.error('Error approving leave:', error);
-            showToast.error('Failed to approve leave request', 'Error');
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
     const confirmApprovalDirect = async (leave) => {
         setIsProcessing(true);
         try {
@@ -124,19 +105,6 @@ export default function LeaveApprovalsPage() {
         }
     };
 
-    const getStatusBadge = (status) => {
-        const styles = {
-            pending: 'bg-yellow-100 text-yellow-800',
-            approved: 'bg-green-100 text-green-800',
-            rejected: 'bg-red-100 text-red-800',
-            pending_supervisor_approval: 'bg-orange-100 text-orange-700',
-            pending_hr_approval: 'bg-blue-100 text-blue-800',
-            pending_manager_approval: 'bg-indigo-100 text-indigo-800',
-            cancelled: 'bg-gray-100 text-gray-700',
-        };
-        return styles[status] || 'bg-gray-100 text-gray-800';
-    };
-
     const filteredRequests = leaveRequests.filter((req) => {
         if (filterStatus === 'all') return true;
         return req.status === filterStatus || req.status?.includes(filterStatus);
@@ -145,87 +113,28 @@ export default function LeaveApprovalsPage() {
     const pendingCount = leaveRequests.filter((r) => r.status?.includes('pending')).length;
 
     return (
-        <div className="space-y-6 p-4 lg:p-8">
-            <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-                    <CheckCircle2 className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Leave Approvals</h1>
-                    <p className="text-gray-600">Review and approve/reject employee leave requests</p>
-                </div>
-            </div>
+        <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+            <PageHeader title="Leave approvals" description="Review and decide employee leave requests." />
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="p-6">
-                        <p className="text-sm text-gray-600">Pending Approvals</p>
-                        <p className="text-3xl font-bold text-yellow-600">{pendingCount}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-6">
-                        <p className="text-sm text-gray-600">Approved</p>
-                        <p className="text-3xl font-bold text-green-600">
-                            {leaveRequests.filter((r) => r.status === 'approved').length}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-6">
-                        <p className="text-sm text-gray-600">Rejected</p>
-                        <p className="text-3xl font-bold text-red-600">
-                            {leaveRequests.filter((r) => r.status === 'rejected').length}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-6">
-                        <p className="text-sm text-gray-600">Total Requests</p>
-                        <p className="text-3xl font-bold text-blue-600">{leaveRequests.length}</p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Filter Buttons */}
-            <div className="flex gap-2 flex-wrap">
-                <Button
-                    variant={filterStatus === 'pending' ? 'default' : 'outline'}
-                    onClick={() => setFilterStatus('pending')}
-                    size="sm"
-                >
-                    Pending
-                </Button>
-                <Button
-                    variant={filterStatus === 'approved' ? 'default' : 'outline'}
-                    onClick={() => setFilterStatus('approved')}
-                    size="sm"
-                >
-                    Approved
-                </Button>
-                <Button
-                    variant={filterStatus === 'rejected' ? 'default' : 'outline'}
-                    onClick={() => setFilterStatus('rejected')}
-                    size="sm"
-                >
-                    Rejected
-                </Button>
-                <Button
-                    variant={filterStatus === 'all' ? 'default' : 'outline'}
-                    onClick={() => setFilterStatus('all')}
-                    size="sm"
-                >
-                    All Requests
-                </Button>
+                <StatCard label="Pending approvals" value={pendingCount} tone="pending" />
+                <StatCard label="Approved" value={leaveRequests.filter((r) => r.status === 'approved').length} tone="success" />
+                <StatCard label="Rejected" value={leaveRequests.filter((r) => r.status === 'rejected').length} tone="danger" />
+                <StatCard label="Total requests" value={leaveRequests.length} />
             </div>
 
             {/* Requests Table */}
             <Card>
-                <CardHeader>
-                    <CardTitle>Leave Requests</CardTitle>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
+                    <Tabs value={filterStatus} onValueChange={setFilterStatus} className="mb-5">
+                        <TabsList className="flex h-auto w-full flex-wrap justify-start">
+                            <TabsTrigger value="pending">Pending</TabsTrigger>
+                            <TabsTrigger value="approved">Approved</TabsTrigger>
+                            <TabsTrigger value="rejected">Rejected</TabsTrigger>
+                            <TabsTrigger value="all">All requests</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
                     {loading ? (
                         <div className="text-center p-8">
                             <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-700" />
@@ -263,18 +172,16 @@ export default function LeaveApprovalsPage() {
                                                     {(request.type || request.leave_type)?.replaceAll('_', ' ')}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
+                                                    {formatDateRange(startDate, endDate)}
                                                 </TableCell>
                                                 <TableCell>{days} days</TableCell>
                                                 <TableCell>
-                                                    <Badge className={getStatusBadge(request.status)}>
-                                                        {request.status?.replaceAll('_', ' ').toUpperCase()}
-                                                    </Badge>
+                                                    <StatusBadge status={request.status} />
                                                 </TableCell>
                                                 {(filterStatus === 'approved' || filterStatus === 'all') && (
                                                     <TableCell>
                                                         {request.status === 'approved' && request.updatedAt
-                                                            ? new Date(request.updatedAt).toLocaleDateString()
+                                                            ? formatDate(request.updatedAt)
                                                             : '-'}
                                                     </TableCell>
                                                 )}
@@ -295,23 +202,21 @@ export default function LeaveApprovalsPage() {
                                                                 <Button
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    className="text-green-600 border-green-600 hover:bg-green-50"
                                                                     onClick={() => confirmApprovalDirect(request)}
                                                                     disabled={isProcessing}
                                                                 >
-                                                                    <ThumbsUp className="w-4 h-4 mr-1" /> Approve
+                                                                    Approve
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    className="text-red-600 border-red-600 hover:bg-red-50"
                                                                     onClick={() => {
                                                                         setSelectedLeave(request);
                                                                         setRejectionDialogOpen(true);
                                                                     }}
                                                                     disabled={isProcessing}
                                                                 >
-                                                                    <ThumbsDown className="w-4 h-4 mr-1" /> Reject
+                                                                    Reject
                                                                 </Button>
                                                             </>
                                                         )}
@@ -324,11 +229,7 @@ export default function LeaveApprovalsPage() {
                             </Table>
                         </div>
                     ) : (
-                        <div className="text-center p-12 text-gray-500">
-                            <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                            <h3 className="text-lg font-semibold mb-2">No Leave Requests</h3>
-                            <p>No leave requests to review.</p>
-                        </div>
+                        <EmptyState title="No leave requests" description="There are no requests to review with this filter." />
                     )}
                 </CardContent>
             </Card>
@@ -359,8 +260,7 @@ export default function LeaveApprovalsPage() {
                                 <div>
                                     <p className="text-sm text-gray-600">Dates</p>
                                     <p className="font-medium">
-                                        {new Date(selectedLeave.startDate || selectedLeave.start_date).toLocaleDateString()} -{' '}
-                                        {new Date(selectedLeave.endDate || selectedLeave.end_date).toLocaleDateString()}
+                                        {formatDateRange(selectedLeave.startDate || selectedLeave.start_date, selectedLeave.endDate || selectedLeave.end_date)}
                                     </p>
                                 </div>
                                 <div>
@@ -419,7 +319,7 @@ export default function LeaveApprovalsPage() {
                                         if (typeof selectedLeave.supporting_documents === 'string') {
                                             try {
                                                 supportingDocs = JSON.parse(selectedLeave.supporting_documents);
-                                            } catch (e) {
+                                            } catch {
                                                 supportingDocs = [];
                                             }
                                         } else if (Array.isArray(selectedLeave.supporting_documents)) {
@@ -432,7 +332,7 @@ export default function LeaveApprovalsPage() {
                                         if (typeof selectedLeave.handover_documents === 'string') {
                                             try {
                                                 handoverDocs = JSON.parse(selectedLeave.handover_documents);
-                                            } catch (e) {
+                                            } catch {
                                                 handoverDocs = [];
                                             }
                                         } else if (Array.isArray(selectedLeave.handover_documents)) {

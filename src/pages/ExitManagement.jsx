@@ -126,8 +126,8 @@ export default function ExitManagementPage() {
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         {/* {isHrAdmin && (
           <div className="flex flex-col md:flex-row items-center justify-between bg-blue-50 border border-blue-200 p-4 rounded-xl gap-4">
             <p className="text-sm font-medium text-blue-800">Admin: You are viewing an employee portal.</p>

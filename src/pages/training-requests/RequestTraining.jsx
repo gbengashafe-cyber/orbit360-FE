@@ -1,17 +1,17 @@
 import { trainingService } from '@/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader, StatusBadge, formatDate } from '@/components/system';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/utils';
 import { showToast } from '@/utils/toast';
-import { BookOpen, Eye, GraduationCap, Loader2, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Eye, Loader2, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { getStatusColor } from '../authorization-center/authorization-center.util';
 import { RequestDeleteConfirmation } from './request-delete-confirmation';
 import { TrainingRequestForm } from './training-request-form';
 
@@ -92,25 +92,15 @@ export default function RequestTraining() {
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-700 to-green-800 rounded-2xl flex items-center justify-center shadow-lg shadow-green-700/25">
-              <GraduationCap className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Training Requests</h1>
-              <p className="text-gray-600">Request training to enhance your skills and career development</p>
-            </div>
-          </div>
+          <PageHeader title="Training requests" description="Request training to enhance your skills and career development." />
 
           <Button
             onClick={() => setShowRequestForm(true)}
-            className="bg-gradient-to-r from-green-700 to-green-800 hover:from-green-800 hover:to-green-900 text-white shadow-lg shadow-green-700/25"
           >
-            <Plus className="w-4 h-4 mr-2" />
             Request Training
           </Button>
           {showRequestForm ? (
@@ -125,10 +115,7 @@ export default function RequestTraining() {
         </div>
 
         {/* All Training Requests */}
-        <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
-          <CardHeader>
-            <CardTitle>Your Training Requests</CardTitle>
-          </CardHeader>
+        <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
@@ -148,13 +135,13 @@ export default function RequestTraining() {
                       <TableCell>{request?.trainingTitle}</TableCell>
                       <TableCell>{request?.trainingType.replace('_', ' ')}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(request.status)}>{request.status.replace('_', ' ')}</Badge>
+                        <StatusBadge status={request.status} />
                       </TableCell>
                       <TableCell>
                         <Badge className={getPriorityColor(request.priority)}>{request.priority}</Badge>
                       </TableCell>
 
-                      <TableCell>{new Date(request.createdAt || request.created_date).toLocaleDateString()}</TableCell>
+                      <TableCell>{formatDate(request.createdAt || request.created_date)}</TableCell>
                       <TableCell className="flex gap-2">
                         <Button
                           size="sm"
@@ -206,7 +193,7 @@ export default function RequestTraining() {
               <div>
                 <DialogTitle className="text-xl md:text-2xl">{selectedRequest?.trainingTitle}</DialogTitle>
                 <div className="mt-2">
-                  <Badge className={getStatusColor(selectedRequest?.status)}>{selectedRequest?.status?.replace('_', ' ')}</Badge>
+                  <StatusBadge status={selectedRequest?.status} />
                 </div>
               </div>
               <div />
@@ -242,7 +229,7 @@ export default function RequestTraining() {
                   <p className="text-sm text-gray-500 mt-2">
                     Requested on{' '}
                     {selectedRequest
-                      ? new Date(selectedRequest.createdAt || selectedRequest.created_date).toLocaleDateString()
+                      ? formatDate(selectedRequest.createdAt || selectedRequest.created_date)
                       : ''}
                   </p>
                 </div>
@@ -291,9 +278,7 @@ export default function RequestTraining() {
           <div className="space-y-4">
             <div>
               <Label className="text-sm text-gray-600">Current Status</Label>
-              <Badge className={getStatusColor(selectedRequest?.status)}>
-                {(selectedRequest?.status || '').replace('_', ' ')}
-              </Badge>
+              <StatusBadge status={selectedRequest?.status} />
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg">

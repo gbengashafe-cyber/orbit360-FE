@@ -6,14 +6,14 @@ import { EmployeeUtil } from './employee.utils';
 
 export const TaxBreakdown = ({ employee, totalGrossPay, annualPensionDeduction, annualNHFDeduction, annualPAYEData }) => {
   return (
-    <Card className="mt-6 border-blue-200 shadow-lg bg-blue-50/30">
-      <CardHeader className="bg-gradient-to-r from-blue-700 to-blue-800 text-white rounded-t-lg">
-        <CardTitle className="flex items-center text-white">
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center">
           Annual Tax Calculation Summary (2026 Tax Law)
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <HelpCircle className="w-4 h-4 ml-2 text-blue-100 cursor-pointer" />
+                <HelpCircle className="ml-2 h-4 w-4 cursor-pointer text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
                 <p>Taxable Income = Gross - (CRA + Pension + NHF)</p>

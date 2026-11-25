@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiClient, apiRoutes } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Folder, File, ArrowLeft, Home, FileText, Loader2, FileBox, Download } from 'lucide-react';
+import { Folder, File, ArrowLeft, Home, FileText, Loader2, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -84,15 +84,12 @@ export default function CompanyDocuments() {
   };
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-            <FileBox className="w-6 h-6 text-white" />
-          </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Document Hub</h1>
+            <h1 className="text-page-title text-foreground">Document hub</h1>
             <p className="text-gray-600">Access public company policies, handbooks, and documents.</p>
           </div>
         </div>

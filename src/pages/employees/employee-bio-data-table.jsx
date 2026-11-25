@@ -1,16 +1,15 @@
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
-import { Edit, MoreHorizontal, ReplyIcon, UserMinus, Users, UserX } from 'lucide-react';
+import { EmptyState, StatusBadge, formatDate } from '@/components/system';
+import { Edit, MoreHorizontal, ReplyIcon, UserMinus, UserX } from 'lucide-react';
 
 export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onReinstate, onSuspend }) => {
   return (
     <div className="overflow-x-auto px-5">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-50">
+          <TableRow>
             <TableHead>Employee</TableHead>
             <TableHead>SBU</TableHead>
             <TableHead>Department</TableHead>
@@ -23,7 +22,7 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onReinsta
         <TableBody>
           {employees?.length
             ? employees.map((employee) => (
-                <TableRow key={employee.id} className="hover:bg-gray-50/50 transition-colors">
+                <TableRow key={employee.id}>
                   <TableCell>
                     <div>
                       <p className="font-semibold text-gray-900">
@@ -36,9 +35,9 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onReinsta
                   <TableCell className="capitalize">{employee.department?.name}</TableCell>
                   <TableCell>{employee?.jobRole?.title}</TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(employee.status)}>{employee.status.replace('_', ' ')}</Badge>
+                    <StatusBadge status={employee.status} />
                   </TableCell>
-                  <TableCell>{employee.hireDate ? new Date(employee.hireDate).toLocaleDateString() : 'N/A'}</TableCell>
+                  <TableCell>{employee.hireDate ? formatDate(employee.hireDate) : '—'}</TableCell>
                   <TableCell className="flex gap-x-2">
                     <Button variant="outline" onClick={() => onEdit(employee)} title="Edit Employee Details">
                       <Edit className="w-4 h-4" /> Edit
@@ -79,10 +78,7 @@ export const EmployeeBioDataTable = ({ employees, onEdit, onTerminate, onReinsta
         </TableBody>
       </Table>
       {employees.length === 0 && (
-        <div className="p-12 text-center text-gray-500">
-          <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <h3 className="text-lg font-semibold mb-2">No employees in this category</h3>
-        </div>
+        <EmptyState title="No employees in this category" description="Try another employee status or adjust your filters." />
       )}
     </div>
   );

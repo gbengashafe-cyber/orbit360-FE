@@ -2,12 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LoanUtil } from '../../components/cooperative/loan.utils';
 import { EmployeeUtil } from './employee.utils';
+import { formatDate } from '@/components/system';
 
 export const EmployeeLoans = ({ employeeLoans, totalAnnualLoanDeduction, totalMonthlyLoanDeduction }) => {
   return (
-    <Card className="mt-6 border-orange-200 shadow-lg bg-orange-50/30">
-      <CardHeader className="bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-t-lg">
-        <CardTitle className="text-white">Active Loans & Deductions</CardTitle>
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle>Active loans and deductions</CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="space-y-4">
@@ -29,8 +30,8 @@ export const EmployeeLoans = ({ employeeLoans, totalAnnualLoanDeduction, totalMo
                   <TableCell className="text-xs font-semibold text-red-600">
                     ₦{EmployeeUtil.formatCurrency(LoanUtil.calculations(loan).monthlyDeduction)}
                   </TableCell>
-                  <TableCell className="text-xs">{new Date(loan.startDate).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-xs">{new Date(loan.endDate).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-xs">{formatDate(loan.startDate)}</TableCell>
+                  <TableCell className="text-xs">{formatDate(loan.endDate)}</TableCell>
                 </TableRow>
               ))}
               <TableRow className="bg-red-100 font-bold">

@@ -4,6 +4,14 @@
 
 All UI work follows **[DESIGN.md](DESIGN.md)**, the approved Orbit 360 design system. Read it before creating or changing any screen or component. The visual reference is `docs/design/design-system-proposal.html`.
 
+These requirements are mandatory for all frontend development:
+
+- Read and follow `DESIGN.md` before implementing a new feature or modifying an interface. All future features must follow the Orbit 360 design system.
+- Reuse the existing design tokens, shared components and formatting utilities. Do not introduce hardcoded colours, inconsistent spacing, unnecessary gradients or independent styling systems.
+- Follow established patterns for page headers, tables, tabs, buttons, forms, dialogs, status indicators and feedback. Preserve role-based navigation and responsive behaviour.
+- When a new reusable UI pattern is required, extend the shared design system rather than building an isolated implementation, and document the pattern in `DESIGN.md`.
+- Before developing every new feature or significant UX improvement, create a Markdown implementation plan. Include design system compliance in the verification criteria for every frontend feature.
+
 Rules that are most often broken:
 
 - No gradients (`bg-gradient-*`), no coloured shadows, no `shadow-lg/xl/2xl` on cards or buttons.

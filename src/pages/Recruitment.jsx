@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 
 import ApplicationPipeline from '../components/recruitment/ApplicationPipeline';
 import JobPostingForm from '../components/recruitment/JobPostingForm';
-import { getStatusColor } from './authorization-center/authorization-center.util';
+import { PageHeader, StatusBadge } from '@/components/system';
 
 export default function Recruitment() {
   const [jobPostings, setJobPostings] = useState([]);
@@ -226,23 +226,14 @@ export default function Recruitment() {
   const displayedJobs = jobPostings; // Show all jobs in the main table
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-              <Briefcase className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Recruitment</h1>
-              <p className="text-gray-600">Manage job postings and track applications</p>
-            </div>
-          </div>
+          <PageHeader title="Recruitment" description="Manage job postings and track applications." />
           <Dialog open={showJobForm} onOpenChange={setShowJobForm}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button>
                 Post New Job
               </Button>
             </DialogTrigger>
@@ -359,9 +350,6 @@ export default function Recruitment() {
 
         {/* Job Postings Table */}
         <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
-          <CardHeader>
-            <CardTitle>Job Postings</CardTitle>
-          </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
@@ -396,7 +384,7 @@ export default function Recruitment() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(job.status)}>{job.status.replace('_', ' ')}</Badge>
+                          <StatusBadge status={job.status} />
                         </TableCell>
                         <TableCell>{job.posted_date && new Date(job.posted_date).toLocaleDateString()}</TableCell>
                         <TableCell className="flex gap-1 flex-wrap">

@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
+import { StatusBadge } from '@/components/system';
 import { FieldDisplay } from '@/pages/authorization-center/request-details-view/shared/field-display';
 import { format } from 'date-fns';
 import {
@@ -17,9 +17,7 @@ const personName = (person) => (person ? `${person.firstName} ${person.lastName}
 
 export function ComplaintStatusBadge({ status, audience = 'hr' }) {
   return (
-    <Badge className={`whitespace-nowrap ${getStatusColor(status?.toLowerCase())}`}>
-      {statusLabel(status, audience === 'employee' ? EMPLOYEE_STATUS_LABELS : HR_STATUS_LABELS)}
-    </Badge>
+    <StatusBadge className="whitespace-nowrap" status={status} label={statusLabel(status, audience === 'employee' ? EMPLOYEE_STATUS_LABELS : HR_STATUS_LABELS)} />
   );
 }
 

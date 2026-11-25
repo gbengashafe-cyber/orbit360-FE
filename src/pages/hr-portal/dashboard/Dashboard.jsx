@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PageHeader, StatCard, formatDate } from '@/components/system';
 import { logger } from '@/utils';
-import { format, startOfMonth, subMonths } from 'date-fns';
-import { Briefcase, Calendar as CalendarIcon, Coins, Filter, UserMinus, Users } from 'lucide-react';
+import { startOfMonth, subMonths } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
   CartesianGrid,
@@ -21,52 +22,18 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { MetricCard } from './metric-card';
-
-// Material Design Color Palette
-const MATERIAL_COLORS = {
-  primary: '#1976D2', // Blue 700
-  primaryLight: '#42A5F5', // Blue 400
-  primaryDark: '#0D47A1', // Blue 900
-  secondary: '#388E3C', // Green 600
-  secondaryLight: '#66BB6A', // Green 400
-  error: '#D32F2F', // Red 700
-  warning: '#F57C00', // Orange 700
-  success: '#388E3C', // Green 600
-  info: '#0288D1', // Light Blue 600
-  surface: '#FFFFFF',
-  background: '#FAFAFA', // Grey 50
-  onSurface: '#212121', // Grey 900
-  onBackground: '#212121',
-};
-
-// Material Design Elevation Shadows
-const ELEVATION = {
-  1: 'shadow-sm', // 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
-  2: 'shadow', // 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)
-  4: 'shadow-md', // 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)
-  8: 'shadow-lg', // 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22)
-  16: 'shadow-xl', // 0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.22)
-};
 
 // Material Design Chart Colors
 const CHART_COLORS = {
-  gender: ['#1976D2', '#FF7043', '#9C27B0'], // Blue, Deep Orange, Purple
-  department: ['#4CAF50', '#FF9800', '#9C27B0', '#2196F3', '#F44336', '#607D8B'], // Green, Orange, Purple, Blue, Red, Blue Grey
-  attrition: '#F44336', // Red
-  budget: '#4CAF50', // Green
+  gender: ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))'],
+  attrition: 'hsl(var(--status-danger))',
 };
 
 const MaterialTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div
-        className="bg-white rounded-lg p-4 shadow-lg border-0"
-        style={{
-          boxShadow: '0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12), 0 5px 5px -3px rgba(0,0,0,0.20)',
-        }}
-      >
-        <p className="font-medium text-gray-900 mb-2">{label}</p>
+      <div className="rounded-lg border bg-popover p-3 text-popover-foreground shadow-overlay">
+        <p className="mb-2 font-medium text-foreground">{label}</p>
         {payload.map((entry, index) => (
           <p key={index} style={{ color: entry.color }} className="text-sm">
             {`${entry.name}: ${entry.dataKey.includes('Rate') ? `${entry.value.toFixed(2)}%` : entry.value.toLocaleString()}`}
@@ -78,20 +45,19 @@ const MaterialTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// Material Design Chart Card Component
 const ChartCard = ({ title, subtitle, children, actions }) => (
-  <div className={`bg-white rounded-lg ${ELEVATION[2]} hover:${ELEVATION[4]} transition-all duration-200`}>
-    <div className="p-6 pb-2">
-      <div className="flex items-center justify-between mb-4">
+  <section className="rounded-lg border bg-card">
+    <div className="p-4 pb-2 sm:p-6 sm:pb-2">
+      <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-          {subtitle && <p className="text-sm text-gray-600 mt-1">{subtitle}</p>}
+          <h2 className="text-card-title text-foreground">{title}</h2>
+          {subtitle && <p className="mt-1 text-body text-muted-foreground">{subtitle}</p>}
         </div>
         {actions && <div className="flex gap-2">{actions}</div>}
       </div>
     </div>
-    <div className="px-6 pb-6">{children}</div>
-  </div>
+    <div className="px-4 pb-4 sm:px-6 sm:pb-6">{children}</div>
+  </section>
 );
 
 export function HRDashboard() {
@@ -143,35 +109,16 @@ export function HRDashboard() {
   }, [filters]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: MATERIAL_COLORS.background }}>
-        <div className="text-center">
-          <div
-            className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"
-            style={{ borderColor: MATERIAL_COLORS.primary }}
-          ></div>
-          <p className="text-lg font-medium text-gray-700">Loading Analytics Dashboard...</p>
-        </div>
-      </div>
-    );
+    return <div className="flex min-h-[50vh] items-center justify-center"><div className="text-center"><div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /><p className="text-body font-medium text-foreground">Loading analytics dashboard…</p></div></div>;
   }
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: MATERIAL_COLORS.background }}>
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Material Design Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Analytics Dashboard</h1>
-            <p className="text-lg text-gray-600">Comprehensive HR Management Insights</p>
-          </div>
-
-          {/* Material Design Filters */}
-          <div className={`flex items-center gap-4 bg-white rounded-lg p-4 ${ELEVATION[2]}`}>
-            <div className="flex items-center gap-3">
-              <Filter className="w-5 h-5 text-gray-500" />
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        <PageHeader title="Analytics dashboard" description="Workforce and request insights for the selected period" actions={<div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
+            <div>
               <Select value={filters.department} onValueChange={(val) => setFilters((f) => ({ ...f, department: val }))}>
-                <SelectTrigger className="w-48 border-0 bg-gray-50 rounded-lg">
+                <SelectTrigger className="w-48">
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
                 <SelectContent>
@@ -186,23 +133,18 @@ export function HRDashboard() {
                 </SelectContent>
               </Select>
             </div>
-
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-72 justify-start text-left font-normal border-0 bg-gray-50 rounded-lg">
-                  <CalendarIcon className="mr-3 h-4 w-4" />
+                <Button variant="secondary" className="w-72 justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
                   {filters.dateRange?.from ? (
-                    filters.dateRange.to ? (
-                      `${format(filters.dateRange.from, 'LLL dd, y')} - ${format(filters.dateRange.to, 'LLL dd, y')}`
-                    ) : (
-                      format(filters.dateRange.from, 'LLL dd, y')
-                    )
+                    filters.dateRange.to ? `${formatDate(filters.dateRange.from)} – ${formatDate(filters.dateRange.to)}` : formatDate(filters.dateRange.from)
                   ) : (
                     <span>Pick a date range</span>
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className={`w-auto p-0 ${ELEVATION[8]}`} align="end">
+              <PopoverContent className="w-auto p-0" align="end">
                 <Calendar
                   mode="range"
                   defaultMonth={filters.dateRange?.from}
@@ -211,41 +153,16 @@ export function HRDashboard() {
                 />
               </PopoverContent>
             </Popover>
-          </div>
+          </div>} />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Active headcount" value={metrics?.overview?.totalHeadcount || 0} />
+          <StatCard label="Leave requests" value={metrics?.overview?.pendingLeaveRequests || 0} tone="pending" />
+          <StatCard label="Attrition rate" value={`${metrics?.overview?.attritionRate || '0%'}`} tone="danger" />
+          <StatCard label="Pending loan requests" value={`${metrics?.overview?.pendingLoanRequests || '0'}`} tone="pending" />
         </div>
 
-        {/* Material Design KPI Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <MetricCard
-            title="Active Headcount"
-            value={metrics?.overview?.totalHeadcount || 0}
-            icon={Users}
-            color={MATERIAL_COLORS.primary}
-          />
-          <MetricCard
-            title="Leave Requests"
-            value={metrics?.overview?.pendingLeaveRequests || 0}
-            icon={Briefcase}
-            color={MATERIAL_COLORS.warning}
-          />
-
-          <MetricCard
-            title="Attrition Rate"
-            value={`${metrics?.overview?.attritionRate || '0%'}`}
-            icon={UserMinus}
-            color={MATERIAL_COLORS.error}
-          />
-
-          <MetricCard
-            title="Pending Loan Requests"
-            value={`${metrics?.overview?.pendingLoanRequests || '0'}`}
-            icon={Coins}
-            color={MATERIAL_COLORS.info}
-          />
-        </div>
-
-        {/* Material Design Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+        <div className="grid grid-cols-1 gap-6">
           {/* Gender Distribution */}
           <ChartCard title="Gender Distribution" subtitle="Workforce demographics overview">
             <div className="h-80">
@@ -361,7 +278,7 @@ export function HRDashboard() {
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={metrics.attritionTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip content={<MaterialTooltip />} />

@@ -4,6 +4,7 @@ import { useGlobalContext } from '@/state/context';
 import { useDebounce } from '@/api/apiClient';
 import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/system';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { UserCheck, Upload, Loader2, FileText, CheckCircle2, Circle, Trash2, Check, ChevronsUpDown } from 'lucide-react';
+import { Upload, Loader2, FileText, CheckCircle2, Circle, Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const DOCUMENT_TYPES = [
@@ -235,19 +236,11 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-            <UserCheck className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Employee Onboarding</h1>
-            <p className="text-gray-600">Manage and track new hire documentation.</p>
-          </div>
-        </div>
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        <PageHeader title="Employee onboarding" description="Manage and track new hire documentation." />
 
-        <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
+        <Card>
           <CardHeader>
             <CardTitle>Select Employee to Onboard</CardTitle>
           </CardHeader>

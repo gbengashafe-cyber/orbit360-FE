@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { logger } from '@/utils';
 import { Command } from 'cmdk';
 import { format, parseISO } from 'date-fns';
-import { Check, ChevronsUpDown, Loader2, UserPlus } from 'lucide-react';
+import { Check, ChevronDown, Loader2, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { EmployeeLoans } from './employee-form-loans-section';
@@ -202,8 +202,8 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
 
   return (
     <Dialog open={showForm} onOpenChange={onCancel}>
-      <DialogContent className="lg:max-w-4xl mx-[2%] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-5xl overflow-y-auto p-0">
+        <DialogHeader className="border-b px-5 pb-4 pt-5 sm:px-6">
           <DialogTitle>
             {employee ? `Edit Employee: ${employee.firstName} ${employee.lastName}` : 'Create New Employee'}
           </DialogTitle>
@@ -211,7 +211,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
             {employee ? `Edit Employee: ${employee.firstName} ${employee.lastName}` : 'Create New Employee'}
           </DialogDescription>
         </DialogHeader>
-        <div className="px-4">
+        <div className="px-5 pb-5 sm:px-6 sm:pb-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <h3 className="font-semibold text-lg text-gray-800 border-b pb-2">Personal Information</h3>
             {error ? <FormSubmitErrorV1>{error}</FormSubmitErrorV1> : null}
@@ -400,10 +400,10 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-full justify-between font-normal border-slate-200"
+                        className="w-full justify-between font-normal"
                       >
                         {formData.supervisorId ? getSupervisorName() : 'Select supervisor...'}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
@@ -432,7 +432,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                                         setOpen(false);
                                         setQuery('');
                                       }}
-                                      className="flex flex-col items-start py-2"
+                                      className="flex h-auto min-h-14 flex-col items-start gap-0.5 py-2"
                                     >
                                       <div className="flex items-center w-full">
                                         <Check
@@ -445,7 +445,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
                                           {emp.firstName} {emp.lastName}
                                         </span>
                                       </div>
-                                      <span className="text-xs text-muted-foreground ml-6">
+                                      <span className="ml-6 text-xs text-muted-foreground">
                                         {emp.jobRole?.title} • {emp.department?.name}
                                       </span>
                                     </CommandItem>
@@ -757,10 +757,7 @@ export function EmployeeForm({ showForm, employee, onSubmit, onCancel, error, al
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
-              >
+              <Button type="submit">
                 {employee ? 'Update Employee' : 'Save Employee'}
               </Button>
             </div>

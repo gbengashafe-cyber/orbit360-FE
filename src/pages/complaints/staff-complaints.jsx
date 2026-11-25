@@ -1,12 +1,13 @@
 import { complaintService } from '@/api';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState, PageHeader } from '@/components/system';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { logger } from '@/utils';
 import { format } from 'date-fns';
-import { Eye, MessageSquareWarning, Plus, RefreshCw } from 'lucide-react';
+import { Eye, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { complaintTypeLabel } from './complaint.constants';
@@ -49,28 +50,18 @@ export default function StaffComplaints() {
   const showEmptyState = !loading && !loadError && total === 0;
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-              <MessageSquareWarning className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Staff Complaints</h1>
-              <p className="text-gray-600">Report workplace issues and track the progress of your complaints.</p>
-            </div>
-          </div>
+          <PageHeader title="Staff complaints" description="Report workplace issues and track the progress of your complaints." />
           <div className="flex gap-2">
             <Button variant="outline" size="icon" onClick={loadData} disabled={loading} title="Refresh">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
             {total > 0 ? (
               <Button
-                className="bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-lg shadow-blue-700/25"
                 onClick={() => setShowForm(true)}
               >
-                <Plus className="w-4 h-4 mr-2" />
                 Submit Complaint
               </Button>
             ) : null}
@@ -87,24 +78,9 @@ export default function StaffComplaints() {
         />
 
         <Card>
-          <CardHeader>
-            <CardTitle>Your Complaints ({total})</CardTitle>
-            <CardDescription>Complaints you have submitted, including anonymous ones.</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {showEmptyState ? (
-              <div className="text-center py-12">
-                <MessageSquareWarning className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No complaints submitted</h3>
-                <p className="text-gray-500 mb-6">You haven&apos;t submitted any complaints yet.</p>
-                <Button
-                  className="bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-lg shadow-blue-700/25"
-                  onClick={() => setShowForm(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Submit Your First Complaint
-                </Button>
-              </div>
+              <EmptyState title="No complaints submitted" description="You haven't submitted any complaints yet." action={<Button onClick={() => setShowForm(true)}>Submit your first complaint</Button>} />
             ) : (
               <>
                 <div className="overflow-x-auto">

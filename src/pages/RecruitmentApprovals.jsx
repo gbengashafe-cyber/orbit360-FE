@@ -3,9 +3,9 @@ import { recruitmentService, userService } from '@/api';
 import { showToast } from '@/utils/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { EmptyState, PageHeader, StatusBadge } from '@/components/system';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle, XCircle, AlertCircle, Eye, Briefcase, MapPin, Briefcase as JobIcon, Calendar, DollarSign } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, AlertCircle, Eye, MapPin, Briefcase as JobIcon, Calendar, DollarSign } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -101,39 +101,24 @@ export default function RecruitmentApprovals() {
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-700 to-purple-800 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-700/25">
-            <Briefcase className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Recruitment Approvals</h1>
-            <p className="text-gray-600">Review and approve pending job postings</p>
-          </div>
-        </div>
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        <PageHeader title="Recruitment approvals" description="Review pending job postings." />
 
         {pendingJobs.length === 0 ? (
           <Card>
-            <CardContent className="p-12 text-center">
-              <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-semibold text-gray-600">No Pending Approvals</h3>
-              <p className="text-gray-500">There are no job postings awaiting your approval.</p>
-            </CardContent>
+            <CardContent><EmptyState title="No pending approvals" description="There are no job postings awaiting your approval." /></CardContent>
           </Card>
         ) : (
           <div className="space-y-4 max-w-2xl">
               {pendingJobs.map((job) => (
-                <Card key={job.id} className="bg-white shadow-md hover:shadow-lg transition-shadow border-0">
+                <Card key={job.id}>
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       {/* Header Section */}
                       <div className="flex justify-between items-start gap-4">
                         <div className="flex-1">
                           <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <JobIcon className="w-6 h-6 text-white" />
-                            </div>
                             <div className="flex-1">
                               <h3 className="font-bold text-lg text-gray-900">
                                 {job.title}
@@ -142,9 +127,7 @@ export default function RecruitmentApprovals() {
                             </div>
                           </div>
                         </div>
-                        <Badge className="bg-yellow-100 text-yellow-800 border-0 text-xs font-semibold px-3 py-1">
-                          {job.status?.replace('_', ' ').toUpperCase()}
-                        </Badge>
+                        <StatusBadge status={job.status} />
                       </div>
 
                       {/* Details Grid */}
@@ -235,7 +218,7 @@ export default function RecruitmentApprovals() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-500">Status</p>
-                    <Badge className="bg-yellow-100 text-yellow-800">{detailsDialog.job.status?.replace('_', ' ').toUpperCase()}</Badge>
+                    <StatusBadge status={detailsDialog.job.status} />
                   </div>
                 </div>
 

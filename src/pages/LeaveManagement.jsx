@@ -1,33 +1,30 @@
 import { employeeService, leaveService, userService } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState, PageHeader, formatDateRange } from '@/components/system';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { showToast } from '@/utils/toast';
-import { Calendar, CheckCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Calendar, CheckCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import LeaveManagementComponent from '../components/selfservice/LeaveManagement';
 
 const LeaveApprovals = ({ requests, onAction, isProcessingAction }) => {
   if (requests.length === 0) {
     return (
-      <Card className="shadow-xl shadow-gray-200/50">
+      <Card>
         <CardHeader>
           <CardTitle>Leave Approvals</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center p-8 text-gray-500">
-            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-semibold">All Caught Up!</h3>
-            <p>There are no leave requests pending your approval.</p>
-          </div>
+          <EmptyState title="All caught up" description="There are no leave requests pending your approval." />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="shadow-xl shadow-gray-200/50">
+    <Card>
       <CardHeader>
         <CardTitle>Leave Requests Pending Your Approval</CardTitle>
       </CardHeader>
@@ -53,7 +50,7 @@ const LeaveApprovals = ({ requests, onAction, isProcessingAction }) => {
                 </TableCell>
                 <TableCell className="capitalize">{req.leave_type}</TableCell>
                 <TableCell>
-                  {new Date(req.start_date).toLocaleDateString()} - {new Date(req.end_date).toLocaleDateString()}
+                  {formatDateRange(req.start_date, req.end_date)}
                 </TableCell>
                 <TableCell>{req.days_requested}</TableCell>
                 <TableCell className="max-w-xs truncate">{req.reason}</TableCell>
@@ -61,20 +58,18 @@ const LeaveApprovals = ({ requests, onAction, isProcessingAction }) => {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-green-600 border-green-600 hover:bg-green-50"
                     onClick={() => onAction(req, true)}
                     disabled={isProcessingAction}
                   >
-                    <ThumbsUp className="w-4 h-4 mr-1" /> Approve
+                    Approve
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-red-600 border-red-600 hover:bg-red-50"
                     onClick={() => onAction(req, false)}
                     disabled={isProcessingAction}
                   >
-                    <ThumbsDown className="w-4 h-4 mr-1" /> Reject
+                    Reject
                   </Button>
                 </TableCell>
               </TableRow>
@@ -87,16 +82,12 @@ const LeaveApprovals = ({ requests, onAction, isProcessingAction }) => {
 };
 
 export default function LeaveManagementPage() {
-  const [currentUser, setCurrentUser] = useState(null);
   const [currentEmployeeData, setCurrentEmployeeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isApprover, setIsApprover] = useState(false);
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
-  const [isHrAdmin, setIsHrAdmin] = useState(false);
-  const [allEmployees, setAllEmployees] = useState([]);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState('self');
-  const [selfEmployeeRecord, setSelfEmployeeRecord] = useState(null);
+  const selectedEmployeeId = 'self';
   const [activeTab, setActiveTab] = useState('my_leave');
 
   useEffect(() => {
@@ -116,7 +107,6 @@ export default function LeaveManagementPage() {
     try {
       const userResponse = await userService.getCurrentUser();
       const user = userResponse?.data || userResponse;
-      setCurrentUser(user);
 
       // Fetch current user's employee data instead of all employees
       const myEmployeeResponse = await employeeService.getUserEmployeeData();
@@ -131,13 +121,6 @@ export default function LeaveManagementPage() {
         } catch (err) {
           console.warn('Could not fetch all employees:', err);
         }
-      }
-
-      const userIsHrAdmin = user.role && ['admin', 'admin_officer'].includes(user.role);
-      setIsHrAdmin(userIsHrAdmin);
-
-      if (userIsHrAdmin) {
-        setAllEmployees(allEmpsData);
       }
 
       // Fetch all leave requests to find those pending approval for current user
@@ -180,7 +163,6 @@ export default function LeaveManagementPage() {
       }
 
       if (userEmployeeRecord) {
-        setSelfEmployeeRecord(userEmployeeRecord);
         if (selectedEmployeeId === 'self') {
           await loadDataForEmployee(userEmployeeRecord);
         } else {
@@ -199,7 +181,6 @@ export default function LeaveManagementPage() {
           annual_leave_entitlement: 21,
           hire_date: new Date().toISOString().split('T')[0],
         };
-        setSelfEmployeeRecord(basicEmployeeData);
         if (selectedEmployeeId === 'self') {
           setCurrentEmployeeData(basicEmployeeData);
         }
@@ -229,18 +210,6 @@ export default function LeaveManagementPage() {
     }
   };
 
-  const handleEmployeeSwitch = async (employeeId) => {
-    setSelectedEmployeeId(employeeId);
-    setLoading(true);
-    if (employeeId === 'self') {
-      await loadDataForEmployee(selfEmployeeRecord);
-    } else {
-      const targetEmployee = allEmployees.find((e) => e.id === employeeId);
-      await loadDataForEmployee(targetEmployee);
-    }
-    setLoading(false);
-  };
-
   if (loading) {
     return (
       <div className="p-8 text-center">
@@ -259,19 +228,9 @@ export default function LeaveManagementPage() {
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-              <Calendar className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Leave Management</h1>
-              <p className="text-gray-600">Manage your leave and view approvals</p>
-            </div>
-          </div>
-        </div>
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        <PageHeader title="Leave management" description="Manage your leave requests and view approvals." />
 
         {/* {isHrAdmin && (
                     <div className="flex flex-col md:flex-row items-center justify-between bg-blue-50 border border-blue-200 p-4 rounded-xl gap-4">
@@ -288,7 +247,7 @@ export default function LeaveManagementPage() {
                     </div>
                 )} */}
 
-        <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
+        <Card>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-none lg:flex lg:space-x-1 p-1 bg-gray-100 rounded-lg">
               {tabs.map((tab) => (

@@ -3,12 +3,13 @@ import { DebouncedSearch } from '@/components/shared/debounced-search';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { PageHeader } from '@/components/system';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCompanies } from '@/hooks/use-all-companies';
 import { EmployeeBioDataTable } from '@/pages/employees/employee-bio-data-table';
 import { logger } from '@/utils';
-import { FilterIcon, Plus, RefreshCw, Users } from 'lucide-react';
+import { FilterIcon, RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { EmployeeForm } from './employee-form';
@@ -197,38 +198,20 @@ export function Employees() {
   };
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-              <Users className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Employee Directory</h1>
-              <p className="text-gray-600">Add, manage, and archive company employees</p>
-            </div>
-          </div>
-
-          <div className="grid gap-y-4 md:grid-flow-col gap-x-4">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        <PageHeader title="Employee directory" description="Add, manage and archive company employees." actions={<div className="flex gap-2">
             <Button variant="outline" size="icon" onClick={refresh}>
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-            <Button
-              onClick={() => {
+            <Button onClick={() => {
                 setEditingEmployee(null);
                 setShowForm(true);
                 setError('');
-              }}
-              className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Employee
-            </Button>
-          </div>
-        </div>
+              }}>Add employee</Button>
+          </div>} />
 
-        <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
+        <Card>
           <div className="grid gap-4 md:grid-flow-col px-7 pt-5">
             <div className="relative flex items-center">
               <FilterIcon className="absolute left-3 w-4 text-muted-foreground" />
@@ -282,8 +265,8 @@ export function Employees() {
             <CardContent className="p-0 min-h-[400px] relative">
               {loading ? (
                 <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                  <div className="flex items-center gap-2 text-blue-700 font-medium">
-                    <div className="animate-spin h-5 w-5 border-2 border-blue-700 border-t-transparent rounded-full" />
+                  <div className="flex items-center gap-2 font-medium text-primary">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                     Loading
                   </div>
                 </div>

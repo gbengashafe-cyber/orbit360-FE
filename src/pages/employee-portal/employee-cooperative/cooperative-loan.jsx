@@ -1,13 +1,12 @@
 import { loanService } from '@/api/loan.service';
 import { LoanUtil } from '@/components/cooperative/loan.utils';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader, StatusBadge, formatCurrency, formatDate } from '@/components/system';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
 import { logger } from '@/utils';
-import { Banknote, Download, Plus, RefreshCw, Trash2, View } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import LoanRequestCancellationDialog from './loan-cancellation-dialog';
@@ -154,35 +153,18 @@ export function EmployeeCooperative() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Loading Cooperative data...</div>;
+    return <div className="p-8 text-center text-muted-foreground">Loading loan requests…</div>;
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-              <Banknote className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Cooperative / Thrift & Loans</h1>
-              <p className="text-gray-600">View and make loan requests.</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        <PageHeader title="Cooperative / thrift and loans" description="View and make loan requests." actions={<div className="flex gap-2">
             <Button variant="outline" size="icon" onClick={loadData}>
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-            <Button
-              className="bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-lg shadow-blue-700/25"
-              onClick={handleCreate}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Initiate new request
-            </Button>
-          </div>
-        </div>
+            <Button onClick={handleCreate}>Initiate new request</Button>
+          </div>} />
         {showLoanForm ? (
           <EmployeeLoanForm
             loan={selectedLoan}
@@ -215,11 +197,7 @@ export function EmployeeCooperative() {
         ) : null}
 
         <Card>
-          <CardHeader>
-            <CardTitle>Requested Loans</CardTitle>
-            <CardDescription>A list of all previously requested.</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -237,14 +215,12 @@ export function EmployeeCooperative() {
                 {loans.map((loan) => (
                   <TableRow key={loan.id}>
                     <TableCell className="capitalize">{loan.loanType?.name?.toUpperCase()}</TableCell>
-                    <TableCell>₦{loan.principalAmount?.toLocaleString()}</TableCell>
-                    <TableCell>₦{loan.monthlyDeduction?.toLocaleString()}</TableCell>
-                    <TableCell>{new Date(loan?.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(loan.startDate).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(loan.endDate).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(loan.status?.toLowerCase())}>{loan.status.replace('_', ' ')}</Badge>
-                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrency(loan.principalAmount)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrency(loan.monthlyDeduction)}</TableCell>
+                    <TableCell>{formatDate(loan?.createdAt)}</TableCell>
+                    <TableCell>{formatDate(loan.startDate)}</TableCell>
+                    <TableCell>{formatDate(loan.endDate)}</TableCell>
+                    <TableCell><StatusBadge status={loan.status} /></TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button
@@ -255,7 +231,7 @@ export function EmployeeCooperative() {
                             setShowLoanForm(true);
                           }}
                         >
-                          <View className="w-4 h-4" />
+                          View
                         </Button>
                         {['PENDING_APPROVAL', 'PENDING_REVIEW'].includes(loan?.status?.toUpperCase()) ? (
                           <Button
@@ -266,14 +242,11 @@ export function EmployeeCooperative() {
                               setShowCancellationModal(true);
                             }}
                           >
-                            <Trash2 className="w-4 h-4" /> Cancel
+                            Cancel
                           </Button>
                         ) : null}
                         {['ACTIVE'].includes(loan?.status?.toUpperCase()) ? (
-                          <Button variant="outline" size="sm" onClick={() => downloadRepaymentSchedule(loan)}>
-                            <Download className="w-4 h-4 mr-1" />
-                            Schedule
-                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => downloadRepaymentSchedule(loan)}>Schedule</Button>
                         ) : null}
                       </div>
                     </TableCell>

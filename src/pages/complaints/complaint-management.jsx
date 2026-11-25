@@ -4,13 +4,14 @@ import { DebouncedSearch } from '@/components/shared/debounced-search';
 import { FilterSelect } from '@/components/shared/filter-select';
 import { PaginationIconsOnly } from '@/components/shared/pagination';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/system';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGlobalContext } from '@/state/context';
 import { logger } from '@/utils';
 import { format } from 'date-fns';
-import { Eye, FilterX, MessageSquareWarning, RefreshCw, Shield } from 'lucide-react';
+import { Eye, FilterX, RefreshCw, Shield } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { COMPLAINT_URGENCY, complaintTypeLabel, HR_STATUS_LABELS, submitterName } from './complaint.constants';
@@ -145,23 +146,11 @@ export default function ComplaintManagement() {
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-              <MessageSquareWarning className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Staff Complaints</h1>
-              <p className="text-gray-600">
-                {canReview
-                  ? 'Review complaints submitted by employees.'
-                  : 'Track complaints and their approval history. Authorize pending complaints in the Authorization Center.'}
-              </p>
-            </div>
-          </div>
-          <Button variant="outline" size="icon" onClick={refresh} disabled={loading} title="Refresh">
+          <PageHeader title="Staff complaints" description={canReview ? 'Review complaints submitted by employees.' : 'Track complaints and their approval history. Authorize pending complaints in the Authorization Center.'} />
+          <Button variant="outline" size="icon" onClick={refresh} disabled={loading} title="Refresh" aria-label="Refresh complaints">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>

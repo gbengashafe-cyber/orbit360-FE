@@ -66,7 +66,7 @@ export default function Payroll() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState(25);
   const [pages, setPages] = useState(1);
-  const [periodTotal, setPeriodTotal] = useState(0);
+  const [, setPeriodTotal] = useState(0);
   const [companyId, setCompanyId] = useState('');
   const [submitError, setSubmitError] = useState(null);
 
@@ -308,15 +308,12 @@ export default function Payroll() {
   }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen print:hidden" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8 print:hidden">
+      <div className="space-y-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-              <CreditCard className="w-6 h-6 text-white" />
-            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Payroll & Payments</h1>
+              <h1 className="text-page-title text-foreground">Payroll & payments</h1>
               <p className="text-gray-600">Automated monthly payroll processing with PAYE tax calculations</p>
             </div>
           </div>
@@ -368,7 +365,6 @@ export default function Payroll() {
             <Button
               onClick={() => generateMonthlyPayroll(currentPeriod)}
               disabled={generatingPayroll}
-              className="bg-gradient-to-r from-green-700 to-green-800 hover:from-green-800 hover:to-green-900 text-white"
             >
               {generatingPayroll ? (
                 <>
@@ -412,17 +408,6 @@ export default function Payroll() {
         </div>
 
         <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl shadow-gray-200/50">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>
-                Monthly Payroll Schedule -{' '}
-                {new Date(currentPeriod).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
-              </span>
-              <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-                {periodTotal} records
-              </Badge>
-            </CardTitle>
-          </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
@@ -561,7 +546,6 @@ export default function Payroll() {
                 <Button
                   onClick={() => generateMonthlyPayroll(currentPeriod)}
                   disabled={generatingPayroll}
-                  className="bg-gradient-to-r from-green-700 to-green-800 hover:from-green-800 hover:to-green-900 text-white"
                 >
                   <Calculator className="w-4 h-4 mr-2" />
                   Generate Monthly Payroll

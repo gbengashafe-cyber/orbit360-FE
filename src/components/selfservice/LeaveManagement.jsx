@@ -1,6 +1,5 @@
 import { departmentService, leaveService } from '@/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,23 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { useNotification } from '@/context/NotificationContext';
-import { getStatusColor } from '@/pages/authorization-center/authorization-center.util';
+import { EmptyState, StatusBadge, formatDate, formatDateRange } from '@/components/system';
 import { logger } from '@/utils';
 import { calculateBusinessDays, formatLeaveType, getLeaveTypeDisplay } from '@/utils/leaveCalculator';
 import { showToast } from '@/utils/toast';
 import {
   AlertCircle,
-  Briefcase,
   Calendar,
   CheckCircle,
   Clock,
   Info,
   Loader2,
   Paperclip,
-  Plus,
   Upload,
   User,
-  UserCheck,
   XCircle,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
@@ -224,10 +220,6 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
   const calculateDays = (startDate, endDate, period) => {
     const result = calculateBusinessDays(startDate, endDate, period);
     // Debug: Log calculation to verify it's working
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-    }
     return result;
   };
 
@@ -274,12 +266,12 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
       if (formData.alternative_email) formDataPayload.append('alternative_email', formData.alternative_email);
 
       // Append supporting documents
-      supportingFiles.forEach((file, index) => {
+      supportingFiles.forEach((file) => {
         formDataPayload.append('supporting_documents', file);
       });
 
       // Append handover documents
-      handoverFiles.forEach((file, index) => {
+      handoverFiles.forEach((file) => {
         formDataPayload.append('handover_documents', file);
       });
 
@@ -381,37 +373,19 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
     }
   };
 
-  const getStatusIcon = (status) => {
-    const icons = {
-      pending_supervisor_approval: <UserCheck className="w-4 h-4" />,
-      pending_hr_approval: <Clock className="w-4 h-4" />,
-      approved: <CheckCircle className="w-4 h-4" />,
-      rejected: <XCircle className="w-4 h-4" />,
-      cancelled: <XCircle className="w-4 h-4" />,
-      pending: <UserCheck className="w-4 h-4" />,
-    };
-    return icons[status] || <Clock className="w-4 h-4" />;
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Leave Management</h2>
-          <p className="text-gray-600">Manage your leave and view approvals</p>
+          <h2 className="text-section-title text-foreground">My leave</h2>
+          <p className="text-body text-muted-foreground">Manage your leave requests and balances.</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-gradient-to-r from-blue-700 to-blue-800 text-white rounded px-4 py-2 flex items-center gap-2 hover:from-blue-800 hover:to-blue-900"
-        >
-          <Plus className="w-4 h-4" />
-          New Leave Request
-        </button>
+        <Button onClick={() => setShowForm(true)}>New leave request</Button>
       </div>
 
       {/* Leave Balance Summary - Always show summary cards */}
-      <div className="border border-gray-200 rounded-lg shadow-sm p-6">
-        <h3 className="font-semibold text-lg mb-4">Leave Balance Summary</h3>
+      <div className="rounded-lg border bg-card p-4 sm:p-6">
+        <h3 className="mb-4 text-card-title text-foreground">Leave balance summary</h3>
         <div className="grid grid-cols-3 gap-4">
           {leaveBalanceByType && leaveBalanceByType.length > 0 ? (
             leaveBalanceByType.map((balance) => {
@@ -505,11 +479,8 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
         </div>
       </div>
 
-      <Card className="bg-white/90 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle>My Leave</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Card>
+        <CardContent className="pt-6">
           {loading && <div className="text-center p-8">Loading leave requests...</div>}
           {!loading && leaveRequests.length > 0 && (
             <div className="overflow-x-auto">
@@ -538,18 +509,13 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                       <TableRow key={request.id}>
                         <TableCell className="capitalize">{getLeaveTypeDisplay(leaveType)}</TableCell>
                         <TableCell>
-                          {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
+                          {formatDateRange(startDate, endDate)}
                         </TableCell>
                         <TableCell>{days}</TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(request.status)}>
-                            <span className="flex items-center gap-1">
-                              {getStatusIcon(request.status)}
-                              {request.status.replaceAll('_', ' ').toUpperCase()}
-                            </span>
-                          </Badge>
+                          <StatusBadge status={request.status} />
                         </TableCell>
-                        <TableCell>{new Date(request.createdAt || request.created_date).toLocaleDateString()}</TableCell>
+                        <TableCell>{formatDate(request.createdAt || request.created_date)}</TableCell>
                         <TableCell>
                           {!['approved', 'cancelled'].includes(request.status) && (
                             <Button
@@ -571,11 +537,7 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
             </div>
           )}
           {!loading && leaveRequests.length === 0 && (
-            <div className="text-center p-12 text-gray-500">
-              <Briefcase className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-semibold mb-2">No Leave History</h3>
-              <p>You haven&apos;t submitted any leave requests yet.</p>
-            </div>
+            <EmptyState title="No leave history" description="You haven&apos;t submitted any leave requests yet." />
           )}
         </CardContent>
       </Card>

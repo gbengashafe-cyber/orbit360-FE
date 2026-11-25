@@ -2,6 +2,7 @@ import { apiClient, apiRoutes } from '@/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/system';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -17,7 +18,6 @@ import {
   Briefcase,
   Building,
   Calendar,
-  FileText,
   Hand,
   Landmark,
   Shield,
@@ -354,21 +354,12 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-            <FileText className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Exit Management</h1>
-            <p className="text-gray-600">Submit and track your offboarding process</p>
-          </div>
-        </div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <PageHeader title="Exit management" description="Submit and track your offboarding process." />
         {!activeRequest && (
           <Dialog open={showForm} onOpenChange={setShowForm}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800">
-                <FileText className="w-4 h-4 mr-2" />
+              <Button>
                 Initiate Exit Process
               </Button>
             </DialogTrigger>

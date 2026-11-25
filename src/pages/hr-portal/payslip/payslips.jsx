@@ -1,6 +1,5 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGlobalContext } from '@/state/context';
-import { Receipt } from 'lucide-react';
 import { useLocation } from 'react-router';
 import { EmployeePayslipView } from './employee-payslip-view';
 import { HrPayslipView } from './hr-payslip-view';
@@ -19,15 +18,12 @@ export default function MyPayslips() {
   });
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen print:hidden" style={{ backgroundColor: '#F5F5F5' }}>
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8 print:hidden">
+      <div className="space-y-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-700/25">
-              <Receipt className="w-6 h-6 text-white" />
-            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Payslips</h1>
+              <h1 className="text-page-title text-foreground">{isHrView ? 'Payslips' : 'My payslips'}</h1>
               <p className="text-gray-600">
                 {isHrView
                   ? "View and download employees' salary statements."
