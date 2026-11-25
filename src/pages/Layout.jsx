@@ -1,10 +1,12 @@
 import { userService } from '@/api';
+import NotificationBell from '@/components/notifications/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
@@ -12,15 +14,16 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { GlobalContextProvider, useGlobalContext } from '@/state/context';
 import { NotificationCenterProvider, useNotificationCenter } from '@/context/NotificationCenterContext';
-import NotificationBell from '@/components/notifications/NotificationBell';
+import { GlobalContextProvider, useGlobalContext } from '@/state/context';
 import { createPageUrl } from '@/utils';
 import {
   Banknote,
+  Bell,
   CheckCircle2,
   ChevronDown,
   ClipboardList,
@@ -32,50 +35,45 @@ import {
   LayoutDashboard,
   Loader2,
   LogOut,
+  Menu,
   MessageSquareWarning,
   NotebookPen,
-  Bell,
   PlaneTakeoff,
   UserCheck,
   UserRoundX,
   Users,
   Users2,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
 import { isLoggedIn } from '.';
 import EmployeeGate from '../components/EmployeeGate';
 import { localStorageKeys, LocalStorageUtil } from '../utils/local-storage.util';
-
 import logo from '../ORBIT360_logo_white.png';
+
+const authorizationItem = { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList, requiresSupervisor: true };
 
 const hrNav = [
   { title: 'HR Dashboard', url: createPageUrl('hr-dashboard'), icon: LayoutDashboard },
-  { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
+  authorizationItem,
   { title: 'Employees', url: createPageUrl('Employees'), icon: Users2 },
   { title: 'Payrolls', url: createPageUrl('payroll'), icon: Banknote },
   { title: 'Payslips', url: createPageUrl('payslips'), icon: FileText },
   { title: 'Cooperative & Loans', url: createPageUrl('Cooperative'), icon: HandCoins },
-  { title: 'Training Requests Review', url: createPageUrl('training-request-reviews'), icon: HandCoins },
+  { title: 'Training Requests Review', url: createPageUrl('training-request-reviews'), icon: NotebookPen },
   { title: 'Recruitment', url: createPageUrl('Recruitment'), icon: UserCheck },
   { title: 'Recruitment Approvals', url: '/RecruitmentApprovals', icon: CheckCircle2 },
   { title: 'Onboarding', url: createPageUrl('Onboarding'), icon: ClipboardList },
   { title: 'Leave Approvals', url: createPageUrl('leave-approvals'), icon: CheckCircle2 },
   { title: 'Exit Review', url: '/ExitApprovals', icon: UserRoundX },
   { title: 'Documents', url: createPageUrl('DocumentManagement'), icon: FolderArchive },
-  {
-    title: 'Staff Complaints',
-    url: createPageUrl('complaint-management'),
-    icon: MessageSquareWarning,
-    // Shown only to users with at least one of these permissions.
-    permissions: ['MANAGE_COMPLAINTS', 'APPROVE_COMPLAINTS'],
-  },
+  { title: 'Staff Complaints', url: createPageUrl('complaint-management'), icon: MessageSquareWarning, permissions: ['MANAGE_COMPLAINTS', 'APPROVE_COMPLAINTS'] },
 ];
 
 const employeePortalNav = [
-  { title: 'Notification Hub', url: '/notifications', icon: Bell, notificationHub: true },
   { title: 'Dashboard', url: createPageUrl('dashboard'), icon: LayoutDashboard },
-  { title: 'Authorization Center', url: createPageUrl('authorization-center'), icon: ClipboardList },
+  authorizationItem,
+  { title: 'Notification Hub', url: '/notifications', icon: Bell, notificationHub: true },
   { title: 'My Payslips', url: createPageUrl('my-payslips'), icon: FileText },
   { title: 'Loan Requests', url: createPageUrl('employee-cooperative'), icon: HandCoins },
   { title: 'Leave Management', url: createPageUrl('leave-management'), icon: PlaneTakeoff },
@@ -95,33 +93,47 @@ const hasAnyPermission = (user, permissions) => {
   return permissions.some((permission) => userPermissions.includes(permission));
 };
 
+const isHRManager = (user) => {
+  const roleTitle = user?.employeeData?.jobRole?.title ?? user?.employeeData?.jobRole?.name ?? '';
+  return /HUMAN RESOURCES MANAGER|HR MANAGER/i.test(roleTitle);
+};
+
+const isVisible = (item, user) => {
+  if (item.permissions && !hasAnyPermission(user, item.permissions)) return false;
+  if (item.requiresSupervisor && !user?.isSupervisor) return false;
+  return true;
+};
+
 const LayoutContent = ({ children }) => {
   const location = useLocation();
-  const [isHrNavOpen, setHrNavOpen] = useState(false);
+  const [isHrNavOpen, setHrNavOpen] = useState(true);
   const [isEmployeePortalNavOpen, setEmployeePortalNavOpen] = useState(false);
   const [isAdminNavOpen, setIsAdminNavOpen] = useState(false);
-
+  const initializedNavigation = useRef(false);
   const { currentUser, isAdmin, isLoadingUser } = useGlobalContext();
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, state, toggleSidebar } = useSidebar();
   const { unread } = useNotificationCenter();
+  const userIsHR = Boolean(currentUser?.isHR);
+  const userIsHRManager = userIsHR && isHRManager(currentUser);
 
   useEffect(() => { setOpenMobile(false); }, [location.pathname, setOpenMobile]);
 
   useEffect(() => {
-    const path = location.pathname;
-    const isDashboard = path === createPageUrl('hr-dashboard');
-    setHrNavOpen(hrNav.some((item) => path === item.url) || isDashboard);
-    setEmployeePortalNavOpen(employeePortalNav.some((item) => path === item.url));
-    setIsAdminNavOpen(adminNav.some((item) => path === item.url));
-  }, [location.pathname]);
+    if (isLoadingUser) return;
+    if (userIsHR && !initializedNavigation.current) {
+      setHrNavOpen(true);
+      setEmployeePortalNavOpen(false);
+      initializedNavigation.current = true;
+      return;
+    }
+
+    initializedNavigation.current = true;
+    setHrNavOpen(hrNav.some((item) => location.pathname === item.url));
+    setEmployeePortalNavOpen(employeePortalNav.some((item) => location.pathname === item.url));
+    setIsAdminNavOpen(adminNav.some((item) => location.pathname === item.url));
+  }, [isLoadingUser, location.pathname, userIsHR]);
 
   if (!isLoggedIn()) return <Navigate to="/login" replace />;
-
-  const MATERIAL_COLORS = {
-    primary: '#1976D2',
-    surface: '#FFFFFF',
-    background: '#FAFAFA',
-  };
 
   const handleLogout = async () => {
     await userService.logout();
@@ -131,202 +143,135 @@ const LayoutContent = ({ children }) => {
     window.location.href = '/login';
   };
 
-  const NavItem = ({ item }) => (
-    <SidebarMenuItem key={item.title}>
-      <SidebarMenuButton
-        asChild
-        className={`transition-all duration-200 rounded-lg py-3 px-3 ${
-          location.pathname === item.url
-            ? 'bg-blue-50 text-blue-700 shadow-sm border-l-4 border-blue-700'
-            : 'hover:bg-gray-50 hover:shadow-sm text-gray-700 hover:text-gray-900'
-        }`}
-      >
-        <Link to={item.url} onClick={() => setOpenMobile(false)} className="flex items-center gap-3 font-medium">
-          <item.icon className="w-5 h-5" />
-          <span className="flex-1">{item.title}</span>
-          {item.notificationHub && unread.total > 0 && <span className="rounded-full bg-red-600 px-2 text-xs leading-5 text-white">{unread.total > 99 ? '99+' : unread.total}</span>}
-        </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
+  const NavItem = ({ item }) => {
+    const active = location.pathname === item.url;
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild isActive={active} tooltip={item.title} className="h-9 rounded-md px-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground">
+          <Link to={item.url} onClick={() => setOpenMobile(false)} className="flex items-center gap-2.5">
+            <item.icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            <span className="flex-1 truncate">{item.title}</span>
+            {item.notificationHub && unread.total > 0 ? <span className="rounded-sm bg-primary px-1.5 text-xs font-semibold leading-5 text-primary-foreground">{unread.total > 99 ? '99+' : unread.total}</span> : null}
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
+
+  const NavigationItems = ({ items, excludeAuthorization = false }) => (
+    <SidebarMenu className="space-y-1">
+      {items.filter((item) => isVisible(item, currentUser) && (!excludeAuthorization || item.url !== authorizationItem.url)).map((item) => <NavItem key={item.title} item={item} />)}
+    </SidebarMenu>
   );
 
-  const NavGroup = ({ title, isOpen, onOpenChange, navItems }) => (
-    <Collapsible open={isOpen} onOpenChange={onOpenChange}>
-      <CollapsibleTrigger className="w-full">
-        <SidebarGroupLabel className="text-xs font-semibold text-gray-600 uppercase tracking-wider px-3 py-2 flex justify-between items-center cursor-pointer hover:bg-gray-100 rounded-lg">
-          {title}
-          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        </SidebarGroupLabel>
+  const NavGroup = ({ title, isOpen, onOpenChange, items, excludeAuthorization }) => (
+    <Collapsible open={isOpen} onOpenChange={onOpenChange} className="group/collapsible">
+      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-label font-semibold text-muted-foreground hover:bg-accent hover:text-foreground">
+        {title}
+        <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" strokeWidth={1.75} />
       </CollapsibleTrigger>
-      <CollapsibleContent>
-        <SidebarGroupContent>
-          <SidebarMenu className="space-y-1 mt-1">
-            {/* List the dashboard links first */}
-
-            {navItems
-              .filter((_item) => {
-                if ([createPageUrl('dashboard'), createPageUrl('hr-dashboard')].includes(_item.url)) {
-                  return true;
-                }
-                return false;
-              })
-              .map((item) => (
-                <NavItem key={item.title} item={item} />
-              ))}
-            {navItems
-              .filter((_item) => {
-                if ([createPageUrl('hr-dashboard'), createPageUrl('dashboard')].includes(_item.url)) {
-                  return false;
-                }
-                if (_item.permissions && !hasAnyPermission(currentUser, _item.permissions)) {
-                  return false;
-                }
-                if (![createPageUrl('authorization-center'), createPageUrl('exit-approvals')].includes(_item.url)) {
-                  return true;
-                }
-                return currentUser.isSupervisor;
-              })
-              .sort((a, b) => (a.title > b.title ? 1 : -1))
-              .map((item) => (
-                <NavItem key={item.title} item={item} />
-              ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
+      <CollapsibleContent className="pt-1">
+        <NavigationItems items={items} excludeAuthorization={excludeAuthorization} />
       </CollapsibleContent>
     </Collapsible>
   );
 
+  const employeeItems = employeePortalNav.filter((item) => isVisible(item, currentUser));
+  const compactNavigationItems = [...(userIsHR ? hrNav : []), ...employeeItems, ...(isAdmin ? adminNav : [])]
+    .filter((item, index, items) => items.findIndex((candidate) => candidate.url === item.url) === index);
+  const isSidebarCollapsed = state === 'collapsed';
+
   return (
-    <div className="min-h-screen flex w-full" style={{ backgroundColor: MATERIAL_COLORS.background }}>
-      <Sidebar
-        className="border-r border-gray-200 bg-white transition-all duration-300 shadow-lg"
-        style={{
-          boxShadow: '0 8px 10px -5px rgba(0,0,0,0.2), 0 16px 24px 2px rgba(0,0,0,0.14), 0 6px 30px 5px rgba(0,0,0,0.12)',
-        }}
-        collapsible
-        // open={sidebarOpen}
-        // onOpenChange={setSidebarOpen}
-      >
-        <SidebarHeader
-          className="border-b border-gray-100 p-6 flex justify-between items-center"
-          style={{ backgroundColor: MATERIAL_COLORS.primary }}
-        >
-          {/* <div className="flex items-center gap-3">
-            <Logo size="default" />
-            <div className={`${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
-              <h2 className="font-bold text-white text-lg">Orbit360</h2>
-              <p className="text-xs text-blue-100">Business Platform</p>
-            </div>
-          </div> */}
-
-          <div className="w-32 mx-auto hidden lg:block">
-            <img src={logo} />
+    <div className="flex min-h-screen w-full bg-background">
+      <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+        <SidebarHeader className="flex h-16 shrink-0 flex-row items-center border-b border-white/20 bg-primary px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
+          <div className="w-24 group-data-[collapsible=icon]:hidden">
+            <img src={logo} alt="Orbit 360" className="h-auto w-24" />
           </div>
-
+          <div className="hidden w-8 overflow-hidden group-data-[collapsible=icon]:block" aria-label="Orbit 360">
+            <img src={logo} alt="" className="h-auto w-24 max-w-none" />
+          </div>
         </SidebarHeader>
 
         {isLoadingUser ? (
-          <div className="min-h-screen min-w-72 flex items-center justify-center bg-gray-100">
-            <div className="flex flex-col items-center space-y-3 text-gray-700">
-              <span className="text-lg font-medium flex ">
-                <Loader2 className="w-8 aspect-square animate-spin text-blue-700" /> Loading...
-              </span>
-            </div>
+          <div className="flex min-h-0 flex-1 items-center justify-center p-6 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" aria-label="Loading navigation" />
           </div>
         ) : (
-          <SidebarContent className="p-4 space-y-2">
-            {/* <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className={`transition-all duration-200 rounded-lg py-3 px-3 ${location.pathname === createPageUrl('Dashboard') ? 'bg-blue-50 text-blue-700 shadow-sm border-l-4 border-blue-700' : 'hover:bg-gray-50 hover:shadow-sm text-gray-700 hover:text-gray-900'}`}
-            >
-              <Link to={createPageUrl('Dashboard')} className="flex items-center gap-3 font-medium">
-                <LayoutDashboard className="w-5 h-5" />
-                <span>Dashboard</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem> */}
-            {currentUser.isHR ? (
-              <NavGroup title="Human Resources" isOpen={isHrNavOpen} onOpenChange={setHrNavOpen} navItems={hrNav} />
-            ) : null}
-            <NavGroup
-              title="Employee Portal"
-              isOpen={isEmployeePortalNavOpen}
-              onOpenChange={setEmployeePortalNavOpen}
-              navItems={employeePortalNav}
-            />
+          <SidebarContent className="px-3 py-4">
+            {isSidebarCollapsed ? (
+              <SidebarGroup className="p-0">
+                <SidebarGroupContent><NavigationItems items={compactNavigationItems} /></SidebarGroupContent>
+              </SidebarGroup>
+            ) : (
+              <>
+                {userIsHR ? (
+              <SidebarGroup className="p-0">
+                <NavGroup title="HR resources" isOpen={isHrNavOpen} onOpenChange={setHrNavOpen} items={hrNav} excludeAuthorization={userIsHRManager} />
+              </SidebarGroup>
+                ) : null}
 
-            {isAdmin && (
-              <NavGroup title="Administration" isOpen={isAdminNavOpen} onOpenChange={setIsAdminNavOpen} navItems={adminNav} />
+                {userIsHRManager && currentUser?.isSupervisor ? (
+              <>
+                <SidebarSeparator className="my-3" />
+                <SidebarGroup className="p-0">
+                  <SidebarGroupLabel className="px-2.5 py-1.5 text-label font-semibold text-muted-foreground">Authorization</SidebarGroupLabel>
+                  <SidebarGroupContent><NavigationItems items={[authorizationItem]} /></SidebarGroupContent>
+                </SidebarGroup>
+              </>
+                ) : null}
+
+                {userIsHR ? <SidebarSeparator className="my-3" /> : null}
+                <SidebarGroup className="p-0">
+                  {userIsHR ? (
+                    <NavGroup title="Employee portal" isOpen={isEmployeePortalNavOpen} onOpenChange={setEmployeePortalNavOpen} items={employeePortalNav} excludeAuthorization={userIsHRManager} />
+                  ) : (
+                    <SidebarGroupContent><NavigationItems items={employeeItems} /></SidebarGroupContent>
+                  )}
+                </SidebarGroup>
+
+                {isAdmin ? (
+              <>
+                <SidebarSeparator className="my-3" />
+                <SidebarGroup className="p-0"><NavGroup title="Administration" isOpen={isAdminNavOpen} onOpenChange={setIsAdminNavOpen} items={adminNav} /></SidebarGroup>
+              </>
+                ) : null}
+              </>
             )}
           </SidebarContent>
         )}
 
         {isLoadingUser ? null : (
-          <SidebarFooter className="border-t border-gray-100 p-4" style={{ backgroundColor: 'rgba(25, 118, 210, 0.04)' }}>
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
-                style={{ backgroundColor: MATERIAL_COLORS.primary }}
-              >
-                <UserCheck className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 text-sm truncate">
-                  {currentUser?.firstName} {currentUser?.lastName}
-                  {isAdmin && (
-                    <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                      Admin
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-gray-600 truncate">{currentUser?.email}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-8 h-8 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full"
-                onClick={handleLogout}
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
+          <SidebarFooter className="border-t border-sidebar-border p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-primary"><UserCheck className="h-[18px] w-[18px]" strokeWidth={1.75} /></div>
+              <div className="min-w-0 flex-1"><p className="truncate text-label font-medium text-foreground">{currentUser?.firstName} {currentUser?.lastName}</p><p className="truncate text-caption text-muted-foreground">{currentUser?.email}</p></div>
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={handleLogout} aria-label="Log out"><LogOut /></Button>
             </div>
           </SidebarFooter>
         )}
       </Sidebar>
 
-      <main className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b bg-white px-3 shadow-sm sm:px-5">
-          <SidebarTrigger aria-label="Open navigation menu" className="h-10 w-10" />
+      <main className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-border bg-white px-3 sm:px-5">
+          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden" aria-label="Open navigation menu"><Menu /></Button>
+          <SidebarTrigger aria-label="Toggle navigation" className="hidden md:inline-flex" />
           <NotificationBell />
         </header>
-        <div className="flex-1 overflow-auto">
-          <div className="h-full">{children}</div>
-        </div>
+        <div className="min-h-0 flex-1 overflow-auto"><div className="min-h-full">{children}</div></div>
       </main>
     </div>
   );
 };
 
 export default function Layout({ children, currentPageName }) {
-  // 'design-system' is the development-only DESIGN.md reference page; it renders without the app shell.
-  if (['PublicJobView', 'ScrollBoard', 'login', 'design-system'].includes(currentPageName?.toLowerCase())) {
-    return <>{children}</>;
-  }
+  if (['PublicJobView', 'ScrollBoard', 'login', 'design-system'].includes(currentPageName?.toLowerCase())) return <>{children}</>;
 
   return (
     <EmployeeGate>
       <GlobalContextProvider>
-        <SidebarProvider
-          style={{
-            '--sidebar-width': '18rem',
-            '--sidebar-width-mobile': '20rem',
-          }}
-        >
-          <NotificationCenterProvider>
-            <LayoutContent>{children}</LayoutContent>
-          </NotificationCenterProvider>
+        <SidebarProvider style={{ '--sidebar-width': '18rem', '--sidebar-width-mobile': '20rem' }}>
+          <NotificationCenterProvider><LayoutContent>{children}</LayoutContent></NotificationCenterProvider>
         </SidebarProvider>
       </GlobalContextProvider>
     </EmployeeGate>

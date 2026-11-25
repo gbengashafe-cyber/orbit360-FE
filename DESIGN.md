@@ -202,7 +202,28 @@ One set (`lucide-react`), 16px (18px in the sidebar), stroke 1.75.
 - Buttons state exactly what happens ("Submit request", "Download schedule (CSV)").
 - Errors say what went wrong and how to fix it, without apologising.
 
-## 10. Rollout
+## 10. Navigation and app shell
+
+Step 2 implements the shared sidebar, top bar and mobile navigation drawer. The app shell uses the sidebar design tokens, 18px Lucide navigation icons, compact 36px navigation rows, and the standard active state (`brand-50` background with brand text). On desktop, collapsing the sidebar retains every permitted navigation destination as an icon with a hover label. It uses borders and separators for hierarchy; navigation surfaces do not use gradients or decorative shadows.
+
+### Role-based navigation
+
+| User type | Sidebar behaviour |
+| --- | --- |
+| Regular employee | Employee Portal items appear directly, without expandable section headings. |
+| Employee supervisor | Employee Portal items appear directly, including the existing Authorization Center item when the current supervisor entitlement permits it. |
+| HR Officer | HR resources and Employee portal are expandable sections. HR resources starts expanded and Employee portal starts collapsed. |
+| HR Manager | HR resources and Employee portal are expandable sections. HR resources starts expanded and Employee portal starts collapsed. The existing Authorization Center item is shown as its own section when the current supervisor entitlement permits it. |
+
+Navigation visibility continues to use the existing user context, supervisor flag and permission list. The shell does not grant routes or permissions. HR users retain their employee-side navigation, and permission-bound HR items remain hidden without their existing permission.
+
+### Top bar and mobile drawer
+
+The shared top bar contains the navigation control and the existing Notification Center bell. It does not replace the Notification Hub sidebar entry or alter notification polling, preferences, read state, acknowledgement or duplicate-alert suppression.
+
+On mobile, the sidebar is a closed-by-default drawer. The menu button opens it, the backdrop closes it, and selecting a navigation item closes it. The notification bell remains in the top bar at every breakpoint.
+
+## 11. Rollout
 
 1. ✅ Tokens and base components (`src/index.css`, `tailwind.config.js`, shadcn restyle, shared components in `src/components/system/`, dev-only `/design-system` page). No page logic changes.
 2. App shell: sidebar, shared top bar with the notification bell, mobile menu.
