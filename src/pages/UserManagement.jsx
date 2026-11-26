@@ -456,7 +456,6 @@ export default function UserManagement() {
             <Button
               onClick={handleSave}
               disabled={saving || !isFormComplete(form)}
-              className="bg-blue-700 hover:bg-blue-800 text-white"
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {dialogMode === 'create' ? 'Create user' : 'Save changes'}

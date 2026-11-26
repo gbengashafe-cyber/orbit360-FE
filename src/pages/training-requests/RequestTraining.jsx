@@ -307,7 +307,7 @@ export default function RequestTraining() {
             <div className="flex gap-3">
               <Button
                 type="button"
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1"
                 onClick={(e) => handleApproval(selectedRequest.id, true, e)}
                 disabled={processingAction === 'approve'}
               >
@@ -315,7 +315,8 @@ export default function RequestTraining() {
               </Button>
               <Button
                 type="button"
-                className="flex-1 bg-red-600 hover:bg-red-700"
+                className="flex-1"
+                variant="outline"
                 onClick={(e) => handleApproval(selectedRequest.id, false, e)}
                 disabled={processingAction === 'reject'}
               >

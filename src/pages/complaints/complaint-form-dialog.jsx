@@ -266,7 +266,6 @@ export function ComplaintFormDialog({ open, onOpenChange, onSuccess }) {
               <Button
                 type="submit"
                 disabled={submitting}
-                className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
               >
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Submit Complaint

@@ -860,7 +860,7 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
             <Button variant="outline" onClick={() => setShowConfirmModal(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button onClick={confirmSubmit} disabled={isSubmitting} className="bg-red-600 hover:bg-red-700">
+            <Button onClick={confirmSubmit} disabled={isSubmitting}>
               {isSubmitting ? 'Submitting...' : 'Confirm Submission'}
             </Button>
           </div>
@@ -895,7 +895,7 @@ export default function ExitManagement({ employee, isHrAdmin = false, onUpdate }
             >
               Cancel
             </Button>
-            <Button onClick={confirmDelete} disabled={isDeleting} className="bg-red-600 hover:bg-red-700">
+            <Button onClick={confirmDelete} disabled={isDeleting} variant="destructive">
               {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
           </div>

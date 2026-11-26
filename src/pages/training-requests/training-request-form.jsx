@@ -245,7 +245,7 @@ export const TrainingRequestForm = ({ showForm, onOpenChange }) => {
             <Button type="button" variant="outline" onClick={onOpenChange}>
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting} className="bg-green-600 hover:bg-green-700">
+            <Button type="submit" disabled={submitting}>
               {submitting ? 'Submitting...' : 'Submit Request'}
             </Button>
           </div>

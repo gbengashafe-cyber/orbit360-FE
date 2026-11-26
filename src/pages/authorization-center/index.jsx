@@ -59,6 +59,11 @@ export default function AuthorizationCenterWIP() {
   }, [getPendingCount, refreshKey]);
 
   useEffect(() => {
+    const modules = Object.keys(pendingStats.breakdown);
+    if (modules.length && !modules.includes(activeModule)) setActiveModule(modules[0]);
+  }, [pendingStats.breakdown, activeModule]);
+
+  useEffect(() => {
     return () => {
       setAuthorizeError(null);
     };
@@ -247,7 +252,9 @@ export default function AuthorizationCenterWIP() {
               setViewingItem(null);
               setApprovalNote(null);
             }}
-            canAuthorize={canAuthorize}
+            canAuthorize={canAuthorize ||
+              (activeModule === 'leaves' && viewingItem.status?.toLowerCase() === 'pending') ||
+              (activeModule === 'training requests' && viewingItem.status === 'PENDING_SUPERVISOR_APPROVAL')}
             handleAuthorize={handleAuthorize}
             authorizing={authorizing}
             moduleName={activeModule}

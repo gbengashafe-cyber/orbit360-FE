@@ -260,7 +260,6 @@ export default function JobPostingForm({ onSubmit, onCancel }) {
         </Button>
         <Button
           type="submit"
-          className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white"
           disabled={isLoading}
         >
           {isLoading ? (

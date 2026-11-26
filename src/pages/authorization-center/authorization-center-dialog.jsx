@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { PENDING_STATES } from '@/constants/pendingState';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 
 export const AuthorizationViewDialog = ({
   moduleName,
@@ -79,23 +78,19 @@ export const AuthorizationViewDialog = ({
           )}
           <DialogFooter className="sticky bottom-0 bg-white z-10 border-t">
             {viewingItem && canAuthorize && PENDING_STATES.includes(viewingItem.status?.toLowerCase()) ? (
-              <div className="gap-3 p-6 flex w-full">
-                <Button
-                  onClick={() => handleAuthorize(viewingItem, 'approve', moduleName)}
-                  disabled={authorizing}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  {authorizing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
-                  Authorize
-                </Button>
+              <div className="flex w-full flex-wrap justify-end gap-3 p-6">
                 <Button
                   onClick={() => handleAuthorize(viewingItem, 'reject', moduleName)}
                   disabled={authorizing}
-                  variant="destructive"
-                  className="flex-1"
+                  variant="outline"
                 >
-                  {authorizing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
                   Reject
+                </Button>
+                <Button
+                  onClick={() => handleAuthorize(viewingItem, 'approve', moduleName)}
+                  disabled={authorizing}
+                >
+                  {authorizing ? 'Processing...' : 'Authorize'}
                 </Button>
               </div>
             ) : null}

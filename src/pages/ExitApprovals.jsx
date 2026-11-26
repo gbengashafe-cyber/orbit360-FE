@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Loader2, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -489,16 +489,14 @@ export default function ExitApprovals() {
                     Update Clearance
                   </Button>
                   <Button
-                    className="bg-red-600 hover:bg-red-700 text-white"
+                    variant="outline"
                     onClick={handleRejectFromDetails}
                   >
-                    <XCircle className="w-4 h-4 mr-2" /> Reject
+                    Reject
                   </Button>
                   <Button
-                    className="bg-green-600 hover:bg-green-700 text-white"
                     onClick={handleApproveFromDetails}
                   >
-                    <CheckCircle className="w-4 h-4 mr-2" />
                     Submit
                   </Button>
                 </div>

@@ -1,5 +1,7 @@
 import { notificationService } from '@/api/notification.service';
 import { useNotificationCenter } from '@/context/NotificationCenterContext';
+import { notificationDestination } from '@/notifications/destination';
+import { useGlobalContext } from '@/state/context';
 import { Bell, CheckCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -13,6 +15,7 @@ export default function NotificationBell() {
   const [state, setState] = useState('idle');
   const root = useRef(null);
   const navigate = useNavigate();
+  const { currentUser } = useGlobalContext();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -35,11 +38,7 @@ export default function NotificationBell() {
       try { await notificationService.markRead(item.id); await refreshUnread(); } catch { /* keep navigation available */ }
     }
     setOpen(false);
-    if (item.entityType && item.entityId) {
-      const destinations = { leave: '/leave-management', loan: '/employee-cooperative', training_request: '/request-training', complaint: '/staff-complaints', exit: '/exit-management' };
-      const route = destinations[item.entityType];
-      if (route) navigate(route);
-    }
+    navigate(notificationDestination(item, currentUser?.permissions));
   };
 
   const markAll = async () => {

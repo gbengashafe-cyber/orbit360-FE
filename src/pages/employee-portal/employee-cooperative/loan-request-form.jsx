@@ -109,7 +109,7 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
                         <Select
                           onValueChange={(val) => {
                             const selectedLoanType = loanTypes?.find(
-                              (_loan) => _loan.id === Number(form.getValues('loanTypeId')),
+                              (_loan) => _loan.id === Number(val),
                             );
                             form.setValue('loanTypeMaxTenure', selectedLoanType?.maxTenureMonths || 0);
                             form.setValue('interestRate', selectedLoanType?.interestRate || 0);
@@ -236,7 +236,6 @@ export default function EmployeeLoanForm({ open, onOpenChange, onSuccess, loanTy
               {!['CANCELLED'].includes(loan?.status?.toUpperCase()) ? (
                 <Button
                   disabled={loading}
-                  className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-700/25"
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {loan ? 'Edit loan' : 'Create Loan'}

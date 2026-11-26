@@ -437,7 +437,7 @@ export default function DocumentManagement() {
                             Cancel
                         </Button>
                         <Button
-                            className="bg-red-600 hover:bg-red-700"
+                            variant="destructive"
                             disabled={isDeletingRequest}
                             onClick={handleConfirmDelete}
                         >
@@ -724,7 +724,6 @@ export default function DocumentManagement() {
                                         <div className="flex gap-2 ml-4">
                                             <Button
                                                 size="sm"
-                                                className="bg-green-600 hover:bg-green-700"
                                                 onClick={() => handleApproveDeletion(deletion.id)}
                                             >
                                                 Approve

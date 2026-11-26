@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EmptyState, PageHeader, StatusBadge } from '@/components/system';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle, XCircle, AlertCircle, Eye, MapPin, Briefcase as JobIcon, Calendar, DollarSign } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, MapPin, Briefcase as JobIcon, Calendar, DollarSign } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -253,22 +253,21 @@ export default function RecruitmentApprovals() {
                   </Button>
                   <div className="ml-auto flex gap-2">
                     <Button
-                      className="bg-red-600 hover:bg-red-700 text-white"
+                      variant="outline"
                       onClick={() => {
                         handleApprovalAction(detailsDialog.job.id, 'reject');
                         setDetailsDialog({ open: false, job: null });
                       }}
                     >
-                      <XCircle className="w-4 h-4 mr-2" /> Reject
+                      Reject
                     </Button>
                     <Button
-                      className="bg-green-600 hover:bg-green-700 text-white"
                       onClick={() => {
                         handleApprovalAction(detailsDialog.job.id, 'approve');
                         setDetailsDialog({ open: false, job: null });
                       }}
                     >
-                      <CheckCircle className="w-4 h-4 mr-2" /> Approve
+                      Approve
                     </Button>
                   </div>
                 </div>
@@ -302,7 +301,6 @@ export default function RecruitmentApprovals() {
                   Cancel
                 </Button>
                 <Button
-                  className="bg-green-600 hover:bg-green-700"
                   onClick={handleConfirmApproval}
                 >
                   Confirm Approval
@@ -348,7 +346,7 @@ export default function RecruitmentApprovals() {
                   Cancel
                 </Button>
                 <Button
-                  className="bg-red-600 hover:bg-red-700"
+                  variant="destructive"
                   onClick={handleConfirmApproval}
                 >
                   Confirm Rejection
