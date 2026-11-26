@@ -1,8 +1,9 @@
 import { apiClient } from './apiClient';
 import { ApiRoutes } from './apiRoutes';
+import { notificationQuery } from './notification-query';
 
 export const notificationService = {
-  getFeed: (params = {}) => apiClient.get(`${ApiRoutes.notifications.feed}?${new URLSearchParams(params)}`),
+  getFeed: (params = {}) => apiClient.get(`${ApiRoutes.notifications.feed}?${notificationQuery(params)}`),
   getUnreadCount: () => apiClient.get(ApiRoutes.notifications.unreadCount),
   markRead: (id) => apiClient.patch(ApiRoutes.notifications.markRead(id), {}),
   markAllRead: (category) =>
