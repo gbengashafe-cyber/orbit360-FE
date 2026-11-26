@@ -5,7 +5,6 @@ import { EmptyState, PageHeader, formatDateRange } from '@/components/system';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { showToast } from '@/utils/toast';
-import { Calendar, CheckCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import LeaveManagementComponent from '../components/selfservice/LeaveManagement';
 
@@ -222,9 +221,9 @@ export default function LeaveManagementPage() {
     return <div className="p-8 text-center text-red-500">Could not load employee data. Please contact support.</div>;
   }
 
-  let tabs = [{ id: 'my_leave', label: 'My Leave', icon: Calendar }];
+  let tabs = [{ id: 'my_leave', label: 'My Leave' }];
   if (isApprover) {
-    tabs.push({ id: 'approvals', label: 'Leave Approvals', icon: CheckCircle });
+    tabs.push({ id: 'approvals', label: 'Leave Approvals' });
   }
 
   return (
@@ -247,21 +246,19 @@ export default function LeaveManagementPage() {
                     </div>
                 )} */}
 
-        <Card>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-none lg:flex lg:space-x-1 p-1 bg-gray-100 rounded-lg">
+            {isApprover && <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
               {tabs.map((tab) => (
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
                   className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-blue-700"
                 >
-                  <tab.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span>{tab.label}</span>
                 </TabsTrigger>
               ))}
-            </TabsList>
-            <div className="mt-6 p-4">
+            </TabsList>}
+            <div className={isApprover ? 'mt-6' : ''}>
               <TabsContent value="my_leave">
                 <LeaveManagementComponent employee={currentEmployeeData} onUpdate={loadBaseData} />
               </TabsContent>
@@ -276,7 +273,6 @@ export default function LeaveManagementPage() {
               )}
             </div>
           </Tabs>
-        </Card>
       </div>
     </div>
   );

@@ -375,18 +375,14 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-section-title text-foreground">My leave</h2>
-          <p className="text-body text-muted-foreground">Manage your leave requests and balances.</p>
-        </div>
+      <div className="flex justify-end">
         <Button onClick={() => setShowForm(true)}>New leave request</Button>
       </div>
 
       {/* Leave Balance Summary - Always show summary cards */}
       <div className="rounded-lg border bg-card p-4 sm:p-6">
         <h3 className="mb-4 text-card-title text-foreground">Leave balance summary</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {leaveBalanceByType && leaveBalanceByType.length > 0 ? (
             leaveBalanceByType.map((balance) => {
               // Calculate approved days for this leave type
@@ -408,23 +404,17 @@ export default function LeaveManagement({ employee, onUpdate, preLoadedLeaves, l
                 }, 0);
 
               const usagePercentage = balance.totalDays > 0 ? (approvedDaysForType / balance.totalDays) * 100 : 0;
-              // Color coding for usage: Red (>50% used), Yellow (20-50% used), Blue (<20% used)
-              const getProgressBarColor = () => {
-                if (usagePercentage > 50) return 'bg-red-500';
-                if (usagePercentage > 20) return 'bg-yellow-500';
-                return 'bg-blue-600';
-              };
               return (
                 <div key={balance.id} className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-gray-700 capitalize">{balance.leaveType}</p>
-                    <span className="text-lg font-bold text-gray-900">
+                    <p className="text-body font-medium text-foreground capitalize">{balance.leaveType}</p>
+                    <span className="text-body font-medium tabular-nums text-muted-foreground">
                       {approvedDaysForType}/{balance.totalDays}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-300 rounded h-2.5 overflow-hidden">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                     <div
-                      className={`${getProgressBarColor()} h-2.5 rounded transition-all duration-300`}
+                      className="h-full rounded-full bg-primary/50 transition-all duration-300"
                       style={{ width: `${Math.min(usagePercentage, 100)}%` }}
                     ></div>
                   </div>
