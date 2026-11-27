@@ -4,7 +4,7 @@ import { CheckCheck, ChevronDown, Settings2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 
-const CATEGORY_LABELS = { LEAVE: 'Leave', LOAN: 'Loans', TRAINING: 'Training', RELIEVER: 'Reliever', COMPLAINT: 'Complaints', GENERAL: 'General', EXIT: 'Exit Management', EMPLOYEE_MANAGEMENT: 'Employee Management', RECRUITMENT: 'Recruitment', PAYROLL: 'Payroll', DOCUMENTS: 'Documents', ONBOARDING: 'Onboarding' };
+const CATEGORY_LABELS = { LEAVE: 'Leave', LOAN: 'Loans', TRAINING: 'Training', RELIEVER: 'Reliever', COMPLAINT: 'Complaints', GENERAL: 'General', EXIT: 'Exit Management', EMPLOYEE_MANAGEMENT: 'Employee Management', RECRUITMENT: 'Recruitment', PAYROLL: 'Payroll', DOCUMENTS: 'Documents', ONBOARDING: 'Onboarding', STAFF_MOVEMENT: 'Staff Movement' };
 const displayDate = (value) => new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' }).format(new Date(value));
 
 export default function NotificationCenter() {
